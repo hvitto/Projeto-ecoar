@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
   TrendingUp, Sword, BookOpen, Package, FileText, Target,
-  Waves, Wind
+  Waves, Wind, Edit
 } from 'lucide-react'
 import {
   getAttributeModifier,
@@ -20,9 +20,10 @@ import { paths, getPathById } from '@/data/paths'
 
 interface CharacterSheetProps {
   initialData?: any
+  onEdit?: () => void
 }
 
-export default function CharacterSheet({ initialData }: CharacterSheetProps) {
+export default function CharacterSheet({ initialData, onEdit }: CharacterSheetProps) {
   const [characterData, setCharacterData] = useState({
     // Levels
     nivelAlma: 1,
@@ -414,7 +415,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-ecoar-light py-12 px-4 md:px-8">
+    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 py-12 px-4 md:px-8">
       <div className="max-w-[1600px] mx-auto">
         {/* Layout em 3 colunas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -426,9 +427,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
                 Atributos
               </h3>
               <div className="space-y-4">
@@ -441,10 +442,10 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                   const mod = attrData.mod || 0
                   
                   return (
-                    <div key={attr.key} className="flex items-center justify-between py-3 border-b border-ecoar-dark/5 last:border-0">
+                    <div key={attr.key} className="flex items-center justify-between py-3 border-b border-ecoar-dark-300/20 dark:border-ecoar-light-900/10 last:border-0">
                       <div className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 text-ecoar-teal" />
-                        <span className="text-sm text-ecoar-dark/80">{attr.label}</span>
+                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
+                        <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">{attr.label}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <input
@@ -457,9 +458,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                             updateField(`${attr.key}.nivel`, val)
                             updateField(`${attr.key}.mod`, getAttributeModifier(val))
                           }}
-                          className="w-12 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                          className="w-12 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                         />
-                        <span className="text-sm font-medium text-ecoar-teal w-8 text-right">
+                        <span className="text-sm font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400 w-8 text-right">
                           {formatModifier(mod)}
                         </span>
                       </div>
@@ -474,56 +475,56 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
                 Níveis
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-ecoar-dark/80">Alma</span>
+                  <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">Alma</span>
                   <input
                     type="number"
                     value={characterData.nivelAlma}
                     onChange={(e) => updateField('nivelAlma', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                    className="w-16 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-ecoar-dark/80">Poder</span>
+                  <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">Poder</span>
                   <input
                     type="number"
                     value={characterData.nivelPoder}
                     onChange={(e) => updateField('nivelPoder', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                    className="w-16 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-ecoar-dark/80">Trilha</span>
+                  <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">Trilha</span>
                   <input
                     type="number"
                     value={characterData.nivelTrilha}
                     onChange={(e) => updateField('nivelTrilha', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                    className="w-16 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                   />
                 </div>
-                <div className="pt-3 border-t border-ecoar-dark/5">
+                <div className="pt-3 border-t border-ecoar-dark-300/20 dark:border-ecoar-light-900/10">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-ecoar-dark/80">Pontos Evolução</span>
+                    <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">Pontos Evolução</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.atual}
                       onChange={(e) => updateField('pontosEvolucao.atual', parseInt(e.target.value) || 0)}
-                      className="flex-1 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                      className="flex-1 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                     />
-                    <span className="text-ecoar-dark/40">/</span>
+                    <span className="text-ecoar-dark-500 dark:text-ecoar-light-900/60">/</span>
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.max}
                       onChange={(e) => updateField('pontosEvolucao.max', parseInt(e.target.value) || 0)}
-                      className="flex-1 text-center text-lg font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                      className="flex-1 text-center text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
@@ -535,9 +536,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
                 Limites
               </h3>
               <div className="space-y-4">
@@ -553,18 +554,18 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                   return (
                     <div key={limit.key} className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-ecoar-teal" />
-                        <span className="text-sm text-ecoar-dark/80">{limit.label}</span>
+                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
+                        <span className="text-sm text-ecoar-dark-800 dark:text-ecoar-light-900 font-medium">{limit.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
                           value={current.atual}
                           onChange={(e) => updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)}
-                          className="w-12 text-center text-sm font-semibold text-ecoar-dark bg-transparent border-b-2 border-ecoar-dark/20 focus:border-ecoar-teal focus:outline-none transition-colors"
+                          className="w-12 text-center text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                         />
-                        <span className="text-ecoar-dark/40">/</span>
-                        <span className="text-sm font-semibold text-ecoar-dark w-8 text-right">
+                        <span className="text-ecoar-dark-500 dark:text-ecoar-light-900/60">/</span>
+                        <span className="text-sm font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900 w-8 text-right">
                           {limit.max}
                         </span>
                       </div>
@@ -582,19 +583,31 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-8"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-8 shadow-sm"
             >
-              <input
-                type="text"
-                value={characterData.nome}
-                onChange={(e) => updateField('nome', e.target.value)}
-                className="w-full text-4xl font-bold bg-transparent border-none text-ecoar-dark placeholder-ecoar-dark/30 focus:outline-none mb-6"
-                placeholder="Nome do Personagem"
-              />
+              <div className="flex items-center justify-between mb-6">
+                <input
+                  type="text"
+                  value={characterData.nome}
+                  onChange={(e) => updateField('nome', e.target.value)}
+                  className="flex-1 text-4xl font-bold bg-transparent border-none text-ecoar-dark-900 dark:text-ecoar-light-900 placeholder-ecoar-dark-400 dark:placeholder-ecoar-light-900/50 focus:outline-none"
+                  placeholder="Nome do Personagem"
+                />
+                {onEdit && (
+                  <button
+                    onClick={onEdit}
+                    className="ml-4 px-4 py-2 bg-ecoar-teal-100 dark:bg-ecoar-teal-600/20 hover:bg-ecoar-teal-200 dark:hover:bg-ecoar-teal-600/30 text-ecoar-teal-700 dark:text-ecoar-teal-300 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal-300 dark:border-ecoar-teal-500/40 shadow-sm"
+                    title="Editar personagem"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span className="text-sm font-medium">Editar</span>
+                  </button>
+                )}
+              </div>
               
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="block text-xs font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                     Genus
                   </label>
                   <select
@@ -604,7 +617,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                       updateField('raca', '')
                       applyRaceBonuses('')
                     }}
-                    className="w-full px-4 py-2.5 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
                     <option value="">Selecione um Genus</option>
                     {getAllGenus().map((genus) => (
@@ -615,7 +628,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                     Raça
                   </label>
                   <select
@@ -624,7 +637,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                       updateField('raca', e.target.value)
                       applyRaceBonuses(e.target.value)
                     }}
-                    className="w-full px-4 py-2.5 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all disabled:opacity-50"
+                    className="w-full px-4 py-2.5 bg-white border border-ecoar-dark-300/40 rounded-lg text-ecoar-dark-900 text-sm focus:outline-none focus:border-ecoar-teal-500 focus:ring-2 focus:ring-ecoar-teal-400/30 transition-all disabled:opacity-50 shadow-sm"
                     disabled={!characterData.genus}
                   >
                     <option value="">Selecione uma Raça</option>
@@ -639,7 +652,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                     Ofício
                   </label>
                   <select
@@ -648,7 +661,7 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                       updateField('oficio', e.target.value)
                       applyClassBonuses(e.target.value)
                     }}
-                    className="w-full px-4 py-2.5 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
                     <option value="">Selecione</option>
                     {classes.map((classe) => (
@@ -659,13 +672,13 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                     Trilha
                   </label>
                   <select
                     value={characterData.trilha}
                     onChange={(e) => updateField('trilha', e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
                     <option value="">Selecione</option>
                     {paths.map((path) => (
@@ -683,9 +696,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
                 Testes Comuns
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -695,14 +708,14 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                   { key: 'esquiva', label: 'Esquiva', desc: 'Percepção + Reflexos', value: derivedValues.commonTests.esquiva },
                   { key: 'coragem', label: 'Coragem', desc: 'Vontade + Compostura', value: derivedValues.commonTests.coragem },
                 ].map((test) => (
-                  <div key={test.key} className="text-center py-4 border border-ecoar-dark/5 rounded-lg">
-                    <div className="text-xs font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-2">
+                  <div key={test.key} className="text-center py-4 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-teal-50/50 dark:bg-ecoar-teal-900/30 rounded-lg">
+                    <div className="text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                       {test.label}
                     </div>
-                    <div className="text-2xl font-bold text-ecoar-teal mb-1">
+                    <div className="text-2xl font-bold text-ecoar-teal-600 dark:text-ecoar-teal-400 mb-1">
                       {formatModifier(test.value)}
                     </div>
-                    <div className="text-xs text-ecoar-dark/50">{test.desc}</div>
+                    <div className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/70">{test.desc}</div>
                   </div>
                 ))}
               </div>
@@ -714,9 +727,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+                className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
               >
-                <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+                <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
                   Deslocamentos
                 </h3>
                 <div className="space-y-3">
@@ -728,13 +741,13 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                     const Icon = move.icon
                     return (
                       <div key={move.key} className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 text-ecoar-teal" />
+                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
                         <input
                           type="text"
                           value={characterData[move.key as keyof typeof characterData] as string}
                           onChange={(e) => updateField(move.key, e.target.value)}
                           placeholder="0m"
-                          className="flex-1 px-3 py-2 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                          className="flex-1 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                         />
                       </div>
                     )
@@ -746,9 +759,9 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
-                className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+                className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
               >
-                <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-6">
+                <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
                   Sentidos
                 </h3>
                 <div className="space-y-3">
@@ -760,13 +773,13 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
                     const Icon = sense.icon
                     return (
                       <div key={sense.key} className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 text-ecoar-teal" />
+                        <Icon className="w-4 h-4 text-ecoar-teal-600" />
                         <input
                           type="text"
                           value={characterData[sense.key as keyof typeof characterData] as string}
                           onChange={(e) => updateField(sense.key, e.target.value)}
                           placeholder="0m"
-                          className="flex-1 px-3 py-2 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                          className="flex-1 px-3 py-2 bg-white border border-ecoar-dark-300/40 rounded-lg text-ecoar-dark-900 text-sm focus:outline-none focus:border-ecoar-teal-500 focus:ring-2 focus:ring-ecoar-teal-400/30 transition-all shadow-sm"
                         />
                       </div>
                     )
@@ -783,16 +796,16 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-4">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-4">
                 Equipamentos
               </h3>
               <textarea
                 value={characterData.equipamentos}
                 onChange={(e) => updateField('equipamentos', e.target.value)}
                 placeholder="Liste seus equipamentos..."
-                className="w-full h-64 px-4 py-3 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm resize-none focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                className="w-full h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
               />
             </motion.div>
 
@@ -801,16 +814,16 @@ export default function CharacterSheet({ initialData }: CharacterSheetProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/60 backdrop-blur-sm border border-ecoar-dark/10 rounded-2xl p-6"
+              className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark/60 uppercase tracking-wider mb-4">
+              <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-4">
                 Anotações
               </h3>
               <textarea
                 value={characterData.anotacoes}
                 onChange={(e) => updateField('anotacoes', e.target.value)}
                 placeholder="Anotações gerais..."
-                className="w-full h-64 px-4 py-3 bg-white/80 border border-ecoar-dark/10 rounded-lg text-ecoar-dark text-sm resize-none focus:outline-none focus:border-ecoar-teal focus:ring-1 focus:ring-ecoar-teal/20 transition-all"
+                className="w-full h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
               />
             </motion.div>
           </aside>

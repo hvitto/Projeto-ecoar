@@ -3,18 +3,38 @@
 @tailwind utilities;
 
 @layer base {
-  /* Glassmorphism Theme - Fundo claro com gradiente sutil */
-  body {
+  /* Tema Claro (padrão) */
+  body,
+  body[data-theme='light'],
+  html[data-theme='light'] body {
     @apply bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 text-ecoar-dark;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
+  /* Tema Escuro - Paleta ECOAR */
+  body[data-theme='dark'],
+  html[data-theme='dark'] body,
+  html.dark body {
+    @apply bg-gradient-to-br from-ecoar-dark-900 via-ecoar-dark-800 to-ecoar-dark-700 text-ecoar-light-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Bordas baseadas no tema */
   * {
     @apply border-ecoar-dark/20;
   }
+  
+  body[data-theme='dark'] *,
+  html[data-theme='dark'] *,
+  html.dark * {
+    @apply border-ecoar-light-900/20;
+  }
 
-  /* Custom Scrollbar - ECOAR Glassmorphism Style */
+  /* Custom Scrollbar - Tema Claro */
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(123, 183, 187, 0.5) rgba(245, 245, 245, 0.3);
@@ -46,34 +66,69 @@
   *::-webkit-scrollbar-corner {
     background: rgba(245, 245, 245, 0.4);
   }
+  
+  /* Custom Scrollbar - Tema Escuro */
+  body[data-theme='dark'] *,
+  html[data-theme='dark'] *,
+  html.dark * {
+    scrollbar-color: rgba(123, 183, 187, 0.5) rgba(80, 80, 80, 0.3);
+  }
+
+  body[data-theme='dark'] *::-webkit-scrollbar-track,
+  html[data-theme='dark'] *::-webkit-scrollbar-track,
+  html.dark *::-webkit-scrollbar-track {
+    background: rgba(80, 80, 80, 0.4);
+    border: 1px solid rgba(123, 183, 187, 0.2);
+  }
+
+  body[data-theme='dark'] *::-webkit-scrollbar-thumb,
+  html[data-theme='dark'] *::-webkit-scrollbar-thumb,
+  html.dark *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(123, 183, 187, 0.7) 0%, rgba(182, 99, 169, 0.7) 100%);
+    border: 2px solid rgba(80, 80, 80, 0.6);
+    box-shadow: inset 0 0 6px rgba(123, 183, 187, 0.4);
+  }
+
+  body[data-theme='dark'] *::-webkit-scrollbar-thumb:hover,
+  html[data-theme='dark'] *::-webkit-scrollbar-thumb:hover,
+  html.dark *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(123, 183, 187, 0.9) 0%, rgba(182, 99, 169, 0.9) 100%);
+    box-shadow: 0 0 10px rgba(123, 183, 187, 0.6);
+  }
+
+  body[data-theme='dark'] *::-webkit-scrollbar-corner,
+  html[data-theme='dark'] *::-webkit-scrollbar-corner,
+  html.dark *::-webkit-scrollbar-corner {
+    background: rgba(80, 80, 80, 0.4);
+  }
 }
 
 @layer components {
-  /* Input Fields - Glassmorphism */
+  /* Input Fields - Melhor contraste e legibilidade */
   .input-field {
-    @apply w-full px-4 py-2.5 bg-white/90 backdrop-blur-sm border border-ecoar-dark/20 rounded-lg 
-           text-ecoar-dark text-sm placeholder-ecoar-dark/50 
-           focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30 
-           focus:border-ecoar-teal transition-all duration-200
-           hover:border-ecoar-dark/40;
+    @apply w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg 
+           text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm placeholder-ecoar-dark-400/70 dark:placeholder-ecoar-light-900/50
+           focus:outline-none focus:ring-2 focus:ring-ecoar-teal-400/40 dark:focus:ring-ecoar-teal-500/40
+           focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 transition-all duration-200
+           hover:border-ecoar-dark-400 dark:hover:border-ecoar-light-900/40 shadow-sm;
   }
   
   .input-number {
-    @apply w-full px-4 py-2.5 bg-white/90 backdrop-blur-sm border border-ecoar-dark/20 rounded-lg 
-           text-ecoar-dark text-center text-lg font-semibold 
-           focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30 
-           focus:border-ecoar-teal transition-all duration-200
-           hover:border-ecoar-dark/40;
+    @apply w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg 
+           text-ecoar-dark-900 dark:text-ecoar-light-900 text-center text-lg font-semibold 
+           focus:outline-none focus:ring-2 focus:ring-ecoar-teal-400/40 dark:focus:ring-ecoar-teal-500/40
+           focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 transition-all duration-200
+           hover:border-ecoar-dark-400 dark:hover:border-ecoar-light-900/40 shadow-sm;
   }
 
-  /* Section Headers - Glassmorphism */
+  /* Section Headers - Melhor contraste */
   .section-header {
-    @apply text-lg font-bold text-white mb-4 pb-2 border-b border-white/20
+    @apply text-lg font-bold text-ecoar-dark-900 dark:text-ecoar-light-900 mb-4 pb-2 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/30
            flex items-center gap-2;
   }
 
   .section-header-icon {
-    @apply w-5 h-5 text-ecoar-teal;
+    @apply w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400;
   }
 
   /* Section Cards - Glassmorphism */
@@ -106,55 +161,55 @@
     opacity: 1;
   }
 
-  /* Stat Boxes - Glassmorphism */
+  /* Stat Boxes - Melhor contraste */
   .stat-box {
-    @apply bg-ecoar-dark/60 backdrop-blur-md rounded-xl 
-           border border-ecoar-dark/30 p-4 text-center 
-           hover:border-ecoar-teal/50 transition-all duration-200
-           hover:shadow-lg hover:shadow-ecoar-teal/10;
+    @apply bg-white/80 dark:bg-ecoar-dark-700/80 backdrop-blur-sm rounded-xl 
+           border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 p-4 text-center 
+           hover:border-ecoar-teal-500/50 dark:hover:border-ecoar-teal-400/50 transition-all duration-200
+           hover:shadow-lg hover:shadow-ecoar-teal-200/40 dark:hover:shadow-ecoar-teal-600/20;
   }
 
   .stat-label {
-    @apply text-xs font-semibold text-white/70 uppercase tracking-wider mb-1;
+    @apply text-xs font-semibold text-ecoar-dark-600 dark:text-ecoar-light-900/70 uppercase tracking-wider mb-1;
   }
 
   .stat-value {
-    @apply text-2xl font-bold text-white;
+    @apply text-2xl font-bold text-ecoar-dark-900 dark:text-ecoar-light-900;
   }
 
   .stat-modifier {
-    @apply text-sm font-semibold text-ecoar-teal mt-1;
+    @apply text-sm font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400 mt-1;
   }
 
-  /* Buttons - Glassmorphism */
+  /* Buttons - Melhor contraste e legibilidade */
   .btn-primary {
-    @apply px-5 py-2.5 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta 
+    @apply px-5 py-2.5 bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 
            text-white rounded-lg font-semibold 
-           hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 
-           transition-all duration-200 shadow-lg shadow-ecoar-teal/20
+           hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 
+           transition-all duration-200 shadow-lg shadow-ecoar-teal-300/30
            active:scale-95;
   }
   
   .btn-secondary {
-    @apply px-5 py-2.5 bg-ecoar-dark/80 backdrop-blur-sm text-white rounded-lg font-semibold 
-           hover:bg-ecoar-dark transition-all duration-200 
-           border border-ecoar-dark/50;
+    @apply px-5 py-2.5 bg-ecoar-dark-600 text-white rounded-lg font-semibold 
+           hover:bg-ecoar-dark-700 transition-all duration-200 
+           border border-ecoar-dark-500 shadow-md;
   }
 
-  /* Label - Glassmorphism */
+  /* Label - Melhor contraste */
   .label {
-    @apply block text-xs font-semibold text-white/80 mb-2 uppercase tracking-wider;
+    @apply block text-xs font-semibold text-ecoar-dark-700 mb-2 uppercase tracking-wider;
   }
 
   /* Divider */
   .divider {
-    @apply border-t border-white/20 my-6;
+    @apply border-t border-ecoar-dark-300/30 my-6;
   }
 
-  /* Badge - Glassmorphism */
+  /* Badge - Melhor contraste */
   .badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-           bg-ecoar-teal/20 text-ecoar-teal border border-ecoar-teal/30;
+           bg-ecoar-teal-100 text-ecoar-teal-700 border border-ecoar-teal-300;
   }
 }
 

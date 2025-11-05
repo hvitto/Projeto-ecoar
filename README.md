@@ -1,13 +1,16 @@
-# Eco Beyond - RPG Character Sheet
+# ECOAR Beyond - RPG Character Sheet
 
-A modern, D&D Beyond-inspired character sheet built with Next.js and Tailwind CSS.
+Sistema moderno de criação e gerenciamento de personagens para o RPG ECOAR, inspirado no D&D Beyond, construído com Next.js e Tailwind CSS.
 
 ## Features
 
-- Complete character sheet with all fields from your Portuguese RPG system
-- D&D Beyond-style UI with clean, modern design
-- Responsive layout that works on desktop and mobile
-- Real-time form updates with React state management
+- Wizard completo de criação de personagem com múltiplas etapas
+- Ficha de personagem completa com todos os campos do sistema ECOAR
+- Interface moderna com design limpo e intuitivo
+- Layout responsivo para desktop e mobile
+- Persistência de dados no localStorage
+- Navegação fluida entre wizard e ficha de personagem
+- Atualizações em tempo real com gerenciamento de estado React
 
 ## Getting Started
 
@@ -70,14 +73,31 @@ The character sheet includes:
 ## Project Structure
 
 ```
-eco-beyond/
+Projeto-ecoar/
 ├── app/
-│   ├── globals.css      # Global styles and Tailwind imports
-│   ├── layout.tsx       # Root layout component
-│   └── page.tsx         # Main page with character sheet
+│   ├── globals.css              # Global styles and Tailwind imports
+│   ├── layout.tsx               # Root layout component
+│   └── page.tsx                 # Main page with wizard/sheet routing
 ├── components/
-│   └── CharacterSheet.tsx  # Main character sheet component
+│   ├── CharacterSheet.tsx       # Main character sheet component
+│   ├── CharacterCreationWizard.tsx  # Complete character creation wizard
+│   ├── Header.tsx               # Navigation header
+│   └── Footer.tsx               # Footer component
+├── data/                        # Game data (races, classes, skills, etc.)
+├── lib/
+│   └── calculations.ts          # Game calculation utilities
 ├── package.json
 ├── tailwind.config.js
 └── tsconfig.json
 ```
+
+## Melhorias Implementadas
+
+- ✅ Removido componente `CharacterCreation.tsx` não utilizado
+- ✅ Removidas dependências não utilizadas (`@tabler/icons-react`, `clsx`, `tailwind-merge`)
+- ✅ Removida pasta `contexts` vazia
+- ✅ Limpeza de arquivos lock duplicados
+- ✅ Adicionado botão de edição na ficha do personagem
+- ✅ Melhorada navegação com Header funcional
+- ✅ Implementada persistência de dados no localStorage
+- ✅ Fluxo intuitivo entre wizard e ficha de personagem
