@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { CheckCircle2, Users } from 'lucide-react'
+import Image from 'next/image'
 import Badge from './Badge'
 
 interface RaceCardProps {
@@ -41,13 +41,20 @@ export default function RaceCard({
     >
       {/* Ícone e Título */}
       <div className="flex items-center gap-3 mb-2">
-        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-          isSelected
-            ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-400'
-            : 'bg-white/5 dark:bg-ecoar-light-900/10 text-white/60 dark:text-ecoar-light-900/60'
-        }`}>
-          <Users className="w-5 h-5" />
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: index * 0.05 }}
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-300"
+        >
+          <Image
+            src="/assets/icons/mayne-icon.png"
+            alt="Ícone Mayne"
+            width={40}
+            height={40}
+            className="w-10 h-10 rounded-full"
+          />
+        </motion.div>
         <div className="flex-1 min-w-0">
           <h4 className={`font-semibold text-sm ${
             isSelected ? 'text-white dark:text-ecoar-light-900' : 'text-white/90 dark:text-ecoar-light-900/90'
@@ -56,14 +63,6 @@ export default function RaceCard({
           </h4>
           <span className="text-xs text-white/60 dark:text-ecoar-light-900/60">{genus}</span>
         </div>
-        {isSelected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-          >
-            <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-          </motion.div>
-        )}
       </div>
 
       {/* Descrição */}
