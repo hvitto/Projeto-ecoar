@@ -15,8 +15,8 @@ import {
   formatModifier,
 } from '@/lib/calculations'
 import { races, getAllGenus, getRacesByGenus, getRaceById } from '@/data/races'
-import { classes, getClassById } from '@/data/classes'
 import { paths, getPathById } from '@/data/paths'
+import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
 
 interface CharacterSheetProps {
   initialData?: any
@@ -33,7 +33,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
     // Basic Info
     pontosEvolucao: { atual: 0, max: 0 },
     nome: '',
-    oficio: '',
+    localizacao: '',
     genus: '',
     moeda: '',
     raca: '',
@@ -91,7 +91,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
         if (initialData.nome) updated.nome = initialData.nome
         if (initialData.genus) updated.genus = initialData.genus
         if (initialData.raca) updated.raca = initialData.raca
-        if (initialData.oficio) updated.oficio = initialData.oficio
+        if (initialData.localizacao) updated.localizacao = initialData.localizacao
         if (initialData.trilha) updated.trilha = initialData.trilha
         
         if (initialData.attributes) {
@@ -183,43 +183,6 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
           }
         }, 100)
       }
-      if (initialData.oficio) {
-        setTimeout(() => {
-          const classId = initialData.oficio
-          if (classId) {
-            const classe = getClassById(classId)
-            if (!classe || !classe.bonuses) return
-
-            if (classe.bonuses.attributes) {
-              Object.entries(classe.bonuses.attributes).forEach(([attr, bonus]) => {
-                const attrMap: Record<string, string> = {
-                  forca: 'forca',
-                  carisma: 'carisma',
-                  finesse: 'finesse',
-                  inteligencia: 'inteligencia',
-                  percepcao: 'percepcao',
-                  vitalidade: 'vitalidade',
-                  vontade: 'vontade',
-                }
-                const attrKey = attrMap[attr]
-                if (attrKey) {
-                  setCharacterData(prev => {
-                    const attrData = prev[attrKey as keyof typeof prev] as { nivel: number; mod: number }
-                    const newLevel = (attrData?.nivel || 0) + (bonus as number)
-                    return {
-                      ...prev,
-                      [attrKey]: {
-                        nivel: newLevel,
-                        mod: getAttributeModifier(newLevel),
-                      },
-                    }
-                  })
-                }
-              })
-            }
-          }
-        }, 150)
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -247,39 +210,6 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
     })
   }
 
-  const applyClassBonuses = (classId: string) => {
-    if (!classId) return
-    const classe = getClassById(classId)
-    if (!classe || !classe.bonuses) return
-
-    if (classe.bonuses.attributes) {
-      Object.entries(classe.bonuses.attributes).forEach(([attr, bonus]) => {
-        const attrMap: Record<string, string> = {
-          forca: 'forca',
-          carisma: 'carisma',
-          finesse: 'finesse',
-          inteligencia: 'inteligencia',
-          percepcao: 'percepcao',
-          vitalidade: 'vitalidade',
-          vontade: 'vontade',
-        }
-        const attrKey = attrMap[attr]
-        if (attrKey) {
-          setCharacterData(prev => {
-            const attrData = prev[attrKey as keyof typeof prev] as { nivel: number; mod: number }
-            const newLevel = (attrData?.nivel || 0) + (bonus as number)
-            return {
-              ...prev,
-              [attrKey]: {
-                nivel: newLevel,
-                mod: getAttributeModifier(newLevel),
-              },
-            }
-          })
-        }
-      })
-    }
-  }
 
   const applyRaceBonuses = (raceId: string) => {
     if (!raceId) {
@@ -653,22 +583,26 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
-                    Ofício
+                    Região
                   </label>
                   <select
-                    value={characterData.oficio}
-                    onChange={(e) => {
-                      updateField('oficio', e.target.value)
-                      applyClassBonuses(e.target.value)
-                    }}
+                    value={characterData.localizacao}
+                    onChange={(e) => updateField('localizacao', e.target.value)}
                     className="w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
                     <option value="">Selecione</option>
-                    {classes.map((classe) => (
-                      <option key={classe.id} value={classe.id}>
-                        {classe.name}
-                      </option>
-                    ))}
+                    {getAllNations().map((nation) => {
+                      const nationLocations = getLocationsByNation(nation)
+                      return (
+                        <optgroup key={nation} label={nation}>
+                          {nationLocations.map((location) => (
+                            <option key={location.id} value={location.id}>
+                              {location.name}{location.region ? ` (${location.region})` : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )
+                    })}
                   </select>
                 </div>
                 <div>

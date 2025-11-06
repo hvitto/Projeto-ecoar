@@ -60,7 +60,7 @@ export default function SingularityCard({
       onClick={onClick}
       disabled={!isSelected && !canSelect}
       whileHover={!isSelected && canSelect ? { scale: 1.02 } : {}}
-      className={`p-5 rounded-xl border-2 text-left transition-all ${
+      className={`p-4 rounded-lg border-2 text-left transition-all ${
         isSelected
           ? selectedClasses[variant]
           : canSelect
@@ -68,23 +68,23 @@ export default function SingularityCard({
           : 'border-white/5 dark:border-ecoar-light-900/10 bg-white/5 dark:bg-ecoar-light-900/10 opacity-50 cursor-not-allowed'
       } ${className}`}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="text-white dark:text-ecoar-light-900 font-bold text-lg">{name}</div>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex-1 min-w-0">
+          <div className="text-white dark:text-ecoar-light-900 font-semibold text-base leading-tight">{name}</div>
           {level && (
-            <div className="text-xs text-white/60 dark:text-ecoar-light-900/60 mt-1">
+            <div className="text-xs text-white/60 dark:text-ecoar-light-900/60 mt-0.5">
               {levelLabel || `Nível ${level}`} {level <= 12 ? `(${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][level - 1]})` : ''}
             </div>
           )}
         </div>
-        <div className="text-white dark:text-ecoar-light-900 font-semibold bg-ecoar-magenta-700/80 dark:bg-ecoar-magenta-700/90 px-2 py-1 rounded border border-ecoar-magenta-600 dark:border-ecoar-magenta-500">
+        <div className="flex-shrink-0 text-white dark:text-ecoar-light-900 font-semibold text-sm bg-ecoar-magenta-700/80 dark:bg-ecoar-magenta-700/90 px-2 py-1 rounded border border-ecoar-magenta-600 dark:border-ecoar-magenta-500 whitespace-nowrap">
           {cost} {costLabel}
           {secondaryCost && (
             <div className="text-xs text-white/80 dark:text-ecoar-light-900/80">({secondaryCost})</div>
           )}
         </div>
       </div>
-      <p className="text-white/70 dark:text-ecoar-light-900/70 text-sm mb-2">{description}</p>
+      <p className="text-white/70 dark:text-ecoar-light-900/70 text-xs leading-relaxed mb-1.5 line-clamp-3">{description}</p>
       {effects && (
         <p className="text-white/60 dark:text-ecoar-light-900/60 text-xs mb-2">{effects}</p>
       )}
@@ -94,7 +94,7 @@ export default function SingularityCard({
         </div>
       )}
       {requirementsText && (
-        <div className="text-white/80 dark:text-ecoar-light-900/80 text-xs">
+        <div className="text-white/80 dark:text-ecoar-light-900/80 text-xs mt-1.5 pt-1.5 border-t border-white/10">
           {requirementsText}
         </div>
       )}

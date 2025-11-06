@@ -31,7 +31,7 @@ import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/ap
 import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
 import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
 import { getAllMartialSchools, getMartialSchoolDataById, MartialSchoolData, MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
-import { locations, getLocationById, Location } from '@/data/locations'
+import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
 import { ecoarTypes as ecoaTypes, getEcoarById, Ecoar } from '@/data/ecoar'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
@@ -136,7 +136,8 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
   const [showIntroduction, setShowIntroduction] = useState(true)
   const [initialLevel, setInitialLevel] = useState(1) // Nível inicial escolhido (1, 2, 3+)
   const [nivelAlmaInicial, setNivelAlmaInicial] = useState<number>(1) // Nível de Alma inicial (1-24)
-  const [currentStep, setCurrentStep] = useState(0) // 0 = introdução, depois 1-8
+  const [currentStep, setCurrentStep] = useState(0)
+  const [pcSubStep, setPCSubStep] = useState<'singularidades' | 'traços' | 'escola-marcial'>('singularidades') // 0 = introdução, depois 1-8
   const [selectedGenus, setSelectedGenus] = useState<string>('')
   const [selectedRaca, setSelectedRaca] = useState<string>('')
   const [selectedEscolaMarcial, setSelectedEscolaMarcial] = useState<string>('')
@@ -264,16 +265,12 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
       case 4:
         return true // Pontos de Criação - pode avançar
       case 5:
-        return true // Gastando PC (Singularidades) - pode avançar
+        return true // Gastando PC - pode avançar (validação feita internamente nas tabs)
       case 6:
-        return true // Gastando PC (Traços) - pode avançar
-      case 7:
-        return selectedEscolaMarcial !== '' // Gastando PC (Escola Marcial) - precisa selecionar escola
-      case 8:
         return nivelAlmaInicial > 1 ? true : false // Evolução - só aparece se nível > 1
-      case 9:
+      case 7:
         return true // Equipamentos
-      case 10:
+      case 8:
         return nome.trim() !== '' // Finalização - precisa de nome
       default:
         return false
@@ -283,9 +280,9 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
   const handleNext = () => {
     if (canProceed() && currentStep < totalSteps) {
       let nextStep = currentStep + 1
-      // Se o próximo step é Evolução (8) mas nível é 1, pula para Equipamentos (9)
-      if (nextStep === 8 && nivelAlmaInicial === 1) {
-        nextStep = 9
+      // Se o próximo step é Evolução (6) mas nível é 1, pula para Equipamentos (7)
+      if (nextStep === 6 && nivelAlmaInicial === 1) {
+        nextStep = 7
       }
       setCurrentStep(nextStep)
     }
@@ -294,9 +291,9 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
   const handleBack = () => {
     if (currentStep > 0) {
       let prevStep = currentStep - 1
-      // Se o step anterior é Evolução (8) mas nível é 1, pula para Escola Marcial (7)
-      if (prevStep === 8 && nivelAlmaInicial === 1) {
-        prevStep = 7
+      // Se o step anterior é Evolução (6) mas nível é 1, pula para Gastando PC (5)
+      if (prevStep === 6 && nivelAlmaInicial === 1) {
+        prevStep = 5
       }
       setCurrentStep(prevStep)
     }
@@ -374,9 +371,16 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
     const newPointsOverFree = Math.max(0, newTotalBasePoints - 12)
     const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
     
-    // Não permite gastar PC além dos 12 pontos gratuitos
+    // Bug 1 Fix: Se o total já está acima de 12 (de PC gasto em step 5), permite diminuir mas não aumentar além do atual
+    // Permite diminuir atributos mesmo se o total estiver acima de 12 (de PC gasto anteriormente)
     if (newTotalBasePoints > 12) {
-      return // Não permite aumentar além dos pontos gratuitos
+      // Se está tentando aumentar além dos 12, não permite
+      if (newTotalBasePoints > oldTotalBasePoints) {
+        // Silenciosamente rejeita - mas agora pelo menos permite diminuir
+        return
+      }
+      // Se está diminuindo (mesmo que o total ainda fique acima de 12), permite
+      // Isso permite que o usuário ajuste atributos que foram aumentados com PC
     }
     
     // Se está usando apenas os 12 pontos gratuitos, atualiza normalmente
@@ -455,20 +459,19 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
   }
 
   const stepIcons = [
-    Users, Zap, BookOpen, Award, Calculator, Sparkles, Zap, Sword, Gem, Package, User
+    Users, Zap, BookOpen, Award, Calculator, Sparkles, Gem, Package, User
   ]
 
   const stepTitles = [
     'Raça', 'Atributos', 'Habilidades', 'Aptidões', 'Pontos de Criação',
-    'Gastando PC (Singularidades)', 'Gastando PC (Traços)', 
-    'Gastando PC (Escola Marcial)', 'Evolução', 'Equipamentos', 'Finalização'
+    'Gastando PC', 'Evolução', 'Equipamentos', 'Finalização'
   ]
 
   // Total of steps: Evolução só aparece se nível > 1
-  // Steps: 0-6 (básicos), 7 (Gastando PC - Escola Marcial), 8 (Evolução - condicional), 9 (Equipamentos), 10 (Finalização)
-  const totalSteps = nivelAlmaInicial > 1 
-    ? stepTitles.length - 1  // Com Evolução: 11 steps (0-10)
-    : stepTitles.length - 2  // Sem Evolução: 10 steps (0-9, pula step 8)
+  // Steps: 0-4 (básicos), 5 (Gastando PC - com tabs), 6 (Evolução - condicional), 7 (Equipamentos), 8 (Finalização)
+  // O último passo sempre é o índice 8 (Finalização), independentemente de o passo 6 ser renderizado
+  // A lógica de pular o passo 6 é tratada em handleNext/handleBack, não no totalSteps
+  const totalSteps = stepTitles.length - 1  // Sempre 8 (índice do último passo)
 
   // Tela de Introdução
   if (showIntroduction) {
@@ -558,8 +561,8 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
               {/* Steps List */}
               <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {stepTitles.map((title, idx) => {
-                  // Pula o step de Evolução (8) se nível for 1
-                  if (idx === 8 && nivelAlmaInicial === 1) {
+                  // Pula o step de Evolução (6) se nível for 1
+                  if (idx === 6 && nivelAlmaInicial === 1) {
                     return null
                   }
                   
@@ -568,49 +571,88 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
                   const isActive = currentStep === stepNum
                   const isCompleted = currentStep > stepNum
                   const isClickable = isCompleted || stepNum === currentStep
+                  const isPCStep = stepNum === 5 // Etapa "Gastando PC"
                   
                   return (
-                    <motion.button
-                      key={idx}
-                      onClick={() => {
-                        if (isClickable && stepNum <= totalSteps) {
-                          setCurrentStep(stepNum)
-                        }
-                      }}
-                      disabled={!isClickable}
-                      whileHover={isClickable ? { x: 4 } : {}}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
-                        isActive
-                          ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900'
-                          : isCompleted
-                          ? 'bg-white/5 dark:bg-ecoar-light-900/10 border border-white/10 dark:border-ecoar-light-900/20 text-white/80 dark:text-ecoar-light-900/80 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15'
-                          : 'bg-transparent border border-white/5 dark:border-ecoar-light-900/10 text-white/40 dark:text-ecoar-light-900/40 '
-                      }`}
-                    >
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                        isActive
-                          ? 'bg-ecoar-teal/30 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-400'
-                          : isCompleted
-                          ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 text-ecoar-teal dark:text-ecoar-teal-400'
-                          : 'bg-white/5 dark:bg-ecoar-light-900/10 text-white/30 dark:text-ecoar-light-900/30'
-                      }`}>
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4" />
-                        ) : (
-                          <StepIcon className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium">
-                          Etapa {stepNum}
-                        </div>
-                        <div className={`text-sm font-semibold truncate ${
-                          isActive ? 'text-white dark:text-ecoar-light-900' : 'text-white/70 dark:text-ecoar-light-900/70'
+                    <div key={idx} className="space-y-1">
+                      <motion.button
+                        onClick={() => {
+                          if (isClickable && stepNum <= totalSteps) {
+                            setCurrentStep(stepNum)
+                            // Se for a etapa de PC, define a primeira sub-etapa
+                            if (isPCStep) {
+                              setPCSubStep('singularidades')
+                            }
+                          }
+                        }}
+                        disabled={!isClickable}
+                        whileHover={isClickable ? { x: 4 } : {}}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
+                          isActive
+                            ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900'
+                            : isCompleted
+                            ? 'bg-white/5 dark:bg-ecoar-light-900/10 border border-white/10 dark:border-ecoar-light-900/20 text-white/80 dark:text-ecoar-light-900/80 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15'
+                            : 'bg-transparent border border-white/5 dark:border-ecoar-light-900/10 text-white/40 dark:text-ecoar-light-900/40 '
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isActive
+                            ? 'bg-ecoar-teal/30 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-400'
+                            : isCompleted
+                            ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 text-ecoar-teal dark:text-ecoar-teal-400'
+                            : 'bg-white/5 dark:bg-ecoar-light-900/10 text-white/30 dark:text-ecoar-light-900/30'
                         }`}>
-                          {title}
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <StepIcon className="w-4 h-4" />
+                          )}
                         </div>
-                      </div>
-                    </motion.button>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium">
+                            Etapa {stepNum}
+                          </div>
+                          <div className={`text-sm font-semibold truncate ${
+                            isActive ? 'text-white dark:text-ecoar-light-900' : 'text-white/70 dark:text-ecoar-light-900/70'
+                          }`}>
+                            {title}
+                          </div>
+                        </div>
+                      </motion.button>
+                      
+                      {/* Sub-etapas para "Gastando PC" */}
+                      {isPCStep && isActive && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="ml-4 space-y-1 border-l-2 border-ecoar-teal/30 pl-2"
+                        >
+                          {([
+                            { id: 'singularidades', label: 'Singularidades', icon: Sparkles },
+                            { id: 'traços', label: 'Traços', icon: Zap },
+                            { id: 'escola-marcial', label: 'Escola Marcial', icon: Sword },
+                          ] as const).map(({ id, label, icon: SubIcon }) => {
+                            const isSubActive = pcSubStep === id
+                            return (
+                              <motion.button
+                                key={id}
+                                onClick={() => setPCSubStep(id)}
+                                whileHover={{ x: 2 }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left text-sm ${
+                                  isSubActive
+                                    ? 'bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 border border-ecoar-teal/20 dark:border-ecoar-teal-500/30 text-white dark:text-ecoar-light-900'
+                                    : 'bg-white/5 dark:bg-ecoar-light-900/10 border border-white/5 dark:border-ecoar-light-900/10 text-white/60 dark:text-ecoar-light-900/60 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15'
+                                }`}
+                              >
+                                <SubIcon className={`w-3 h-3 ${isSubActive ? 'text-ecoar-teal dark:text-ecoar-teal-400' : 'text-white/40'}`} />
+                                <span className="text-xs font-medium">{label}</span>
+                              </motion.button>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -706,72 +748,46 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
                   />
                 )}
 
-                {/* Step 5: Gastando PC (Singularidades) */}
+                {/* Step 5: Gastando PC (com sub-etapas na sidebar) */}
                 {currentStep === 5 && (
-                  <SingularitiesSpendingStep
+                  <PCSpendingStep
                     singularidades={singularidades}
                     selectedEcoar={selectedEcoar}
                     singularidadesEcoar={singularidadesEcoar}
                     selectedTrilha={selectedTrilha}
                     onTrilhaSelect={setSelectedTrilha}
+                    attributes={attributes}
+                    skills={skills}
+                    aptitudes={aptitudes}
+                    selectedEscolaMarcial={selectedEscolaMarcial}
+                    onEscolaMarcialSelect={setSelectedEscolaMarcial}
+                    raceBonuses={raceBonuses}
+                    martialSchoolBonuses={martialSchoolBonuses}
                     pontosDisponiveis={pontosCriacao.disponiveis}
                     onSingularidadesChange={setSingularidades}
                     onEcoarSelect={setSelectedEcoar}
                     onSingularidadesEcoarChange={setSingularidadesEcoar}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
-                    pontosCriacao={pontosCriacao}
-                  />
-                )}
-
-                {/* Step 6: Gastando PC (Traços) */}
-                {currentStep === 6 && (
-                  <TraitsSpendingStep
-                    attributes={attributes}
-                    skills={skills}
-                    aptitudes={aptitudes}
-                    pontosDisponiveis={pontosCriacao.disponiveis}
-                    raceBonuses={raceBonuses}
-                    martialSchoolBonuses={martialSchoolBonuses}
-                    onAttributesChange={(attrs) => setAttributes(attrs as typeof attributes)}
+                    onAttributesChange={(attrs: Record<string, number>) => setAttributes(attrs as typeof attributes)}
                     onSkillsChange={setSkills}
                     onAptitudesChange={setAptitudes}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
-                  />
-                )}
-
-                {/* Step 7: Gastando PC (Escola Marcial) */}
-                {currentStep === 7 && (
-                  <MartialSchoolPCSpendingStep
-                    selectedEscolaMarcial={selectedEscolaMarcial}
-                    onSelect={setSelectedEscolaMarcial}
-                    singularidadesMarciais={singularidades.filter(s => {
-                      const school = getMartialSchoolDataById(selectedEscolaMarcial)
-                      return school?.singularities.some(sing => sing.id === s)
-                    })}
-                    onSingularidadesChange={(singIds) => {
-                      // Remove singularidades marciais antigas e adiciona novas
-                      const otherSingularities = singularidades.filter(s => {
-                        const school = getMartialSchoolDataById(selectedEscolaMarcial)
-                        return !school?.singularities.some(sing => sing.id === s)
-                      })
-                      setSingularidades([...otherSingularities, ...singIds])
-                    }}
-                    pontosDisponiveis={pontosCriacao.disponiveis}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    onPointsChange={(gastos: number) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    pontosCriacao={pontosCriacao}
                     nivelAlma={nivelAlmaInicial}
+                    activeSubStep={pcSubStep}
+                    onSubStepChange={setPCSubStep}
                   />
                 )}
 
-                {/* Step 8: Evolução (só aparece se nível > 1) */}
-                {currentStep === 8 && nivelAlmaInicial > 1 && (
+                {/* Step 6: Evolução (só aparece se nível > 1) */}
+                {currentStep === 6 && nivelAlmaInicial > 1 && (
                   <EvolutionStep
                     nivelAlmaInicial={nivelAlmaInicial}
                     pontosEvolucao={getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0}
                   />
                 )}
 
-                {/* Step 9: Equipamentos */}
-                {currentStep === 9 && (
+                {/* Step 7: Equipamentos */}
+                {currentStep === 7 && (
                   <EquipmentStep
                     equipamentos={equipamentos}
                     armas={armas}
@@ -784,8 +800,8 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
                   />
                 )}
 
-                {/* Step 10: Finalização */}
-                {currentStep === 10 && (
+                {/* Step 8: Finalização */}
+                {currentStep === 8 && (
                   <BackgroundStep
                     nome={nome}
                     backstory={backstory}
@@ -3186,6 +3202,31 @@ function AttributesStep({
   onPointsChange: (gastos: number) => void
   isEvolutionStep?: boolean
 }) {
+  const [selectedAttribute, setSelectedAttribute] = useState<string | null>(() => {
+    // Inicializa com o primeiro atributo disponível
+    const firstAttr = Object.keys(attributes)[0]
+    return firstAttr || null
+  })
+  
+  // Garante que o atributo selecionado sempre existe quando os atributos mudam
+  // Mas não interfere na seleção manual do usuário
+  useEffect(() => {
+    // Só atualiza se o atributo selecionado não existir mais nos atributos disponíveis
+    const currentSelected = selectedAttribute
+    if (currentSelected && !attributes[currentSelected]) {
+      const firstAttr = Object.keys(attributes)[0]
+      if (firstAttr) {
+        setSelectedAttribute(firstAttr)
+      }
+    }
+    // Só inicializa se não houver seleção
+    else if (!currentSelected && Object.keys(attributes).length > 0) {
+      const firstAttr = Object.keys(attributes)[0]
+      setSelectedAttribute(firstAttr)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attributes]) // Não incluir selectedAttribute nas dependências para evitar interferência na seleção manual
+  
   const attributeLabels: Record<string, string> = {
     carisma: 'Carisma',
     finesse: 'Finesse',
@@ -3267,15 +3308,17 @@ function AttributesStep({
             </>
           )}
         </div>
-        <motion.button
-          onClick={onRandomize}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="p-4 rounded-xl border bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900 flex items-center justify-center gap-2 font-semibold transition-all shadow-lg shadow-ecoar-teal/20 dark:shadow-ecoar-teal-600/30"
-        >
-          <RefreshCw className="w-5 h-5" />
-          Aleatório
-        </motion.button>
+        {!isEvolutionStep && (
+          <motion.button
+            onClick={onRandomize}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="p-4 rounded-xl border bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900 flex items-center justify-center gap-2 font-semibold transition-all shadow-lg shadow-ecoar-teal/20 dark:shadow-ecoar-teal-600/30"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Aleatório
+          </motion.button>
+        )}
       </div>
 
       {/* Bônus Aplicados */}
@@ -3305,108 +3348,214 @@ function AttributesStep({
         </div>
       )}
 
-      {/* Grid de Atributos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.keys(attributes).map((attr) => {
-          const value = attributes[attr]
-          const modifier = getAttributeModifier(value)
-          const raceBonus = raceBonuses[attr] || 0
-          const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-          const totalBonus = raceBonus + martialSchoolBonus
-          const baseValue = value - totalBonus
-          const AttributeIcon = attributeIcons[attr] || Star
-          const hasBonus = totalBonus > 0
-          
-          return (
-            <motion.div
-              key={attr}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -2 }}
-              className="relative p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-ecoar-teal/30 transition-all"
-            >
-              {/* Header do Card */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-ecoar-teal/20 rounded-lg flex items-center justify-center border border-ecoar-teal/30">
-                    <AttributeIcon className="w-5 h-5 text-ecoar-teal" />
+      {/* Layout Vertical: Lista à Esquerda, Detalhes à Direita */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Lista de Atributos - Esquerda */}
+        <div className="lg:col-span-1 space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+          {Object.keys(attributes).map((attr) => {
+            const value = attributes[attr]
+            const modifier = getAttributeModifier(value)
+            const raceBonus = raceBonuses[attr] || 0
+            const martialSchoolBonus = martialSchoolBonuses[attr] || 0
+            const totalBonus = raceBonus + martialSchoolBonus
+            const AttributeIcon = attributeIcons[attr] || Star
+            
+            return (
+              <motion.button
+                key={attr}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSelectedAttribute(attr)
+                }}
+                type="button"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={{ x: 4 }}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  selectedAttribute === attr
+                    ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-lg shadow-ecoar-teal/20'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-ecoar-teal/30'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border flex-shrink-0 ${
+                      selectedAttribute === attr
+                        ? 'bg-ecoar-teal/20 border-ecoar-teal/50'
+                        : 'bg-ecoar-teal/10 border-ecoar-teal/30'
+                    }`}>
+                      <AttributeIcon className="w-4 h-4 text-ecoar-teal" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-white truncate">{attributeLabels[attr]}</div>
+                      <div className="text-xs text-white/60">
+                        {value} • Mod {modifier >= 0 ? '+' : ''}{modifier}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold text-ecoar-teal flex-shrink-0">
+                    {value}
+                  </div>
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+
+        {/* Painel de Detalhes - Direita - Layout Horizontal Compacto */}
+        <div className="lg:col-span-2">
+          {selectedAttribute && (() => {
+            const attr = selectedAttribute
+            const value = attributes[attr]
+            const modifier = getAttributeModifier(value)
+            const raceBonus = raceBonuses[attr] || 0
+            const martialSchoolBonus = martialSchoolBonuses[attr] || 0
+            const totalBonus = raceBonus + martialSchoolBonus
+            const baseValue = value - totalBonus
+            const AttributeIcon = attributeIcons[attr] || Star
+            const hasBonus = totalBonus > 0
+            const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus
+            const canDecrease = baseValue > 0
+            const canIncrease = (() => {
+              if (value >= maxValue) return false
+              if (isEvolutionStep) {
+                // Bug 2 Fix: Verifica se há PC disponível antes de habilitar o botão
+                // Calcula o custo de aumentar este atributo em 1 ponto
+                const currentTotalBase = Object.entries(attributes).reduce((sum, [a, v]) => {
+                  const rB = raceBonuses[a] || 0
+                  const mB = martialSchoolBonuses[a] || 0
+                  return sum + Math.max(0, v - (rB + mB))
+                }, 0)
+                const newTotalBase = currentTotalBase - baseValue + (baseValue + 1)
+                const currentPointsOverFree = Math.max(0, currentTotalBase - 12)
+                const newPointsOverFree = Math.max(0, newTotalBase - 12)
+                const pointsOverFreeDiff = newPointsOverFree - currentPointsOverFree
+                const costInPC = pointsOverFreeDiff * 10
+                
+                // Se não há custo (redistribuição dentro dos gratuitos ou diminuindo), permite
+                if (costInPC <= 0) return true
+                
+                // Calcula PC disponível considerando gastos atuais de atributos
+                // pontosCriacao.disponiveis já subtrai gastos de outras categorias (aptidões)
+                // Precisamos subtrair também os gastos atuais de atributos
+                const currentGastosAtributos = currentPointsOverFree * 10
+                const pcDisponivelParaAtributos = pontosCriacao.disponiveis - currentGastosAtributos
+                
+                // Só permite aumentar se houver PC suficiente
+                return pcDisponivelParaAtributos >= costInPC
+              }
+              return attributePoints > 0
+            })()
+
+            // Descrições dos atributos
+            const attributeDescriptions: Record<string, string> = {
+              carisma: 'Representa sua capacidade de liderança, persuasão e influência social.',
+              finesse: 'Agilidade e precisão. Afeta ações que requerem destreza e coordenação.',
+              forca: 'Poder físico bruto. Afeta dano em combate corpo a corpo e capacidade de carga.',
+              inteligencia: 'Capacidade mental, raciocínio e conhecimento. Essencial para magias e investigação.',
+              percepcao: 'Atenção aos detalhes e consciência do ambiente. Afeta detecção e precisão.',
+              vitalidade: 'Resistência física e saúde geral. Afeta pontos de vida e resistência a danos.',
+              vontade: 'Força mental e determinação. Afeta resistência a efeitos mentais e controle.',
+            }
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-lg border border-ecoar-teal/30 bg-ecoar-teal/5 backdrop-blur-sm"
+              >
+                {/* Layout Horizontal: Ícone + Info + Controles */}
+                <div className="flex items-center gap-4">
+                  {/* Ícone e Nome */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="w-12 h-12 bg-ecoar-teal/20 rounded-lg flex items-center justify-center border border-ecoar-teal/50">
+                      <AttributeIcon className="w-6 h-6 text-ecoar-teal" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white">{attributeLabels[attr]}</h4>
+                      <p className="text-xs text-white/60">Mod: {modifier >= 0 ? '+' : ''}{modifier}</p>
+                    </div>
+                  </div>
+
+                  {/* Descrição do Atributo */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      {attributeDescriptions[attr]}
+                    </p>
+                  </div>
+
+                  {/* Bônus (se houver) */}
+                  {hasBonus && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {raceBonus !== 0 && (
+                        <div className="px-2 py-1 bg-ecoar-magenta/20 rounded border border-ecoar-magenta/30">
+                          <div className="text-[10px] text-white/60">Raça</div>
+                          <div className="text-sm font-bold text-ecoar-magenta">+{raceBonus}</div>
+                        </div>
+                      )}
+                      {martialSchoolBonus !== 0 && (
+                        <div className="px-2 py-1 bg-ecoar-teal/20 rounded border border-ecoar-teal/30">
+                          <div className="text-[10px] text-white/60">Escola</div>
+                          <div className="text-sm font-bold text-ecoar-teal">+{martialSchoolBonus}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Controles de Ajuste Compactos */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <motion.button
+                      onClick={() => onUpdate(attr, value - 1)}
+                      disabled={!canDecrease}
+                      whileHover={{ scale: canDecrease ? 1.05 : 1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-10 h-10 rounded-lg bg-ecoar-magenta/20 border border-ecoar-magenta/50 hover:bg-ecoar-magenta/30 text-white font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                    >
+                      -
+                    </motion.button>
+                    
+                    <div className="text-center min-w-[60px]">
+                      <div className="text-3xl font-bold text-ecoar-teal leading-none">{value}</div>
+                      <div className="text-[10px] text-white/50">Max: {maxValue}</div>
+                    </div>
+                    
+                    <motion.button
+                      onClick={() => {
+                        const newValue = value + 1
+                        if (newValue <= maxValue) {
+                          onUpdate(attr, newValue)
+                        }
+                      }}
+                      disabled={!canIncrease}
+                      whileHover={{ scale: canIncrease ? 1.05 : 1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-10 h-10 rounded-lg bg-ecoar-teal/20 border border-ecoar-teal/50 hover:bg-ecoar-teal/30 text-white font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                    >
+                      +
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Informações Adicionais em Linha */}
+                <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-4 text-xs">
+                  <div>
+                    <span className="text-white/60">Base: </span>
+                    <span className="text-white font-semibold">{baseValue}</span>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-white">{attributeLabels[attr]}</div>
-                    {hasBonus && (
-                      <div className="text-xs text-white/60">
-                        Base: {baseValue} + {totalBonus}
-                      </div>
-                    )}
+                    <span className="text-white/60">Total: </span>
+                    <span className="text-ecoar-teal font-semibold">{value}</span>
+                  </div>
+                  <div>
+                    <span className="text-white/60">Modificador: </span>
+                    <span className="text-ecoar-teal font-semibold">{modifier >= 0 ? '+' : ''}{modifier}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-ecoar-teal">{modifier >= 0 ? '+' : ''}{modifier}</div>
-                  <div className="text-xs text-white/50">Modificador</div>
-                </div>
-              </div>
-
-              {/* Bônus Detalhados */}
-              {hasBonus && (
-                <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10 space-y-1.5">
-                  {raceBonus !== 0 && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/70">Bônus da Raça</span>
-                      <span className="text-ecoar-magenta font-semibold">+{raceBonus}</span>
-                    </div>
-                  )}
-                  {martialSchoolBonus !== 0 && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/70">Bônus da Escola Marcial</span>
-                      <span className="text-ecoar-teal font-semibold">+{martialSchoolBonus}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Controles */}
-              <div className="flex items-center gap-3">
-                <motion.button
-                  onClick={() => onUpdate(attr, value - 1)}
-                  disabled={baseValue === 0}
-                  whileHover={{ scale: baseValue === 0 ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-ecoar-magenta/20 hover:border-ecoar-magenta/30 text-white font-bold text-lg disabled:opacity-30 transition-all flex items-center justify-center"
-                >
-                  -
-                </motion.button>
-                
-                <div className="flex-1 text-center">
-                  <div className="text-4xl font-bold text-white mb-1">{value}</div>
-                  <div className="text-xs text-white/60 dark:text-ecoar-light-900/60">Total</div>
-                </div>
-                
-                <motion.button
-                  onClick={() => {
-                    const newValue = value + 1
-                    const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus
-                    if (newValue <= maxValue) {
-                      onUpdate(attr, newValue)
-                    }
-                  }}
-                  disabled={
-                    (() => {
-                      const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus
-                      if (value >= maxValue) return true
-                      // Só pode aumentar se tiver pontos gratuitos (não permite gastar PC)
-                      return attributePoints === 0
-                    })()
-                  }
-                  whileHover={{ scale: (value >= ((isEvolutionStep ? 8 : 3) + totalBonus) || (attributePoints === 0 && pontosCriacao.disponiveis < 10)) ? 1 : 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-ecoar-teal/20 hover:border-ecoar-teal/30 text-white font-bold text-lg disabled:opacity-30 transition-all flex items-center justify-center"
-                >
-                  +
-                </motion.button>
-              </div>
-            </motion.div>
-          )
-        })}
+              </motion.div>
+            )
+          })()}
+        </div>
       </div>
     </div>
   )
@@ -3583,6 +3732,8 @@ function LocationSelectionStep({
   selectedLocalizacao: string
   onSelect: (id: string) => void
 }) {
+  const nations = getAllNations()
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -3600,64 +3751,82 @@ function LocationSelectionStep({
         </div>
       </div>
 
-      {/* Grid de Cards Compactos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {locations.map((location, index) => {
-          const isSelected = selectedLocalizacao === location.id
-          
-          return (
-            <motion.button
-              key={location.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => onSelect(location.id)}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className={`relative p-4 rounded-xl border-2 transition-all text-left ${
-                isSelected
-                  ? 'bg-ecoar-teal/10 border-ecoar-teal shadow-lg shadow-ecoar-teal/20'
-                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-ecoar-teal/30'
-              }`}
-            >
-              {/* Ícone e Título */}
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                  isSelected
-                    ? 'bg-ecoar-teal/20 text-ecoar-teal'
-                    : 'bg-white/5 text-white/60'
-                }`}>
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className={`font-semibold text-sm ${
-                    isSelected ? 'text-white' : 'text-white/90'
-                  }`}>
-                    {location.name}
-                  </h4>
-                  {location.region && (
-                    <span className="text-xs text-white/60">{location.region}</span>
-                  )}
-                </div>
-                {isSelected && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-                  </motion.div>
-                )}
-              </div>
+      {/* Organizado por Nações */}
+      <div className="space-y-8">
+        {nations.map((nation) => {
+          const nationLocations = getLocationsByNation(nation)
+          if (nationLocations.length === 0) return null
 
-              {/* Descrição */}
-              {location.description && (
-                <p className={`text-xs leading-relaxed ${
-                  isSelected ? 'text-white/80 dark:text-ecoar-light-900/80' : 'text-white/60 dark:text-ecoar-light-900/60'
-                }`}>
-                  {location.description}
-                </p>
-              )}
-            </motion.button>
+          return (
+            <div key={nation} className="space-y-4">
+              <div className="border-b border-white/10 pb-2">
+                <h4 className="text-lg font-semibold text-white">{nation}</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {nationLocations.map((location, index) => {
+                  const isSelected = selectedLocalizacao === location.id
+                  
+                  return (
+                    <motion.button
+                      key={location.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => onSelect(location.id)}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                        isSelected
+                          ? 'bg-ecoar-teal/10 border-ecoar-teal shadow-lg shadow-ecoar-teal/20'
+                          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-ecoar-teal/30'
+                      }`}
+                    >
+                      {/* Ícone e Título */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-ecoar-teal/20 text-ecoar-teal'
+                            : 'bg-white/5 text-white/60'
+                        }`}>
+                          <MapPin className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`font-semibold text-sm ${
+                            isSelected ? 'text-white' : 'text-white/90'
+                          }`}>
+                            {location.name}
+                          </h4>
+                          {location.region && (
+                            <span className="text-xs text-white/60">{location.region}</span>
+                          )}
+                          {location.technology && (
+                            <span className="text-xs text-ecoar-teal/70 ml-2">• {location.technology}</span>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* Descrição */}
+                      {location.description && (
+                        <p className={`text-xs leading-relaxed ${
+                          isSelected ? 'text-white/80 dark:text-ecoar-light-900/80' : 'text-white/60 dark:text-ecoar-light-900/60'
+                        }`}>
+                          {location.description}
+                        </p>
+                      )}
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </div>
           )
         })}
       </div>
@@ -3683,6 +3852,17 @@ function SkillsStep({
   onPointsChange: (gastos: number) => void
   isEvolutionStep?: boolean
 }) {
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<Skill['category']>('combate')
+  
+  // Inicializa a habilidade selecionada quando a categoria muda
+  useEffect(() => {
+    const categorySkills = getSkillsByCategory(selectedCategory)
+    if (categorySkills.length > 0 && (!selectedSkill || !categorySkills.find(s => s.id === selectedSkill))) {
+      setSelectedSkill(categorySkills[0].id)
+    }
+  }, [selectedCategory, selectedSkill])
+  
   const categories: Skill['category'][] = ['combate', 'primarias', 'artisticas', 'cientificas', 'motoras', 'sociais', 'gerais']
   const categoryLabels: Record<Skill['category'], string> = {
     combate: 'Habilidades de Combate',
@@ -3792,22 +3972,150 @@ function SkillsStep({
     }
   }
 
+  const randomizeSkills = () => {
+    const maxLevel = getMaxLevel()
+    const allSkills = skillsData
+    const newSkills: Record<string, { level: number; specialization?: string }> = {}
+    let remainingPoints = 48
+
+    // Lista de habilidades disponíveis com seus custos
+    const availableSkills = allSkills.map(skill => ({
+      skill,
+      costPerLevel: getSkillFreeCost(skill.category),
+    }))
+
+    // Embaralha as habilidades
+    const shuffledSkills = [...availableSkills].sort(() => Math.random() - 0.5)
+
+    // Primeira passada: distribui níveis nas habilidades
+    let attempts = 0
+    const maxAttempts = 500 // Evita loop infinito
+    
+    while (remainingPoints > 0 && attempts < maxAttempts) {
+      attempts++
+      let distributed = false
+      
+      // Tenta distribuir em habilidades aleatórias
+      for (const { skill, costPerLevel } of shuffledSkills) {
+        if (remainingPoints < costPerLevel) continue
+        
+        const currentLevel = newSkills[skill.id]?.level || 0
+        if (currentLevel >= maxLevel) continue
+
+        // 60% de chance de aumentar uma habilidade se tiver pontos
+        if (Math.random() < 0.6 && remainingPoints >= costPerLevel) {
+          const newLevel = Math.min(currentLevel + 1, maxLevel)
+          const cost = costPerLevel
+          
+          if (remainingPoints >= cost) {
+            newSkills[skill.id] = { level: newLevel }
+            remainingPoints -= cost
+            distributed = true
+            break // Reinicia o loop para dar chance a outras habilidades
+          }
+        }
+      }
+
+      if (!distributed) break
+    }
+
+    // Segunda passada: adiciona especialidades aleatoriamente
+    const skillsWithLevels = Object.entries(newSkills)
+      .filter(([_, data]) => data.level > 0)
+      .map(([skillId]) => {
+        const skill = getSkillById(skillId)
+        return skill ? { skillId, skill } : null
+      })
+      .filter(Boolean) as Array<{ skillId: string; skill: Skill }>
+
+    // Embaralha habilidades com níveis
+    const shuffledWithLevels = [...skillsWithLevels].sort(() => Math.random() - 0.5)
+
+    for (const { skillId, skill } of shuffledWithLevels) {
+      if (remainingPoints <= 0) break
+      
+      if (!newSkills[skillId].specialization && skill.specializations.length > 0) {
+        const costPerLevel = getSkillFreeCost(skill.category)
+        
+        // 40% de chance de adicionar especialidade se tiver pontos
+        if (Math.random() < 0.4 && remainingPoints >= costPerLevel) {
+          const randomSpec = skill.specializations[Math.floor(Math.random() * skill.specializations.length)]
+          newSkills[skillId] = {
+            ...newSkills[skillId],
+            specialization: randomSpec.id,
+          }
+          remainingPoints -= costPerLevel
+        }
+      }
+    }
+
+    // Terceira passada: tenta usar pontos restantes em níveis ou especialidades
+    if (remainingPoints > 0) {
+      for (const { skill, costPerLevel } of shuffledSkills) {
+        if (remainingPoints < costPerLevel) continue
+        
+        const currentLevel = newSkills[skill.id]?.level || 0
+        if (currentLevel >= maxLevel) {
+          // Se já está no máximo, tenta adicionar especialidade
+          if (!newSkills[skill.id]?.specialization && skill.specializations.length > 0 && remainingPoints >= costPerLevel) {
+            const randomSpec = skill.specializations[Math.floor(Math.random() * skill.specializations.length)]
+            newSkills[skill.id] = {
+              level: currentLevel,
+              specialization: randomSpec.id,
+            }
+            remainingPoints -= costPerLevel
+          }
+        } else {
+          // Tenta aumentar nível
+          if (remainingPoints >= costPerLevel) {
+            const newLevel = Math.min(currentLevel + 1, maxLevel)
+            newSkills[skill.id] = { level: newLevel }
+            remainingPoints -= costPerLevel
+          }
+        }
+        
+        if (remainingPoints <= 0) break
+      }
+    }
+
+    // Calcula pontos usados
+    const freeUsed = Object.entries(newSkills).reduce((total, [skillId, skillData]) => {
+      const skill = getSkillById(skillId)
+      if (!skill) return total
+      const costPerLevel = getSkillFreeCost(skill.category)
+      return total + (skillData.level * costPerLevel) + (skillData.specialization ? costPerLevel : 0)
+    }, 0)
+
+    onSkillsChange(newSkills)
+    onSkillPointsChange(48 - freeUsed)
+  }
+
   return (
     <div className="space-y-6 max-h-[700px] overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-3">
-          <div className="w-12 h-12 bg-ecoar-teal/20 rounded-xl flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-ecoar-teal" />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-ecoar-teal/20 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-6 h-6 text-ecoar-teal" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-semibold text-white mb-1">
+                {isEvolutionStep ? 'Evoluir Habilidades' : 'Habilidades e Especialidades'}
+              </h3>
+              <p className="text-sm text-white/70">
+                Você tem 48 pontos gratuitos para distribuir. Combate/Primárias custam 2 pontos, resto custa 1 ponto por nível. Especialidade custa o mesmo que um nível.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-2xl font-semibold text-white mb-1">
-              {isEvolutionStep ? 'Evoluir Habilidades' : 'Habilidades e Especialidades'}
-            </h3>
-            <p className="text-sm text-white/70">
-              Você tem 48 pontos gratuitos para distribuir. Combate/Primárias custam 2 pontos, resto custa 1 ponto por nível. Especialidade custa o mesmo que um nível.
-            </p>
-          </div>
+          <Button
+            onClick={randomizeSkills}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Dices className="w-4 h-4" />
+            Aleatório
+          </Button>
         </div>
       </div>
 
@@ -3825,116 +4133,188 @@ function SkillsStep({
         </div>
       </div>
 
-      {categories.map((category) => {
-        const categorySkills = getSkillsByCategory(category)
-        return (
-          <div key={category} className="space-y-4">
-            <h4 className="text-lg font-semibold text-white border-b border-white/10 pb-2 flex items-center gap-2">
-              <Sword className="w-4 h-4 text-ecoar-teal" />
-              {categoryLabels[category]}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {categorySkills.map((skill) => {
-                const skillData = skills[skill.id] || { level: 0, specialization: undefined }
-                const freeCostPerLevel = getSkillFreeCost(category)
-                const maxLevel = getMaxLevel()
-                const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
-                
-                // Calcula se pode aumentar
-                const currentFreeUsed = calculateFreePointsUsed()
-                const newCostIfIncrease = currentCost + freeCostPerLevel
-                const newFreeUsed = currentFreeUsed - currentCost + newCostIfIncrease
-                
-                let canIncrease = false
-                if (newFreeUsed <= 48) {
-                  canIncrease = skillPoints >= freeCostPerLevel && skillData.level < maxLevel
-                } else {
-                  const pointsOverFree = newFreeUsed - 48
-                  const pcCostPerLevel = getSkillPCCost(category)
-                  const pcCost = pointsOverFree * (pcCostPerLevel / freeCostPerLevel)
-                  canIncrease = pontosCriacao.disponiveis >= pcCost && skillData.level < maxLevel
-                }
-                
-                return (
-                  <motion.div
-                    key={skill.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -2 }}
-                    className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-ecoar-teal/30 transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-white mb-1">{skill.name}</div>
-                        <div className="text-xs text-white/60 mb-1">
-                          {getSkillDice(skillData.level)} • Nível {skillData.level}
-                        </div>
-                        <div className="text-xs text-ecoar-teal/70 font-semibold">
-                          {freeCostPerLevel} ponto{freeCostPerLevel > 1 ? 's' : ''} por nível
-                        </div>
-                        {skillData.specialization && (
-                          <div className="text-xs text-ecoar-magenta/70 mt-1">
-                            Especialidade: +{freeCostPerLevel} ponto{freeCostPerLevel > 1 ? 's' : ''}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <motion.button
-                          onClick={() => updateSkill(skill.id, Math.max(0, skillData.level - 1), skillData.specialization)}
-                          disabled={skillData.level === 0}
-                          whileHover={{ scale: skillData.level === 0 ? 1 : 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 hover:bg-ecoar-magenta/20 hover:border-ecoar-magenta/30 text-white font-bold text-lg disabled:opacity-30 transition-all flex items-center justify-center"
-                        >
-                          -
-                        </motion.button>
-                        <div className="w-12 text-center">
-                          <div className="text-2xl font-bold text-white">
-                            {skillData.level}
-                          </div>
-                          <div className="text-xs text-white/50 font-mono">
-                            {currentCost} pts
-                          </div>
-                        </div>
-                        <motion.button
-                          onClick={() => updateSkill(skill.id, skillData.level + 1, skillData.specialization)}
-                          disabled={!canIncrease}
-                          whileHover={{ scale: !canIncrease ? 1 : 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 hover:bg-ecoar-teal/20 hover:border-ecoar-teal/30 text-white font-bold text-lg disabled:opacity-30 transition-all flex items-center justify-center"
-                        >
-                          +
-                        </motion.button>
+      {/* Layout Vertical: Categorias à Esquerda, Habilidades e Detalhes à Direita */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Lista de Categorias - Esquerda */}
+        <div className="lg:col-span-1 space-y-2">
+          {categories.map((category) => {
+            const categorySkills = getSkillsByCategory(category)
+            if (categorySkills.length === 0) return null
+            
+            return (
+              <motion.button
+                key={category}
+                onClick={() => {
+                  setSelectedCategory(category)
+                  const firstSkill = categorySkills[0]
+                  if (firstSkill) setSelectedSkill(firstSkill.id)
+                }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={{ x: 4 }}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  selectedCategory === category
+                    ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-lg shadow-ecoar-teal/20'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-ecoar-teal/30'
+                }`}
+              >
+                <div className="text-sm font-semibold text-white">{categoryLabels[category]}</div>
+                <div className="text-xs text-white/60 mt-1">
+                  {categorySkills.length} habilidade{categorySkills.length !== 1 ? 's' : ''}
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+
+        {/* Lista de Habilidades e Detalhes - Direita */}
+        <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Lista de Habilidades da Categoria */}
+          <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+            {getSkillsByCategory(selectedCategory).map((skill) => {
+              const skillData = skills[skill.id] || { level: 0, specialization: undefined }
+              const freeCostPerLevel = getSkillFreeCost(selectedCategory)
+              const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
+              
+              return (
+                <motion.button
+                  key={skill.id}
+                  onClick={() => setSelectedSkill(skill.id)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ x: 4 }}
+                  className={`w-full p-3 rounded-lg border transition-all text-left ${
+                    selectedSkill === skill.id
+                      ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-lg shadow-ecoar-teal/20'
+                      : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-ecoar-teal/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white truncate">{skill.name}</div>
+                      <div className="text-xs text-white/60">
+                        {getSkillDice(skillData.level)} • Nv.{skillData.level}
                       </div>
                     </div>
-                    {skill.specializations.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-white/10">
-                        <label className="text-white/70 text-xs mb-2 block font-semibold">
-                          Especialidade <span className="text-ecoar-teal/70">(+{freeCostPerLevel} ponto{freeCostPerLevel > 1 ? 's' : ''})</span>:
-                        </label>
-                        <select
-                          value={skillData.specialization || ''}
-                          onChange={(e) => {
-                            updateSkill(skill.id, skillData.level, e.target.value || undefined)
-                          }}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal focus:border-ecoar-teal"
-                        >
-                          <option value="">Nenhuma</option>
-                          {skill.specializations.map((spec) => (
-                            <option key={spec.id} value={spec.id} className="bg-ecoar-dark">
-                              {spec.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </motion.div>
-                )
-              })}
-            </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-lg font-bold text-ecoar-teal">{skillData.level}</div>
+                      <div className="text-[10px] text-white/50">{currentCost}pt</div>
+                    </div>
+                  </div>
+                </motion.button>
+              )
+            })}
           </div>
-        )
-      })}
+
+          {/* Painel de Detalhes da Habilidade Selecionada */}
+          <div>
+            {selectedSkill && (() => {
+              const skill = getSkillById(selectedSkill)
+              if (!skill) return null
+              
+              const skillData = skills[skill.id] || { level: 0, specialization: undefined }
+              const freeCostPerLevel = getSkillFreeCost(selectedCategory)
+              const maxLevel = getMaxLevel()
+              const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
+              
+              // Calcula se pode aumentar
+              const currentFreeUsed = calculateFreePointsUsed()
+              const newCostIfIncrease = currentCost + freeCostPerLevel
+              const newFreeUsed = currentFreeUsed - currentCost + newCostIfIncrease
+              
+              let canIncrease = false
+              if (newFreeUsed <= 48) {
+                canIncrease = skillPoints >= freeCostPerLevel && skillData.level < maxLevel
+              } else {
+                const pointsOverFree = newFreeUsed - 48
+                const pcCostPerLevel = getSkillPCCost(selectedCategory)
+                const pcCost = pointsOverFree * (pcCostPerLevel / freeCostPerLevel)
+                canIncrease = pontosCriacao.disponiveis >= pcCost && skillData.level < maxLevel
+              }
+              
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-xl border border-ecoar-teal/30 bg-ecoar-teal/5 backdrop-blur-sm h-full"
+                >
+                  {/* Header */}
+                  <div className="mb-6">
+                    <h4 className="text-2xl font-bold text-white mb-2">{skill.name}</h4>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div>
+                        <div className="text-white/60">Dado</div>
+                        <div className="text-ecoar-teal font-semibold">{getSkillDice(skillData.level)}</div>
+                      </div>
+                      <div>
+                        <div className="text-white/60">Custo</div>
+                        <div className="text-ecoar-teal font-semibold">{freeCostPerLevel}pt/nível</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Controles de Nível */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <motion.button
+                        onClick={() => updateSkill(skill.id, Math.max(0, skillData.level - 1), skillData.specialization)}
+                        disabled={skillData.level === 0}
+                        whileHover={{ scale: skillData.level === 0 ? 1 : 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-12 h-12 rounded-xl bg-ecoar-magenta/20 border-2 border-ecoar-magenta/50 hover:bg-ecoar-magenta/30 text-white font-bold text-xl disabled:opacity-30 transition-all flex items-center justify-center"
+                      >
+                        -
+                      </motion.button>
+                      
+                      <div className="text-center min-w-[100px]">
+                        <div className="text-5xl font-bold text-ecoar-teal mb-1">{skillData.level}</div>
+                        <div className="text-xs text-white/60">Nível</div>
+                        <div className="text-xs text-white/50 mt-1">{currentCost} pontos</div>
+                      </div>
+                      
+                      <motion.button
+                        onClick={() => updateSkill(skill.id, skillData.level + 1, skillData.specialization)}
+                        disabled={!canIncrease}
+                        whileHover={{ scale: !canIncrease ? 1 : 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="w-12 h-12 rounded-xl bg-ecoar-teal/20 border-2 border-ecoar-teal/50 hover:bg-ecoar-teal/30 text-white font-bold text-xl disabled:opacity-30 transition-all flex items-center justify-center"
+                      >
+                        +
+                      </motion.button>
+                    </div>
+                    <div className="text-center text-sm text-white/60">
+                      Máximo: {maxLevel}
+                    </div>
+                  </div>
+
+                  {/* Especialização */}
+                  {skill.specializations.length > 0 && (
+                    <div className="pt-6 border-t border-white/10">
+                      <label className="text-white/80 text-sm mb-2 block font-semibold">
+                        Especialidade <span className="text-ecoar-teal/70">(+{freeCostPerLevel}pt)</span>
+                      </label>
+                      <select
+                        value={skillData.specialization || ''}
+                        onChange={(e) => {
+                          updateSkill(skill.id, skillData.level, e.target.value || undefined)
+                        }}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal focus:border-ecoar-teal"
+                      >
+                        <option value="">Nenhuma</option>
+                        {skill.specializations.map((spec) => (
+                          <option key={spec.id} value={spec.id} className="bg-ecoar-dark">
+                            {spec.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </motion.div>
+              )
+            })()}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -3975,61 +4355,73 @@ function AptitudesStep({
     const currentLevel = aptitudes[aptitudeId] || 0
     const maxLevel = getMaxLevel()
     
+    // Não permite nível negativo ou acima do máximo individual
     if (level < 0 || level > maxLevel) return
     
     // Calcula o total de pontos usados antes e depois
     const currentTotal = calculateFreePointsUsed()
     const newTotal = currentTotal - currentLevel + level
     
+    // Calcula pontos além dos 3 gratuitos
+    const oldPointsOverFree = Math.max(0, currentTotal - 3)
+    const newPointsOverFree = Math.max(0, newTotal - 3)
+    const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
+    const costInPC = pointsOverFreeDiff * 20
+    
     // Se está dentro dos 3 pontos gratuitos
     if (newTotal <= 3) {
-      // Verifica se está tentando aumentar
+      // Verifica se está aumentando
       if (level > currentLevel) {
-        // Verifica se tem pontos gratuitos suficientes
         const pointsNeeded = level - currentLevel
+        
+        // Se não tem pontos gratuitos suficientes
         if (aptitudePoints < pointsNeeded) {
-          // Não tem pontos gratuitos suficientes - não permite
+          // Se está na evolução (etapa de gastar PC), permite usar PC
+          if (isEvolutionStep && costInPC > 0 && pontosCriacao.disponiveis >= costInPC) {
+            onAptitudesChange({
+              ...aptitudes,
+              [aptitudeId]: level,
+            })
+            onAptitudePointsChange(3 - newTotal)
+          }
+          return
+        }
+      } else if (level < currentLevel) {
+        // Está diminuindo - libera PC se houver
+        if (isEvolutionStep && costInPC < 0) {
+          onAptitudesChange({
+            ...aptitudes,
+            [aptitudeId]: level,
+          })
+          onAptitudePointsChange(3 - newTotal)
           return
         }
       }
       
-      if (aptitudePoints + (currentLevel - level) >= 0) {
-        onAptitudesChange({
-          ...aptitudes,
-          [aptitudeId]: level,
-        })
-        onAptitudePointsChange(3 - newTotal)
-      } else {
-        // Não permite aumentar além dos pontos gratuitos disponíveis
-        return
-      }
+      // Redistribuição normal ou aumento com pontos gratuitos disponíveis
+      onAptitudesChange({
+        ...aptitudes,
+        [aptitudeId]: level,
+      })
+      onAptitudePointsChange(3 - newTotal)
     }
-    // Se vai além dos 3 pontos gratuitos, precisa de PC (20 PC por ponto)
+    // Se vai além dos 3 pontos gratuitos, só permite na evolução com PC
     else {
-      // Não permite aumentar além dos 3 gratuitos sem PC
+      // Na criação, não permite passar dos 3 pontos gratuitos
+      if (!isEvolutionStep) return
+      
+      // Na evolução, permite usar PC (20 PC por ponto além dos 3 gratuitos)
       if (level > currentLevel) {
-        // Está aumentando além dos 3 gratuitos
-        const oldPointsOverFree = Math.max(0, currentTotal - 3)
-        const newPointsOverFree = Math.max(0, newTotal - 3)
-        const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
-        const costInPC = pointsOverFreeDiff * 20
-        
-        // Verifica se tem PC suficiente para o aumento
-        if (pontosCriacao.disponiveis < costInPC) {
-          return // Não tem PC suficiente
-        }
+        // Verifica se tem PC suficiente
+        if (pontosCriacao.disponiveis < costInPC) return
         
         onAptitudesChange({
           ...aptitudes,
           [aptitudeId]: level,
         })
         onAptitudePointsChange(0) // Já gastou todos os pontos gratuitos
-        onPointsChange(pontosCriacao.gastos + costInPC)
       } else if (level < currentLevel) {
         // Está diminuindo, libera PC
-        const oldPointsOverFree = Math.max(0, currentTotal - 3)
-        const newPointsOverFree = Math.max(0, newTotal - 3)
-        const refundPC = (oldPointsOverFree - newPointsOverFree) * 20
         const newFreeUsed = Math.min(3, newTotal)
         
         onAptitudesChange({
@@ -4037,7 +4429,6 @@ function AptitudesStep({
           [aptitudeId]: level,
         })
         onAptitudePointsChange(3 - newFreeUsed)
-        onPointsChange(Math.max(0, pontosCriacao.gastos - refundPC))
       }
     }
   }
@@ -4084,19 +4475,38 @@ function AptitudesStep({
           const newTotalIfIncrease = totalPointsUsed - level + (level + 1)
           
           // Só pode aumentar se:
-          // 1. Ainda tem pontos gratuitos E o novo total não excede 3, OU
-          // 2. O novo total excede 3 E tem PC suficiente para o excedente
+          // 1. Não atingiu o máximo individual (3 na criação, 8 na evolução)
+          // 2. Tem pontos gratuitos disponíveis OU (na evolução) tem PC suficiente
+          // 3. O novo total não excede 3 pontos gratuitos OU (na evolução) tem PC para o excedente
           let canIncrease = false
           if (level >= maxLevel) {
             canIncrease = false
           } else if (newTotalIfIncrease <= 3) {
-            // Está dentro dos 3 gratuitos - precisa ter pontos gratuitos disponíveis
-            canIncrease = aptitudePoints > 0
+            // Está dentro dos 3 gratuitos
+            if (aptitudePoints > 0) {
+              // Tem pontos gratuitos disponíveis
+              canIncrease = true
+            } else if (isEvolutionStep) {
+              // Na etapa de gastar PC, permite redistribuir os 3 gratuitos
+              // Se o total atual é 3, pode redistribuir sem custo
+              const currentTotal = totalPointsUsed
+              if (currentTotal === 3) {
+                canIncrease = true // Permite redistribuir
+              } else {
+                canIncrease = false
+              }
+            } else {
+              canIncrease = false
+            }
           } else {
-            // Está além dos 3 gratuitos - precisa ter PC suficiente
-            const pointsOverFreeIfIncrease = newTotalIfIncrease - 3
-            const costInPCIfIncrease = pointsOverFreeIfIncrease * 20
-            canIncrease = pontosCriacao.disponiveis >= costInPCIfIncrease
+            // Está além dos 3 gratuitos - só permite na evolução com PC suficiente
+            if (isEvolutionStep) {
+              const pointsOverFreeIfIncrease = newTotalIfIncrease - 3
+              const costInPCIfIncrease = pointsOverFreeIfIncrease * 20
+              canIncrease = pontosCriacao.disponiveis >= costInPCIfIncrease
+            } else {
+              canIncrease = false // Na criação, não permite passar dos 3 gratuitos
+            }
           }
           
           return (
@@ -4625,24 +5035,24 @@ function PathSingularitiesTab({
                 <h5 className="text-md font-semibold text-white/90 border-b border-white/10 pb-2">
                   {categoryLabels[category]}
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {categoryBruxarias.map((bruxaria) => {
                     const isSelected = selectedBruxarias.includes(bruxaria.id)
                     return (
                       <Card
                         key={bruxaria.id}
-                        className={`p-4 cursor-pointer transition-all ${
+                        className={`p-3 cursor-pointer transition-all ${
                           isSelected
                             ? 'border-ecoar-teal bg-ecoar-teal/10'
                             : 'border-white/10 bg-white/5 hover:border-ecoar-teal/50'
                         }`}
                         onClick={() => toggleBruxaria(bruxaria.id)}
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <h6 className="font-semibold text-white">{bruxaria.name}</h6>
-                          {isSelected && <CheckCircle2 className="w-5 h-5 text-ecoar-teal" />}
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <h6 className="font-semibold text-white text-sm leading-tight flex-1">{bruxaria.name}</h6>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-ecoar-teal flex-shrink-0" />}
                         </div>
-                        <p className="text-xs text-white/70 mb-2">{bruxaria.description}</p>
+                        <p className="text-xs text-white/70 leading-relaxed line-clamp-2">{bruxaria.description}</p>
                         <div className="flex gap-2 text-xs text-white/60">
                           <span>Mana: {bruxaria.manaCost}</span>
                           <span>•</span>
@@ -4676,7 +5086,7 @@ function PathSingularitiesTab({
             <p className="text-sm text-white/70">
               Você pode ter, no máximo, um número de poderes igual ao seu Nível de Poder.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {getAllCacadaPowers().map((power) => {
                 const isSelected = selectedCacadaPowers.includes(power.id)
                 const canAfford = pontosDisponiveis >= power.cost
@@ -4731,6 +5141,119 @@ function PathSingularitiesTab({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Gastando PC - Step Principal (sub-etapas controladas pela sidebar)
+function PCSpendingStep({
+  singularidades,
+  selectedEcoar,
+  singularidadesEcoar,
+  selectedTrilha,
+  onTrilhaSelect,
+  attributes,
+  skills,
+  aptitudes,
+  selectedEscolaMarcial,
+  onEscolaMarcialSelect,
+  raceBonuses,
+  martialSchoolBonuses,
+  pontosDisponiveis,
+  onSingularidadesChange,
+  onEcoarSelect,
+  onSingularidadesEcoarChange,
+  onAttributesChange,
+  onSkillsChange,
+  onAptitudesChange,
+  onPointsChange,
+  pontosCriacao,
+  nivelAlma,
+  activeSubStep,
+  onSubStepChange,
+}: {
+  singularidades: string[]
+  selectedEcoar: string
+  singularidadesEcoar: string[]
+  selectedTrilha: string
+  onTrilhaSelect: (id: string) => void
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
+  selectedEscolaMarcial: string
+  onEscolaMarcialSelect: (id: string) => void
+  raceBonuses: Record<string, number>
+  martialSchoolBonuses: Record<string, number>
+  pontosDisponiveis: number
+  onSingularidadesChange: (singularidades: string[]) => void
+  onEcoarSelect: (id: string) => void
+  onSingularidadesEcoarChange: (singularidades: string[]) => void
+  onAttributesChange: (attrs: Record<string, number>) => void
+  onSkillsChange: (skills: Record<string, { level: number; specialization?: string }>) => void
+  onAptitudesChange: (apts: Record<string, number>) => void
+  onPointsChange: (gastos: number) => void
+  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  activeSubStep: 'singularidades' | 'traços' | 'escola-marcial'
+  onSubStepChange: (subStep: 'singularidades' | 'traços' | 'escola-marcial') => void
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Content based on active sub-step */}
+      <div>
+        {activeSubStep === 'singularidades' && (
+          <SingularitiesSpendingStep
+            singularidades={singularidades}
+            selectedEcoar={selectedEcoar}
+            singularidadesEcoar={singularidadesEcoar}
+            selectedTrilha={selectedTrilha}
+            onTrilhaSelect={onTrilhaSelect}
+            pontosDisponiveis={pontosDisponiveis}
+            onSingularidadesChange={onSingularidadesChange}
+            onEcoarSelect={onEcoarSelect}
+            onSingularidadesEcoarChange={onSingularidadesEcoarChange}
+            onPointsChange={onPointsChange}
+            pontosCriacao={pontosCriacao}
+          />
+        )}
+
+        {activeSubStep === 'traços' && (
+          <TraitsSpendingStep
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
+            pontosDisponiveis={pontosDisponiveis}
+            raceBonuses={raceBonuses}
+            martialSchoolBonuses={martialSchoolBonuses}
+            onAttributesChange={onAttributesChange}
+            onSkillsChange={onSkillsChange}
+            onAptitudesChange={onAptitudesChange}
+            onPointsChange={onPointsChange}
+          />
+        )}
+
+        {activeSubStep === 'escola-marcial' && (
+          <MartialSchoolPCSpendingStep
+            selectedEscolaMarcial={selectedEscolaMarcial}
+            onSelect={onEscolaMarcialSelect}
+            singularidadesMarciais={singularidades.filter(s => {
+              const school = getMartialSchoolDataById(selectedEscolaMarcial)
+              return school?.singularities.some(sing => sing.id === s)
+            })}
+            onSingularidadesChange={(singIds) => {
+              // Remove singularidades marciais antigas e adiciona novas
+              const otherSingularities = singularidades.filter(s => {
+                const school = getMartialSchoolDataById(selectedEscolaMarcial)
+                return !school?.singularities.some(sing => sing.id === s)
+              })
+              onSingularidadesChange([...otherSingularities, ...singIds])
+            }}
+            pontosDisponiveis={pontosDisponiveis}
+            onPointsChange={onPointsChange}
+            nivelAlma={nivelAlma}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -4898,7 +5421,7 @@ function SingularitiesSpendingStep({
                   <h5 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
                     {categoryLabels[category]}
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {categorySingularities.map((singularity) => {
                       const isSelected = singularidades.includes(singularity.id)
                       const canAfford = pontosDisponiveis >= singularity.cost
@@ -5045,6 +5568,34 @@ function TraitsSpendingStep({
   onPointsChange: (gastos: number) => void
 }) {
   const [activeTab, setActiveTab] = useState<'atributos' | 'habilidades' | 'aptidoes'>('atributos')
+  
+  // Calcula o total de pontos base usados em todos os atributos
+  const calculateTotalBasePoints = (attrs: Record<string, number>) => {
+    return Object.entries(attrs).reduce((sum, [a, v]) => {
+      const rB = raceBonuses[a] || 0
+      const mB = martialSchoolBonuses[a] || 0
+      return sum + Math.max(0, v - (rB + mB))
+    }, 0)
+  }
+
+  // Calcula o total de pontos usados em aptidões
+  const calculateAptitudeTotal = (apts: Record<string, number>) => {
+    return Object.values(apts).reduce((sum, l) => sum + l, 0)
+  }
+
+  // Calcula gastos atuais em atributos
+  const getGastosAtributos = () => {
+    const totalBase = calculateTotalBasePoints(attributes)
+    const pointsOverFree = Math.max(0, totalBase - 12)
+    return pointsOverFree * 10
+  }
+
+  // Calcula gastos atuais em aptidões
+  const getGastosAptitudes = () => {
+    const total = calculateAptitudeTotal(aptitudes)
+    const pointsOverFree = Math.max(0, total - 3)
+    return pointsOverFree * 20
+  }
 
   // Lógica para atualizar atributos com PC (10 PC por ponto além dos gratuitos)
   const updateAttributeWithPC = (attr: string, newTotalValue: number) => {
@@ -5059,29 +5610,54 @@ function TraitsSpendingStep({
     
     if (newValue === oldValue) return
     
-    const oldBaseValue = Math.max(0, oldValue - totalBonus)
-    const newBaseValue = Math.max(0, newValue - totalBonus)
+    const oldTotalBase = calculateTotalBasePoints(attributes)
+    const newAttributes = { ...attributes, [attr]: newValue }
+    const newTotalBase = calculateTotalBasePoints(newAttributes)
     
-    // Se está aumentando além dos 12 pontos gratuitos, precisa de PC
-    if (newBaseValue > 12) {
-      const pointsOverFree = newBaseValue - 12
-      const oldPointsOverFree = Math.max(0, oldBaseValue - 12)
-      const pointsOverFreeDiff = pointsOverFree - oldPointsOverFree
-      const costInPC = pointsOverFreeDiff * 10
-      
-      if (costInPC > 0 && pontosDisponiveis >= costInPC) {
-        onAttributesChange({ ...attributes, [attr]: newValue })
-        onPointsChange(pontosDisponiveis - costInPC)
-      } else if (costInPC < 0) {
-        // Diminuindo, libera PC
-        const refundPC = Math.abs(costInPC)
-        onAttributesChange({ ...attributes, [attr]: newValue })
-        onPointsChange(pontosDisponiveis + refundPC)
+    // Calcula pontos além dos 12 gratuitos
+    const oldPointsOverFree = Math.max(0, oldTotalBase - 12)
+    const newPointsOverFree = Math.max(0, newTotalBase - 12)
+    const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
+    const costInPC = pointsOverFreeDiff * 10
+    
+    const newGastosAtributos = newPointsOverFree * 10
+    const gastosAptitudesAtuais = getGastosAptitudes()
+    const gastosAtributosAtuais = getGastosAtributos()
+    const gastosTotaisAtuais = gastosAtributosAtuais + gastosAptitudesAtuais
+    const disponiveisAtuais = pontosDisponiveis - gastosTotaisAtuais
+    
+    if (costInPC > 0) {
+      // Aumentando - precisa de PC
+      if (disponiveisAtuais >= costInPC) {
+        onAttributesChange(newAttributes)
+        onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
+      } else {
+        // Bug 2 Fix: Fornece feedback quando não há PC suficiente
+        // O botão já está desabilitado pela lógica de canIncrease, então isso é uma camada extra de segurança
+        // Em produção, poderia usar um toast/notificação aqui
       }
+    } else if (costInPC < 0) {
+      // Diminuindo - libera PC
+      onAttributesChange(newAttributes)
+      onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
     } else {
-      // Dentro dos 12 pontos gratuitos - não deve chegar aqui nesta etapa
-      onAttributesChange({ ...attributes, [attr]: newValue })
+      // Sem mudança no custo de PC (redistribuição dentro dos gratuitos)
+      // Na etapa 6, permite redistribuir mesmo sem custo
+      onAttributesChange(newAttributes)
+      // Atualiza os gastos mesmo que não mude (para manter sincronizado)
+      onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
     }
+  }
+
+  // Wrapper para atualizar aptidões que também atualiza os gastos totais
+  const handleAptitudesChange = (newAptitudes: Record<string, number>) => {
+    onAptitudesChange(newAptitudes)
+    // Recalcula os gastos de aptidões com os novos valores
+    const newTotal = Object.values(newAptitudes).reduce((sum, l) => sum + l, 0)
+    const newPointsOverFree = Math.max(0, newTotal - 3)
+    const newGastosAptitudes = newPointsOverFree * 20
+    // Atualiza os gastos totais incluindo atributos e aptidões
+    onPointsChange(getGastosAtributos() + newGastosAptitudes)
   }
 
   return (
@@ -5131,13 +5707,13 @@ function TraitsSpendingStep({
           <AttributesStep
             attributes={attributes}
             attributePoints={0}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: pontosDisponiveis }}
+            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis - getGastosAptitudes()) }}
             onUpdate={updateAttributeWithPC}
             raceBonuses={raceBonuses}
             martialSchoolBonuses={martialSchoolBonuses}
             classBonuses={{}}
             onRandomize={() => {}}
-            onPointsChange={(gastos) => onPointsChange(pontosDisponiveis - gastos)}
+            onPointsChange={() => {}} // Não usado, calculamos manualmente
             isEvolutionStep={true}
           />
         )}
@@ -5151,12 +5727,12 @@ function TraitsSpendingStep({
         {activeTab === 'aptidoes' && (
           <AptitudesStep
             aptitudes={aptitudes}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: pontosDisponiveis }}
-            onAptitudesChange={onAptitudesChange}
-            onPointsChange={(gastos) => onPointsChange(pontosDisponiveis - gastos)}
+            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis - getGastosAtributos()) }}
+            onAptitudesChange={handleAptitudesChange}
+            onPointsChange={() => {}} // Não usado, calculamos manualmente
             aptitudePoints={0}
             onAptitudePointsChange={() => {}}
-            isEvolutionStep={false}
+            isEvolutionStep={true}
           />
         )}
       </div>
@@ -5222,7 +5798,7 @@ function SingularitiesStep({
             <h4 className="text-2xl font-bold text-white border-b border-ecoar-dark/50 pb-2">
               {categoryLabels[category]}
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {categorySingularities.map((singularity) => {
                 const isSelected = singularidades.includes(singularity.id)
                 const canAfford = pontosDisponiveis >= singularity.cost
@@ -5682,7 +6258,17 @@ function FinalReviewVisualizer({
             <div><span className="text-white/60">Nome:</span> <span className="text-white">{data.nome || 'Não definido'}</span></div>
             {selectedRace && <div><span className="text-white/60">Raça:</span> <span className="text-white">{selectedRace.name}</span></div>}
             {selectedMartialSchool && <div><span className="text-white/60">Escola Marcial:</span> <span className="text-white">{selectedMartialSchool.name}</span></div>}
-            {selectedLocation && <div><span className="text-white/60">Localização:</span> <span className="text-white">{selectedLocation.name}</span></div>}
+            {selectedLocation && (
+              <div>
+                <span className="text-white/60">Região:</span> <span className="text-white">{selectedLocation.name}</span>
+                {selectedLocation.nation && (
+                  <div className="text-white/50 text-xs mt-1 ml-4">{selectedLocation.nation}</div>
+                )}
+                {selectedLocation.region && (
+                  <div className="text-ecoar-teal/70 text-xs mt-1 ml-4">{selectedLocation.region}</div>
+                )}
+              </div>
+            )}
             {selectedPath && <div><span className="text-white/60">Trilha:</span> <span className="text-white">{selectedPath.name}</span></div>}
             {selectedEcoar && <div><span className="text-white/60">Ecoar:</span> <span className="text-white">{selectedEcoar.name}</span></div>}
           </div>
@@ -5752,6 +6338,7 @@ function FinalReviewStep({
   const selectedRace = data.raca ? getRaceById(data.raca) : null
   const selectedMartialSchool = data.escolaMarcial ? getMartialSchoolById(data.escolaMarcial) : null
   const selectedPath = data.trilha ? getPathById(data.trilha) : null
+  const selectedLocation = data.localizacao ? getLocationById(data.localizacao) : null
 
   return (
     <div className="space-y-8">
@@ -5807,7 +6394,24 @@ function FinalReviewStep({
           )}
         </div>
 
-          <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+          <h4 className="text-white font-bold text-lg mb-4">Região</h4>
+          {selectedLocation ? (
+            <div>
+              <div className="text-white text-xl font-semibold">{selectedLocation.name}</div>
+              {selectedLocation.nation && (
+                <div className="text-white/60 text-sm">{selectedLocation.nation}</div>
+              )}
+              {selectedLocation.region && (
+                <div className="text-ecoar-teal/70 text-sm">{selectedLocation.region}</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-white/40">Não selecionado</div>
+          )}
+        </div>
+
+        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
           <h4 className="text-white font-bold text-lg mb-4">Atributos</h4>
           <div className="space-y-2">
             {Object.entries(data.attributes || {}).map(([attr, value]) => (
