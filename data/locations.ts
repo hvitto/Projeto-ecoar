@@ -224,7 +224,11 @@ export const getLocationsByRegion = (region: string): Location[] => {
 }
 
 export const getAllNations = (): string[] => {
-  const nations = new Set(locations.map(loc => loc.nation).filter(Boolean))
+  const nations = new Set(
+    locations
+      .map(loc => loc.nation)
+      .filter((nation): nation is string => typeof nation === 'string')
+  )
   return Array.from(nations).sort()
 }
 
@@ -232,6 +236,10 @@ export const getAllRegions = (nation?: string): string[] => {
   const filtered = nation 
     ? locations.filter(loc => loc.nation === nation)
     : locations
-  const regions = new Set(filtered.map(loc => loc.region).filter(Boolean))
+  const regions = new Set(
+    filtered
+      .map(loc => loc.region)
+      .filter((region): region is string => typeof region === 'string')
+  )
   return Array.from(regions).sort()
 }

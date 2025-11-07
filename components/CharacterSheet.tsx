@@ -18,6 +18,33 @@ import { races, getAllGenus, getRacesByGenus, getRaceById } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
 import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
 
+const ATTRIBUTE_STATE_KEYS = [
+  'carisma',
+  'finesse',
+  'forca',
+  'inteligencia',
+  'percepcao',
+  'vitalidade',
+  'vontade',
+] as const
+
+type AttributeStateKey = (typeof ATTRIBUTE_STATE_KEYS)[number]
+
+const isAttributeStateKey = (key: string): key is AttributeStateKey => {
+  switch (key) {
+    case 'carisma':
+    case 'finesse':
+    case 'forca':
+    case 'inteligencia':
+    case 'percepcao':
+    case 'vitalidade':
+    case 'vontade':
+      return true
+    default:
+      return false
+  }
+}
+
 interface CharacterSheetProps {
   initialData?: any
   onEdit?: () => void
@@ -96,22 +123,10 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
         
         if (initialData.attributes) {
           Object.entries(initialData.attributes).forEach(([key, value]) => {
-            if (typeof value === 'number') {
-              const attrMap: Record<string, keyof typeof updated> = {
-                carisma: 'carisma',
-                finesse: 'finesse',
-                forca: 'forca',
-                inteligencia: 'inteligencia',
-                percepcao: 'percepcao',
-                vitalidade: 'vitalidade',
-                vontade: 'vontade',
-              }
-              const attrKey = attrMap[key]
-              if (attrKey && updated[attrKey]) {
-                updated[attrKey] = {
-                  nivel: value,
-                  mod: getAttributeModifier(value),
-                } as { nivel: number; mod: number }
+            if (typeof value === 'number' && isAttributeStateKey(key)) {
+              updated[key] = {
+                nivel: value,
+                mod: getAttributeModifier(value),
               }
             }
           })
@@ -567,7 +582,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                       updateField('raca', e.target.value)
                       applyRaceBonuses(e.target.value)
                     }}
-                    className="w-full px-4 py-2.5 bg-white border border-ecoar-dark-300/40 rounded-lg text-ecoar-dark-900 text-sm focus:outline-none focus:border-ecoar-teal-500 focus:ring-2 focus:ring-ecoar-teal-400/30 transition-all disabled:opacity-50 shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all disabled:opacity-50 shadow-sm"
                     disabled={!characterData.genus}
                   >
                     <option value="">Selecione uma Raça</option>
@@ -661,7 +676,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
+            className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
               >
                 <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
                   Deslocamentos
@@ -693,7 +708,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
-                className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
+                className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
               >
                 <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
                   Sentidos
@@ -707,13 +722,13 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                     const Icon = sense.icon
                     return (
                       <div key={sense.key} className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 text-ecoar-teal-600" />
+                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
                         <input
                           type="text"
                           value={characterData[sense.key as keyof typeof characterData] as string}
                           onChange={(e) => updateField(sense.key, e.target.value)}
                           placeholder="0m"
-                          className="flex-1 px-3 py-2 bg-white border border-ecoar-dark-300/40 rounded-lg text-ecoar-dark-900 text-sm focus:outline-none focus:border-ecoar-teal-500 focus:ring-2 focus:ring-ecoar-teal-400/30 transition-all shadow-sm"
+                          className="flex-1 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                         />
                       </div>
                     )
@@ -730,7 +745,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
+            className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
               <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-4">
                 Equipamentos
@@ -748,7 +763,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/90 backdrop-blur-sm border border-ecoar-dark-300/30 rounded-2xl p-6 shadow-sm"
+              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
             >
               <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-4">
                 Anotações

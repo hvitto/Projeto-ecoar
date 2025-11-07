@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
 import { useTheme } from '@/contexts/ThemeContext'
 import {
   Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
@@ -17,13 +16,14 @@ import SelectionCard from '@/components/ui/SelectionCard'
 import InfoCard from '@/components/ui/InfoCard'
 import DisadvantageCard from '@/components/ui/DisadvantageCard'
 import RaceCard from '@/components/ui/RaceCard'
+import RaceImage from '@/components/ui/RaceImage'
 import StatCard from '@/components/ui/StatCard'
 import LimitCard from '@/components/ui/LimitCard'
 import MovementCard from '@/components/ui/MovementCard'
 import SenseCard from '@/components/ui/SenseCard'
 import SummaryItem from '@/components/ui/SummaryItem'
 import MartialSchoolCard from '@/components/ui/MartialSchoolCard'
-import { races, getAllGenus, getRacesByGenus, getRaceById, Race } from '@/data/races'
+import { races, getAllGenus, getRacesByGenus, getRaceById, Race, RaceImageConfig } from '@/data/races'
 import { paths, getPathById, Path } from '@/data/paths'
 import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
 import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
@@ -2243,6 +2243,10 @@ function SelectionDetailsPanel({
   const item = getItemById(selectedId)
   if (!item) return null
 
+  const raceImageConfig: RaceImageConfig | undefined =
+    type === 'race' ? (item.image as RaceImageConfig | undefined) : undefined
+  const showRaceImage = Boolean(raceImageConfig?.src)
+
   const attributeDescriptions: Record<string, { name: string; description: string }> = {
     carisma: { name: 'Carisma', description: 'Representa sua capacidade de liderança, persuasão e influência social.' },
     finesse: { name: 'Finesse', description: 'Agilidade e precisão. Afeta ações que requerem destreza e coordenação.' },
@@ -2300,48 +2304,23 @@ function SelectionDetailsPanel({
         </p>
       </div>
 
-      {/* Layout em 2 colunas: PNG à esquerda | INFO à direita */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 relative ${type === 'race' && selectedId === 'mayne' ? 'items-start' : ''}`}>
-        {/* Imagem do Mayne como background - atrás dos cards */}
-        {type === 'race' && selectedId === 'mayne' && (
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ 
-              duration: 0.6,
-              ease: [0.25, 0.1, 0.25, 1]
-            }}
-            className="absolute left-[-9%] top-0 pointer-events-none"
-            style={{ 
-              zIndex: 0,
-              transform: 'translateX(-60%)',
-              overflowX: 'hidden',
-              overflowY: 'visible'
-            }}
-          >
-            <Image
-              src="/assets/images/Mayne.png"
-              alt="Mayne"
-              width={380}
-              height={900}
-              className="object-contain"
-              style={{ 
-                width: '30rem',
-                height: '38rem',
-                maxWidth: '900px'
-              }}
-            />
-          </motion.div>
+      {/* Layout em 2 colunas: Arte à esquerda | INFO à direita */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+        {showRaceImage && raceImageConfig?.src && (
+          <RaceImage
+            variant="hero"
+            src={raceImageConfig.src}
+            alt={raceImageConfig.alt ?? item.name}
+            heroConfig={raceImageConfig.hero}
+          />
         )}
-        
-        {/* Lado Esquerdo - Espaço para PNG */}
-        <div className={type === 'race' && selectedId === 'mayne' ? 'relative z-10' : 'space-y-4'}>
-          {type === 'race' && selectedId === 'mayne' ? (
-            <div className="min-h-[400px]"></div>
+
+        <div className={showRaceImage ? 'relative z-10' : 'space-y-4'}>
+          {showRaceImage ? (
+            <div className="min-h-[400px]" />
           ) : (
             <div className="bg-white/5 rounded-xl border border-white/10 p-6 min-h-[400px] flex items-center justify-center">
               <div className="text-center text-white/40 text-sm">
-                {/* Espaço reservado para imagem PNG */}
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-white/30 text-xs">
                     Imagem PNG aqui
@@ -6243,6 +6222,9 @@ function FinalReviewVisualizer({
   const selectedLocation = data.localizacao ? getLocationById(data.localizacao) : null
   const selectedEcoar = data.ecoar ? getEcoarById(data.ecoar) : null
 
+  const reviewCardClasses =
+    'p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 dark:bg-ecoar-light-900/10 dark:border-ecoar-light-900/20 backdrop-blur-sm'
+
   return (
     <div className="space-y-8 max-h-[700px] overflow-y-auto">
       <div className="text-center mb-8">
@@ -6252,7 +6234,7 @@ function FinalReviewVisualizer({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Basic Info */}
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Informações Básicas</h4>
           <div className="space-y-2 text-sm">
             <div><span className="text-white/60">Nome:</span> <span className="text-white">{data.nome || 'Não definido'}</span></div>
@@ -6276,7 +6258,7 @@ function FinalReviewVisualizer({
 
         {/* Attributes Summary */}
         {data.attributes && (
-          <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40">
+          <div className={reviewCardClasses}>
             <h4 className="text-white font-bold text-lg mb-4">Atributos</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {Object.entries(data.attributes).map(([attr, value]) => (
@@ -6290,7 +6272,7 @@ function FinalReviewVisualizer({
 
         {/* Skills Summary */}
         {data.skills && Object.keys(data.skills).length > 0 && (
-          <div className="md:col-span-2 p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40">
+          <div className={`md:col-span-2 ${reviewCardClasses}`}>
             <h4 className="text-white font-bold text-lg mb-4">Habilidades</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
               {Object.entries(data.skills).map(([skillId, skillData]) => {
@@ -6311,7 +6293,7 @@ function FinalReviewVisualizer({
 
         {/* Background */}
         {(data.backstory || data.personalidade) && (
-          <div className="md:col-span-2 p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40">
+          <div className={`md:col-span-2 ${reviewCardClasses}`}>
             <h4 className="text-white font-bold text-lg mb-4">Background</h4>
             <div className="space-y-3 text-sm">
               {data.backstory && <div><span className="text-white/60">História:</span> <span className="text-white">{data.backstory}</span></div>}
@@ -6340,6 +6322,9 @@ function FinalReviewStep({
   const selectedPath = data.trilha ? getPathById(data.trilha) : null
   const selectedLocation = data.localizacao ? getLocationById(data.localizacao) : null
 
+  const reviewCardClasses =
+    'p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 dark:bg-ecoar-light-900/10 dark:border-ecoar-light-900/20 backdrop-blur-sm shadow-lg'
+
   return (
     <div className="space-y-8">
       <div className="text-center mb-8">
@@ -6361,7 +6346,7 @@ function FinalReviewStep({
         </div>
 
         {/* Summary Cards */}
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Raça</h4>
           {selectedRace ? (
             <div>
@@ -6373,7 +6358,7 @@ function FinalReviewStep({
           )}
         </div>
 
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Escola Marcial</h4>
           {selectedMartialSchool ? (
             <div>
@@ -6385,7 +6370,7 @@ function FinalReviewStep({
           )}
         </div>
 
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Trilha</h4>
           {selectedPath ? (
             <div className="text-white text-xl font-semibold">{selectedPath.name}</div>
@@ -6394,7 +6379,7 @@ function FinalReviewStep({
           )}
         </div>
 
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Região</h4>
           {selectedLocation ? (
             <div>
@@ -6411,7 +6396,7 @@ function FinalReviewStep({
           )}
         </div>
 
-        <div className="p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+        <div className={reviewCardClasses}>
           <h4 className="text-white font-bold text-lg mb-4">Atributos</h4>
           <div className="space-y-2">
             {Object.entries(data.attributes || {}).map(([attr, value]) => (
@@ -6424,7 +6409,7 @@ function FinalReviewStep({
         </div>
 
         {((data.equipamentos && data.equipamentos.length > 0) || (data.armas && data.armas.length > 0)) && (
-          <div className="md:col-span-2 p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 backdrop-blur-sm shadow-lg">
+          <div className={`md:col-span-2 ${reviewCardClasses}`}>
             <h4 className="text-white font-bold text-lg mb-4">Equipamentos & Armas</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {data.equipamentos && data.equipamentos.length > 0 && (

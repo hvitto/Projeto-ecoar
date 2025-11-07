@@ -1,5 +1,26 @@
 // Races and Genus data from Ecoar RPG
 
+export interface RaceImageHeroConfig {
+  width?: number
+  height?: number
+  style?: {
+    width?: string
+    height?: string
+    maxWidth?: string
+  }
+  offsetLeft?: string
+  offsetTop?: string
+  translateX?: string
+  translateY?: string
+  zIndex?: number
+}
+
+export interface RaceImageConfig {
+  src: string
+  alt?: string
+  hero?: RaceImageHeroConfig
+}
+
 export interface Race {
   id: string
   name: string
@@ -25,6 +46,22 @@ export interface Race {
     sizeModifier?: number
     weightModifier?: number
   }
+  image?: RaceImageConfig
+}
+
+const defaultHeroImageConfig: RaceImageHeroConfig = {
+  width: 380,
+  height: 900,
+  style: {
+    width: '30rem',
+    height: '38rem',
+    maxWidth: '900px',
+  },
+  offsetLeft: '-9%',
+  offsetTop: '0',
+  translateX: '-60%',
+  translateY: '0',
+  zIndex: 0,
 }
 
 export const races: Race[] = [
@@ -39,6 +76,11 @@ export const races: Race[] = [
       sizeModifier: 0,
       weightModifier: 0,
     },
+    image: {
+      src: '/assets/images/Peccata.png',
+      alt: 'Peccata',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'anao',
@@ -52,6 +94,11 @@ export const races: Race[] = [
       weightModifier: 0,
       corpo: 2,
     },
+    image: {
+      src: '/assets/images/Anão.png',
+      alt: 'Anão',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'elfo',
@@ -64,6 +111,11 @@ export const races: Race[] = [
       sizeModifier: 0,
       weightModifier: 0,
     },
+    image: {
+      src: '/assets/images/Elfo.png',
+      alt: 'Elfo',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'orc',
@@ -75,6 +127,11 @@ export const races: Race[] = [
       senses: { visao: 400, audicao: 50, olfato: 1 },
       sizeModifier: 0,
       weightModifier: 0,
+    },
+    image: {
+      src: '/assets/images/Orc.png',
+      alt: 'Orc',
+      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -89,6 +146,11 @@ export const races: Race[] = [
       weightModifier: -1,
       attributes: { forca: -1, vitalidade: -1 },
     },
+    image: {
+      src: '/assets/images/Tyllow.png',
+      alt: 'Tyllow',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'kaidler',
@@ -100,6 +162,11 @@ export const races: Race[] = [
       senses: { visao: 1500, audicao: 150, olfato: 1 },
       sizeModifier: 0,
       weightModifier: 0,
+    },
+    image: {
+      src: '/assets/images/Kaidler.png',
+      alt: 'Kaidler',
+      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -113,6 +180,11 @@ export const races: Race[] = [
       sizeModifier: 0,
       weightModifier: 0,
     },
+    image: {
+      src: '/assets/images/Fjar.png',
+      alt: 'Fjyr',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'mayne',
@@ -124,6 +196,11 @@ export const races: Race[] = [
       senses: { visao: 800, audicao: 150, olfato: 1 },
       sizeModifier: 0,
       weightModifier: 0,
+    },
+    image: {
+      src: '/assets/images/Mayne.png',
+      alt: 'Mayne',
+      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -137,6 +214,11 @@ export const races: Race[] = [
       sizeModifier: 0,
       weightModifier: 0,
     },
+    image: {
+      src: '/assets/images/Tsusagi.png',
+      alt: 'Tsusagi',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'niliapy',
@@ -148,6 +230,11 @@ export const races: Race[] = [
       senses: { visao: 400, audicao: 50, olfato: 1 },
       sizeModifier: 1,
       weightModifier: 1,
+    },
+    image: {
+      src: '/assets/images/Niliapy.png',
+      alt: 'Niliapy',
+      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -161,6 +248,11 @@ export const races: Race[] = [
       sizeModifier: 0,
       weightModifier: 0,
     },
+    image: {
+      src: '/assets/images/Triskelion.png',
+      alt: 'Triskelion',
+      hero: defaultHeroImageConfig,
+    },
   },
   {
     id: 'fleurili',
@@ -172,6 +264,11 @@ export const races: Race[] = [
       senses: { visao: 800, audicao: 150, olfato: 1 },
       sizeModifier: 0,
       weightModifier: 0,
+    },
+    image: {
+      src: '/assets/images/Fleurili.png',
+      alt: 'Fleurili',
+      hero: defaultHeroImageConfig,
     },
   },
 ]

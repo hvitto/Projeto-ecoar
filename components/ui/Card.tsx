@@ -55,9 +55,9 @@ export default function Card({
   }
 
   return (
-    <div className={classes} {...motionProps}>
+    <motion.div className={classes} {...motionProps}>
       {children}
-    </div>
+    </motion.div>
   )
 }
 

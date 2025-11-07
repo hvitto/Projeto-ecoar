@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Image from 'next/image'
 import Badge from './Badge'
+
+import Image from 'next/image'
 
 interface RaceCardProps {
   name: string
@@ -49,10 +50,11 @@ export default function RaceCard({
         >
           <Image
             src="/assets/icons/mayne-icon.png"
-            alt="Ícone Mayne"
+            alt="Ícone de raça"
             width={40}
             height={40}
-            className="w-10 h-10 rounded-full"
+            className="w-10 h-10 rounded-full object-cover"
+            priority={index < 4}
           />
         </motion.div>
         <div className="flex-1 min-w-0">
