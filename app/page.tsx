@@ -46,7 +46,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-full bg-ecoar-light">
+    <div className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900">
       <CharacterSheet 
         initialData={characterData} 
         onEdit={handleEditCharacter}
