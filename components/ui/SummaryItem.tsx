@@ -14,10 +14,10 @@ export default function SummaryItem({
   className = '',
 }: SummaryItemProps) {
   return (
-    <div className={`flex items-center justify-between p-1.5 bg-white/5 dark:bg-ecoar-light-900/10 rounded border border-white/10 dark:border-ecoar-light-900/20 text-xs ${className}`}>
-      <span className="text-white/60 dark:text-ecoar-light-900/60">{label}</span>
+    <div className={`flex items-center justify-between p-1.5 bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] rounded border border-white/[0.08] dark:border-ecoar-light-900/[0.08] text-[11px] ${className}`}>
+      <span className="text-white/50 dark:text-ecoar-light-900/50">{label}</span>
       {value ? (
-        <span className="text-white dark:text-ecoar-light-900 font-medium">{value}</span>
+        <span className="text-white/80 dark:text-ecoar-light-900/80 font-medium">{value}</span>
       ) : null}
     </div>
   )

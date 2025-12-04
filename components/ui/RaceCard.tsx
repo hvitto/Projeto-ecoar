@@ -32,12 +32,12 @@ export default function RaceCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       onClick={onClick}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
-      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+      className={`relative p-3.5 rounded-lg border transition-all duration-200 text-left ${
         isSelected
-          ? 'bg-ecoar-teal/10 dark:bg-ecoar-teal-600/20 border-ecoar-teal dark:border-ecoar-teal-500 shadow-lg shadow-ecoar-teal/20 dark:shadow-ecoar-teal-600/30'
-          : 'bg-white/5 dark:bg-ecoar-light-900/10 border-white/10 dark:border-ecoar-light-900/20 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/40'
+          ? 'bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 border-ecoar-teal/60 dark:border-ecoar-teal-500/60 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20'
+          : 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30'
       } ${className}`}
     >
       {/* Ícone e Título */}

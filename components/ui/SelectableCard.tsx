@@ -24,12 +24,12 @@ export default function SelectableCard({
   className = '',
 }: SelectableCardProps) {
   const baseClasses = `
-    p-5 md:p-6 rounded-xl border-2 text-left transition-all
+    p-4 rounded-lg border text-left transition-all duration-200
     ${isSelected
-      ? 'border-ecoar-teal dark:border-ecoar-teal-500 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 shadow-lg shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30'
+      ? 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20'
       : disabled
-      ? 'border-white/5 dark:border-ecoar-light-900/10 bg-white/5 dark:bg-ecoar-light-900/10 opacity-50 cursor-not-allowed'
-      : 'border-white/10 dark:border-ecoar-light-900/20 bg-white/5 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15 cursor-pointer'
+      ? 'border-white/[0.04] dark:border-ecoar-light-900/[0.04] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
+      : 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06] cursor-pointer'
     }
   `
 
@@ -52,8 +52,8 @@ export default function SelectableCard({
       <motion.button
         onClick={onClick}
         disabled={disabled}
-        whileHover={disabled ? {} : { scale: 1.02 }}
-        whileTap={disabled ? {} : { scale: 0.98 }}
+        whileHover={disabled ? {} : { scale: 1.01 }}
+        whileTap={disabled ? {} : { scale: 0.99 }}
         className={`${baseClasses} ${className}`}
       >
         {content}

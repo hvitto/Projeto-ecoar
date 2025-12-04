@@ -19,14 +19,14 @@ export default function SectionHeader({
   className = '',
 }: SectionHeaderProps) {
   return (
-    <div className={`section-header ${className}`}>
-      {Icon && <Icon className="section-header-icon" />}
+    <div className={`flex items-center gap-2 mb-4 pb-2 border-b border-white/[0.06] dark:border-ecoar-light-900/[0.06] ${className}`}>
+      {Icon && <Icon className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />}
       <div className="flex-1">
-        <h3 className="text-lg font-bold text-ecoar-dark-900 dark:text-ecoar-light-900">
+        <h3 className="text-base font-semibold text-white/90 dark:text-ecoar-light-900/90">
           {title}
         </h3>
         {description && (
-          <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/70 mt-1">
+          <p className="text-xs text-white/50 dark:text-ecoar-light-900/50 mt-0.5">
             {description}
           </p>
         )}

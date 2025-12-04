@@ -44,57 +44,57 @@ export default function SingularityCard({
   className = '',
 }: SingularityCardProps) {
   const selectedClasses = {
-    default: 'border-ecoar-teal dark:border-ecoar-teal-500 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 shadow-lg shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30',
-    teal: 'border-ecoar-teal dark:border-ecoar-teal-500 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 shadow-lg shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30',
-    magenta: 'border-ecoar-magenta-600 dark:border-ecoar-magenta-500 bg-ecoar-magenta-800/70 dark:bg-ecoar-magenta-800/70 shadow-lg shadow-ecoar-magenta-900/60 dark:shadow-ecoar-magenta-900/60'
+    default: 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20',
+    teal: 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20',
+    magenta: 'border-ecoar-magenta/60 bg-ecoar-magenta/15 dark:bg-ecoar-magenta-800/15 shadow-lg shadow-ecoar-magenta/10 dark:shadow-ecoar-magenta-900/20'
   }
 
   const unselectedClasses = {
-    default: 'border-white/10 dark:border-ecoar-light-900/20 bg-white/5 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15',
-    teal: 'border-white/10 dark:border-ecoar-light-900/20 bg-white/5 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15',
-    magenta: 'border-gray-700/50 dark:border-ecoar-light-900/20 bg-gray-900/30 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50 hover:bg-gray-800/40 dark:hover:bg-ecoar-light-900/15'
+    default: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]',
+    teal: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]',
+    magenta: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]'
   }
 
   return (
     <motion.button
       onClick={onClick}
       disabled={!isSelected && !canSelect}
-      whileHover={!isSelected && canSelect ? { scale: 1.02 } : {}}
-      className={`p-4 rounded-lg border-2 text-left transition-all ${
+      whileHover={!isSelected && canSelect ? { scale: 1.01 } : {}}
+      className={`p-3.5 rounded-lg border text-left transition-all duration-200 ${
         isSelected
           ? selectedClasses[variant]
           : canSelect
           ? unselectedClasses[variant]
-          : 'border-white/5 dark:border-ecoar-light-900/10 bg-white/5 dark:bg-ecoar-light-900/10 opacity-50 cursor-not-allowed'
+          : 'border-white/[0.04] dark:border-ecoar-light-900/[0.04] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
       } ${className}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex-1 min-w-0">
-          <div className="text-white dark:text-ecoar-light-900 font-semibold text-base leading-tight">{name}</div>
+          <div className="text-white/90 dark:text-ecoar-light-900/90 font-semibold text-sm leading-tight">{name}</div>
           {level && (
-            <div className="text-xs text-white/60 dark:text-ecoar-light-900/60 mt-0.5">
+            <div className="text-[11px] text-white/50 dark:text-ecoar-light-900/50 mt-0.5">
               {levelLabel || `Nível ${level}`} {level <= 12 ? `(${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][level - 1]})` : ''}
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 text-white dark:text-ecoar-light-900 font-semibold text-sm bg-ecoar-magenta-700/80 dark:bg-ecoar-magenta-700/90 px-2 py-1 rounded border border-ecoar-magenta-600 dark:border-ecoar-magenta-500 whitespace-nowrap">
+        <div className="flex-shrink-0 text-white/90 dark:text-ecoar-light-900/90 font-medium text-xs bg-ecoar-magenta/15 dark:bg-ecoar-magenta-700/15 px-1.5 py-0.5 rounded border border-ecoar-magenta/25 dark:border-ecoar-magenta-500/30 whitespace-nowrap">
           {cost} {costLabel}
           {secondaryCost && (
-            <div className="text-xs text-white/80 dark:text-ecoar-light-900/80">({secondaryCost})</div>
+            <div className="text-[10px] text-white/70 dark:text-ecoar-light-900/70">({secondaryCost})</div>
           )}
         </div>
       </div>
-      <p className="text-white/70 dark:text-ecoar-light-900/70 text-xs leading-relaxed mb-1.5 line-clamp-3">{description}</p>
+      <p className="text-white/60 dark:text-ecoar-light-900/60 text-xs leading-relaxed mb-1 line-clamp-3">{description}</p>
       {effects && (
-        <p className="text-white/60 dark:text-ecoar-light-900/60 text-xs mb-2">{effects}</p>
+        <p className="text-white/50 dark:text-ecoar-light-900/50 text-[11px] mb-1.5">{effects}</p>
       )}
       {requirements && requirements.length > 0 && (
-        <div className="text-white/80 dark:text-ecoar-light-900/80 text-xs">
+        <div className="text-white/70 dark:text-ecoar-light-900/70 text-[11px]">
           Requisitos: {requirements.join(', ')}
         </div>
       )}
       {requirementsText && (
-        <div className="text-white/80 dark:text-ecoar-light-900/80 text-xs mt-1.5 pt-1.5 border-t border-white/10">
+        <div className="text-white/70 dark:text-ecoar-light-900/70 text-[11px] mt-1.5 pt-1.5 border-t border-white/[0.06]">
           {requirementsText}
         </div>
       )}

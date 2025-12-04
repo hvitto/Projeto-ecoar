@@ -21,21 +21,21 @@ export default function Card({
   className = '',
   ...motionProps
 }: CardProps) {
-  const baseClasses = 'rounded-xl border transition-all'
+  const baseClasses = 'rounded-lg border transition-all duration-200'
   
   const variantClasses = {
-    default: 'bg-white/5 dark:bg-ecoar-light-900/10 border-white/10 dark:border-ecoar-light-900/20 p-5',
+    default: 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-4',
     selectable: `
       ${selected 
-        ? 'border-ecoar-teal bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 shadow-lg shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30' 
+        ? 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20' 
         : disabled
-        ? 'border-white/5 dark:border-ecoar-light-900/10 bg-white/5 dark:bg-ecoar-light-900/10 opacity-50 cursor-not-allowed'
-        : 'border-white/10 dark:border-ecoar-light-900/20 bg-white/5 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15'
+        ? 'border-white/[0.04] dark:border-ecoar-light-900/[0.04] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
+        : 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]'
       }
       ${onClick && !disabled ? 'cursor-pointer' : ''}
     `,
-    info: 'bg-white/60 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border-ecoar-dark/10 dark:border-ecoar-light-900/20 p-6',
-    stat: 'bg-white/80 dark:bg-ecoar-dark-700/80 backdrop-blur-sm border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 p-4 text-center hover:border-ecoar-teal-500/50 dark:hover:border-ecoar-teal-400/50 hover:shadow-lg hover:shadow-ecoar-teal-200/40 dark:hover:shadow-ecoar-teal-600/20'
+    info: 'bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-4',
+    stat: 'bg-white/[0.05] dark:bg-ecoar-dark-700/[0.05] backdrop-blur-sm border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-3.5 text-center hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-400/30 hover:shadow-lg hover:shadow-ecoar-teal/10 dark:hover:shadow-ecoar-teal-600/10'
   }
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`
@@ -44,8 +44,8 @@ export default function Card({
     return (
       <motion.div
         onClick={onClick}
-        whileHover={disabled ? {} : { scale: 1.02 }}
-        whileTap={disabled ? {} : { scale: 0.98 }}
+        whileHover={disabled ? {} : { scale: 1.01 }}
+        whileTap={disabled ? {} : { scale: 0.99 }}
         className={classes}
         {...motionProps}
       >

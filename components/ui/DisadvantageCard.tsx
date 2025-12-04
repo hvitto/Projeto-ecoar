@@ -24,22 +24,22 @@ export default function DisadvantageCard({
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ y: -2 }}
-      className={`p-4 rounded-lg border-2 transition-all text-left ${
+      whileHover={{ y: -1 }}
+      className={`p-3.5 rounded-lg border transition-all duration-200 text-left ${
         isSelected
-          ? 'bg-ecoar-magenta-800/70 dark:bg-ecoar-magenta-800/70 border-ecoar-magenta-600 dark:border-ecoar-magenta-500 shadow-lg shadow-ecoar-magenta-900/40 dark:shadow-ecoar-magenta-900/40'
-          : 'bg-white/5 dark:bg-ecoar-light-900/10 border-white/10 dark:border-ecoar-light-900/20 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-magenta/30 dark:hover:border-ecoar-magenta-500/30'
+          ? 'bg-ecoar-magenta/15 dark:bg-ecoar-magenta-800/15 border-ecoar-magenta/60 dark:border-ecoar-magenta-500/60 shadow-lg shadow-ecoar-magenta/10 dark:shadow-ecoar-magenta-900/20'
+          : 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-magenta/30 dark:hover:border-ecoar-magenta-500/30'
       } ${className}`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <h5 className={`font-semibold text-sm ${isSelected ? 'text-white dark:text-ecoar-light-900' : 'text-white/90 dark:text-ecoar-light-900/90'}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <h5 className={`font-medium text-sm ${isSelected ? 'text-white/90 dark:text-ecoar-light-900/90' : 'text-white/80 dark:text-ecoar-light-900/80'}`}>
           {name}
         </h5>
         {isSelected && (
-          <CheckCircle2 className="w-5 h-5 text-white dark:text-ecoar-light-900" />
+          <CheckCircle2 className="w-4 h-4 text-ecoar-magenta/80 dark:text-ecoar-magenta-400/80" />
         )}
       </div>
-      <p className={`text-xs mb-2 ${isSelected ? 'text-white/90 dark:text-ecoar-light-900/90' : 'text-white/70 dark:text-ecoar-light-900/70'}`}>
+      <p className={`text-xs mb-1.5 ${isSelected ? 'text-white/70 dark:text-ecoar-light-900/70' : 'text-white/60 dark:text-ecoar-light-900/60'}`}>
         {description}
       </p>
       <div className="flex items-center gap-2">

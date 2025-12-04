@@ -26,34 +26,34 @@ export default function SelectionCard({
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ scale: 1.05, y: -3 }}
-      whileTap={{ scale: 0.95 }}
-      className={`relative p-4 rounded-xl border-2 transition-all ${
+      whileHover={{ scale: 1.01, y: -1 }}
+      whileTap={{ scale: 0.99 }}
+      className={`relative p-3.5 rounded-lg border transition-all duration-200 ${
         isSelected
-          ? 'border-ecoar-teal dark:border-ecoar-teal-500 bg-ecoar-teal/10 dark:bg-ecoar-teal-600/20'
-          : 'bg-white/5 dark:bg-ecoar-light-900/10 border-white/10 dark:border-ecoar-light-900/20 hover:bg-white/10 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/40'
+          ? 'border-ecoar-teal/60 dark:border-ecoar-teal-500/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15'
+          : 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30'
       } ${className}`}
     >
       {isSelected && (
         <motion.div
-          className="absolute top-2 right-2"
+          className="absolute top-1.5 right-1.5"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
         >
-          <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+          <CheckCircle2 className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
         </motion.div>
       )}
       <div className="text-center">
         {Icon && (
-          <Icon className="w-8 h-8 mx-auto mb-2 text-ecoar-teal dark:text-ecoar-teal-400" />
+          <Icon className="w-6 h-6 mx-auto mb-1.5 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
         )}
-        <div className={`font-semibold text-base mb-1 ${
-          isSelected ? 'text-white dark:text-ecoar-light-900' : 'text-white/90 dark:text-ecoar-light-900/90'
+        <div className={`font-medium text-sm mb-0.5 ${
+          isSelected ? 'text-white/90 dark:text-ecoar-light-900/90' : 'text-white/80 dark:text-ecoar-light-900/80'
         }`}>
           {title}
         </div>
         {subtitle && (
-          <div className="text-sm text-white/60 dark:text-ecoar-light-900/60">
+          <div className="text-xs text-white/50 dark:text-ecoar-light-900/50">
             {subtitle}
           </div>
         )}

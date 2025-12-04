@@ -20,16 +20,16 @@ export default function LimitCard({
 }: LimitCardProps) {
   return (
     <Card variant="default" className={`p-3 ${className}`}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-ecoar-teal dark:text-ecoar-teal-400" />
-          <span className="text-sm font-semibold text-white dark:text-ecoar-light-900">
+          <Icon className="w-3.5 h-3.5 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+          <span className="text-xs font-medium text-white/90 dark:text-ecoar-light-900/90">
             {name}
           </span>
         </div>
-        <span className="text-sm font-bold text-ecoar-teal dark:text-ecoar-teal-400">+{bonus}</span>
+        <span className="text-xs font-semibold text-ecoar-teal/90 dark:text-ecoar-teal-400/90">+{bonus}</span>
       </div>
-      <p className="text-xs text-white/60 dark:text-ecoar-light-900/60 ml-6 leading-relaxed">
+      <p className="text-[11px] text-white/50 dark:text-ecoar-light-900/50 ml-5 leading-relaxed">
         {description}
       </p>
     </Card>

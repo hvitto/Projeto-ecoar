@@ -360,10 +360,10 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
   ]
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 py-12 px-4 md:px-8">
+    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 py-8 px-4 md:px-6">
       <div className="max-w-[1600px] mx-auto">
         {/* Layout em 3 colunas */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           
           {/* Sidebar Esquerda - Informações Principais */}
           <aside className="lg:col-span-3 space-y-6">
@@ -372,9 +372,9 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+              className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
+              <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Atributos
               </h3>
               <div className="space-y-4">
@@ -420,9 +420,9 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+              className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
+              <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Níveis
               </h3>
               <div className="space-y-4">
@@ -481,9 +481,9 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+              className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
+              <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Limites
               </h3>
               <div className="space-y-4">
@@ -528,20 +528,20 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-8 shadow-sm"
+              className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-5 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-5">
                 <input
                   type="text"
                   value={characterData.nome}
                   onChange={(e) => updateField('nome', e.target.value)}
-                  className="flex-1 text-4xl font-bold bg-transparent border-none text-ecoar-dark-900 dark:text-ecoar-light-900 placeholder-ecoar-dark-400 dark:placeholder-ecoar-light-900/50 focus:outline-none"
+                  className="flex-1 text-2xl font-semibold bg-transparent border-none text-ecoar-dark-900/90 dark:text-ecoar-light-900/90 placeholder-ecoar-dark-400/50 dark:placeholder-ecoar-light-900/50 focus:outline-none"
                   placeholder="Nome do Personagem"
                 />
                 {onEdit && (
                   <button
                     onClick={onEdit}
-                    className="ml-4 px-4 py-2 bg-ecoar-teal-100 dark:bg-ecoar-teal-600/20 hover:bg-ecoar-teal-200 dark:hover:bg-ecoar-teal-600/30 text-ecoar-teal-700 dark:text-ecoar-teal-300 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal-300 dark:border-ecoar-teal-500/40 shadow-sm"
+                    className="ml-4 px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 shadow-sm"
                     title="Editar personagem"
                   >
                     <Edit className="w-4 h-4" />
@@ -550,7 +550,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-5">
                 <div>
                   <label className="block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                     Genus
@@ -645,9 +645,9 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+              className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900 uppercase tracking-wider mb-6">
+              <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Testes Comuns
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -661,7 +661,7 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                     <div className="text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/80 uppercase tracking-wider mb-2">
                       {test.label}
                     </div>
-                    <div className="text-2xl font-bold text-ecoar-teal-600 dark:text-ecoar-teal-400 mb-1">
+                    <div className="text-lg font-semibold text-ecoar-teal/90 dark:text-ecoar-teal-400/90 mb-0.5">
                       {formatModifier(test.value)}
                     </div>
                     <div className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/70">{test.desc}</div>
@@ -671,14 +671,14 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
             </motion.div>
 
             {/* Deslocamentos e Sentidos */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-5">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-            className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+            className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
               >
-                <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
+                <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                   Deslocamentos
                 </h3>
                 <div className="space-y-3">
@@ -708,9 +708,9 @@ export default function CharacterSheet({ initialData, onEdit }: CharacterSheetPr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
-                className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 rounded-2xl p-6 shadow-sm"
+                className="bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-white/[0.08] dark:border-ecoar-light-900/[0.08] rounded-lg p-4 shadow-sm"
               >
-                <h3 className="text-sm font-semibold text-ecoar-dark-700 uppercase tracking-wider mb-6">
+                <h3 className="text-xs font-semibold text-ecoar-dark-700/90 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                   Sentidos
                 </h3>
                 <div className="space-y-3">
