@@ -24,18 +24,18 @@ export default function Card({
   const baseClasses = 'rounded-lg border transition-all duration-200'
   
   const variantClasses = {
-    default: 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-4',
+    default: 'bg-white dark:bg-ecoar-light-900/[0.03] border-slate-200 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
     selectable: `
       ${selected 
-        ? 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20' 
+        ? 'border-teal-300 dark:border-ecoar-teal/60 bg-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-teal-100/50 dark:shadow-ecoar-teal-600/20' 
         : disabled
-        ? 'border-white/[0.04] dark:border-ecoar-light-900/[0.04] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
-        : 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]'
+        ? 'border-slate-200 dark:border-ecoar-light-900/[0.04] bg-slate-50 dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
+        : 'border-slate-200 dark:border-ecoar-light-900/[0.08] bg-white dark:bg-ecoar-light-900/[0.03] hover:border-slate-300 dark:hover:border-ecoar-teal-500/30 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/[0.06]'
       }
       ${onClick && !disabled ? 'cursor-pointer' : ''}
     `,
-    info: 'bg-white/40 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-4',
-    stat: 'bg-white/[0.05] dark:bg-ecoar-dark-700/[0.05] backdrop-blur-sm border-white/[0.08] dark:border-ecoar-light-900/[0.08] p-3.5 text-center hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-400/30 hover:shadow-lg hover:shadow-ecoar-teal/10 dark:hover:shadow-ecoar-teal-600/10'
+    info: 'bg-white dark:bg-ecoar-dark-800/60 backdrop-blur-sm border-slate-200 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
+    stat: 'bg-white dark:bg-ecoar-dark-700/[0.05] backdrop-blur-sm border-slate-200 dark:border-ecoar-light-900/[0.08] p-3.5 text-center hover:border-slate-300 dark:hover:border-ecoar-teal-400/30 hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-ecoar-teal-600/10'
   }
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`

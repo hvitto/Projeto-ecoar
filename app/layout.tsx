@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import ThemeProviderWrapper from '@/components/ThemeProviderWrapper'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import Providers from '@/components/Providers'
 
 export const metadata: Metadata = {
   title: 'ECOAR Beyond - Character Sheet',
@@ -32,13 +30,9 @@ export default function RootLayout({
         />
       </head>
       <body className="flex flex-col min-h-screen">
-        <ThemeProviderWrapper>
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-        </ThemeProviderWrapper>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

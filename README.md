@@ -101,3 +101,5 @@ Projeto-ecoar/
 - ✅ Melhorada navegação com Header funcional
 - ✅ Implementada persistência de dados no localStorage
 - ✅ Fluxo intuitivo entre wizard e ficha de personagem
+- ✅ Sistema de autenticação local (login/registro)
+- ✅ Dashboard de gerenciamento de personagens

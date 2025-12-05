@@ -1,112 +1,162 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { AppProvider } from '@/contexts/AppContext'
 import CharacterSheet from '@/components/CharacterSheet'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
-import { AppProvider } from '@/contexts/AppContext'
+import CharacterDashboard from '@/components/CharacterDashboard'
+import LoginForm from '@/components/auth/LoginForm'
+import RegisterForm from '@/components/auth/RegisterForm'
+import { saveCharacter } from '@/lib/storage/characterStorage'
+import { CharacterWithMetadata } from '@/types/auth'
 
-// Helper function to safely parse localStorage data
-function getSavedCharacter(): any | null {
-  if (typeof window === 'undefined') return null
-  
-  try {
-    const savedCharacter = localStorage.getItem('ecoar-character')
-    if (!savedCharacter) return null
-    
-    const parsed = JSON.parse(savedCharacter)
-    
-    // Validate that the parsed data has required fields
-    if (parsed && typeof parsed === 'object' && parsed.nome && typeof parsed.nome === 'string') {
-      return parsed
-    }
-    
-    // Invalid data, clean it up
-    localStorage.removeItem('ecoar-character')
-    return null
-  } catch (e) {
-    // Corrupted data, clean it up
-    console.error('Error loading character from localStorage:', e)
-    localStorage.removeItem('ecoar-character')
-    return null
-  }
-}
+type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet'
 
-export default function Home() {
-  const [showWizard, setShowWizard] = useState(true)
-  const [characterData, setCharacterData] = useState<any>(null)
-  const [wizardKey, setWizardKey] = useState(0) // Key to force reset of wizard
-  const hasCheckedLocalStorage = useRef(false)
+function AppContent() {
+  const { user, isAuthenticated, isLoading } = useAuth()
+  const [viewMode, setViewMode] = useState<ViewMode>('auth')
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithMetadata | null>(null)
+  const [wizardKey, setWizardKey] = useState(0)
+  const hasInitialized = useRef(false)
 
-  // Check localStorage only once after mount, but don't block initial render
+  // Ajustar viewMode inicial baseado na autenticação
   useEffect(() => {
-    if (hasCheckedLocalStorage.current) return
-    
-    hasCheckedLocalStorage.current = true
-    const savedCharacter = getSavedCharacter()
-    
-    if (savedCharacter) {
-      setCharacterData(savedCharacter)
-      setShowWizard(false)
-    }
-  }, [])
+    if (isLoading) return
 
-  const handleWizardComplete = (data: any) => {
-    if (!data || !data.nome) {
-      console.error('Invalid character data provided')
+    // Inicialização: definir modo inicial apenas uma vez
+    if (!hasInitialized.current) {
+      if (isAuthenticated) {
+        setViewMode('dashboard')
+      } else {
+        setViewMode('login')
+      }
+      hasInitialized.current = true
       return
     }
-    
-    setCharacterData(data)
-    setShowWizard(false)
-    
-    // Save to localStorage for persistence
-    try {
-      localStorage.setItem('ecoar-character', JSON.stringify(data))
-    } catch (e) {
-      console.error('Error saving character to localStorage:', e)
+
+    // Após inicialização: apenas redirecionar para dashboard quando autenticado
+    // Mas não sobrescrever se usuário está navegando entre login/register
+    if (isAuthenticated && (viewMode === 'login' || viewMode === 'register' || viewMode === 'auth')) {
+      setViewMode('dashboard')
     }
+  }, [isAuthenticated, isLoading]) // Removido viewMode das dependências para evitar loops
+
+  const handleLoginSuccess = () => {
+    setViewMode('dashboard')
   }
 
-  const handleEditCharacter = () => {
-    setShowWizard(true)
-    // Don't reset wizard key when editing - allow editing existing character
+  const handleRegisterSuccess = () => {
+    setViewMode('dashboard')
   }
 
   const handleNewCharacter = () => {
-    // Clear all data first
-    setCharacterData(null)
-    
-    // Clear localStorage
-    try {
-      localStorage.removeItem('ecoar-character')
-    } catch (e) {
-      console.error('Error clearing localStorage:', e)
-    }
-    
-    // Force complete reset by changing key and showing wizard
+    setSelectedCharacter(null)
     setWizardKey(prev => prev + 1)
-    setShowWizard(true)
+    setViewMode('wizard')
   }
 
-  if (showWizard) {
+  const handleWizardComplete = async (data: any) => {
+    if (!user || !data || !data.nome) {
+      console.error('Invalid character data or user')
+      return
+    }
+
+    try {
+      // Salvar ficha vinculada ao usuário
+      const characterWithMetadata = saveCharacter(user.id, data)
+      setSelectedCharacter(characterWithMetadata)
+      setViewMode('sheet')
+    } catch (error) {
+      console.error('Error saving character:', error)
+      alert('Erro ao salvar ficha. Tente novamente.')
+    }
+  }
+
+  const handleViewCharacter = (character: CharacterWithMetadata) => {
+    setSelectedCharacter(character)
+    setViewMode('sheet')
+  }
+
+  const handleEditCharacter = (character: CharacterWithMetadata) => {
+    setSelectedCharacter(character)
+    setWizardKey(prev => prev + 1)
+    setViewMode('wizard')
+  }
+
+  const handleGoToDashboard = () => {
+    setSelectedCharacter(null)
+    setViewMode('dashboard')
+  }
+
+  // Loading state
+  if (isLoading) {
     return (
-      <AppProvider onNewCharacter={handleNewCharacter}>
-        <CharacterCreationWizard 
-          key={wizardKey}
-          onComplete={handleWizardComplete} 
+      <div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">
+        <div className="text-white/60 dark:text-ecoar-light-900/60">Carregando...</div>
+      </div>
+    )
+  }
+
+  // Auth screens - verificar antes de qualquer outra coisa
+  if (!isAuthenticated) {
+    if (viewMode === 'login') {
+      return (
+        <LoginForm
+          onSwitchToRegister={() => setViewMode('register')}
+          onSuccess={handleLoginSuccess}
         />
-      </AppProvider>
+      )
+    }
+
+    if (viewMode === 'register') {
+      return (
+        <RegisterForm
+          onSwitchToLogin={() => setViewMode('login')}
+          onSuccess={handleRegisterSuccess}
+        />
+      )
+    }
+
+    // Fallback: se viewMode não está definido, mostrar login
+    return (
+      <LoginForm
+        onSwitchToRegister={() => setViewMode('register')}
+        onSuccess={handleLoginSuccess}
+      />
     )
   }
 
   return (
     <AppProvider onNewCharacter={handleNewCharacter}>
-      <div className="min-h-full bg-ecoar-light">
-        <CharacterSheet 
-          initialData={characterData} 
-          onEdit={handleEditCharacter}
+      {viewMode === 'dashboard' && (
+        <CharacterDashboard
+          onNewCharacter={handleNewCharacter}
+          onViewCharacter={handleViewCharacter}
+          onEditCharacter={handleEditCharacter}
         />
-      </div>
+      )}
+
+      {viewMode === 'wizard' && (
+        <CharacterCreationWizard
+          key={wizardKey}
+          onComplete={handleWizardComplete}
+        />
+      )}
+
+      {viewMode === 'sheet' && selectedCharacter && (
+        <div className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900">
+          <CharacterSheet
+            initialData={selectedCharacter.data}
+            onEdit={() => handleEditCharacter(selectedCharacter)}
+            onBackToDashboard={handleGoToDashboard}
+          />
+        </div>
+      )}
     </AppProvider>
   )
+}
+
+export default function Home() {
+  return <AppContent />
 }

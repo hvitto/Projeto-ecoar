@@ -44,15 +44,15 @@ export default function SingularityCard({
   className = '',
 }: SingularityCardProps) {
   const selectedClasses = {
-    default: 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20',
-    teal: 'border-ecoar-teal/60 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20',
-    magenta: 'border-ecoar-magenta/60 bg-ecoar-magenta/15 dark:bg-ecoar-magenta-800/15 shadow-lg shadow-ecoar-magenta/10 dark:shadow-ecoar-magenta-900/20'
+    default: 'border-teal-300 dark:border-ecoar-teal-500/60 bg-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-teal-100/50 dark:shadow-ecoar-teal-600/20',
+    teal: 'border-teal-300 dark:border-ecoar-teal-500/60 bg-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-teal-100/50 dark:shadow-ecoar-teal-600/20',
+    magenta: 'border-magenta-300 dark:border-ecoar-magenta-600/60 bg-magenta-50 dark:bg-ecoar-magenta-800/15 shadow-md shadow-magenta-100/50 dark:shadow-ecoar-magenta-900/20'
   }
 
   const unselectedClasses = {
-    default: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]',
-    teal: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]',
-    magenta: 'border-white/[0.08] dark:border-ecoar-light-900/[0.08] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/30 hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06]'
+    default: 'border-slate-200 dark:border-ecoar-light-900/[0.08] bg-white dark:bg-ecoar-light-900/[0.03] hover:border-slate-300 dark:hover:border-ecoar-teal-500/30 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/[0.06]',
+    teal: 'border-slate-200 dark:border-ecoar-light-900/[0.08] bg-white dark:bg-ecoar-light-900/[0.03] hover:border-slate-300 dark:hover:border-ecoar-teal-500/30 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/[0.06]',
+    magenta: 'border-slate-200 dark:border-ecoar-light-900/[0.08] bg-white dark:bg-ecoar-light-900/[0.03] hover:border-slate-300 dark:hover:border-ecoar-teal-500/30 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/[0.06]'
   }
 
   return (
@@ -65,36 +65,36 @@ export default function SingularityCard({
           ? selectedClasses[variant]
           : canSelect
           ? unselectedClasses[variant]
-          : 'border-white/[0.04] dark:border-ecoar-light-900/[0.04] bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
+          : 'border-slate-200 dark:border-ecoar-light-900/[0.04] bg-slate-50 dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
       } ${className}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex-1 min-w-0">
-          <div className="text-white/90 dark:text-ecoar-light-900/90 font-semibold text-sm leading-tight">{name}</div>
+          <div className="text-slate-900 dark:text-ecoar-light-900/90 font-semibold text-sm leading-tight">{name}</div>
           {level && (
-            <div className="text-[11px] text-white/50 dark:text-ecoar-light-900/50 mt-0.5">
+            <div className="text-[11px] text-slate-500 dark:text-ecoar-light-900/50 mt-0.5">
               {levelLabel || `Nível ${level}`} {level <= 12 ? `(${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][level - 1]})` : ''}
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 text-white/90 dark:text-ecoar-light-900/90 font-medium text-xs bg-ecoar-magenta/15 dark:bg-ecoar-magenta-700/15 px-1.5 py-0.5 rounded border border-ecoar-magenta/25 dark:border-ecoar-magenta-500/30 whitespace-nowrap">
+        <div className="flex-shrink-0 text-slate-900 dark:text-ecoar-light-900/90 font-medium text-xs bg-magenta-50 dark:bg-ecoar-magenta-700/15 px-1.5 py-0.5 rounded border border-magenta-200 dark:border-ecoar-magenta-500/30 whitespace-nowrap">
           {cost} {costLabel}
           {secondaryCost && (
-            <div className="text-[10px] text-white/70 dark:text-ecoar-light-900/70">({secondaryCost})</div>
+            <div className="text-[10px] text-slate-700 dark:text-ecoar-light-900/70">({secondaryCost})</div>
           )}
         </div>
       </div>
-      <p className="text-white/60 dark:text-ecoar-light-900/60 text-xs leading-relaxed mb-1 line-clamp-3">{description}</p>
+      <p className="text-slate-600 dark:text-ecoar-light-900/60 text-xs leading-relaxed mb-1 line-clamp-3">{description}</p>
       {effects && (
-        <p className="text-white/50 dark:text-ecoar-light-900/50 text-[11px] mb-1.5">{effects}</p>
+        <p className="text-slate-500 dark:text-ecoar-light-900/50 text-[11px] mb-1.5">{effects}</p>
       )}
       {requirements && requirements.length > 0 && (
-        <div className="text-white/70 dark:text-ecoar-light-900/70 text-[11px]">
+        <div className="text-slate-700 dark:text-ecoar-light-900/70 text-[11px]">
           Requisitos: {requirements.join(', ')}
         </div>
       )}
       {requirementsText && (
-        <div className="text-white/70 dark:text-ecoar-light-900/70 text-[11px] mt-1.5 pt-1.5 border-t border-white/[0.06]">
+        <div className="text-slate-700 dark:text-ecoar-light-900/70 text-[11px] mt-1.5 pt-1.5 border-t border-slate-200 dark:border-white/[0.06]">
           {requirementsText}
         </div>
       )}

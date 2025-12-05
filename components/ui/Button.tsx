@@ -31,10 +31,10 @@ export default function Button({
   const baseClasses = 'flex items-center justify-center gap-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed'
   
   const variantClasses = {
-    primary: 'bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white/90 dark:text-ecoar-light-900/90 shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20',
-    secondary: 'bg-white/[0.08] dark:bg-ecoar-light-900/[0.08] hover:bg-white/[0.12] dark:hover:bg-ecoar-light-900/[0.12] border border-white/[0.12] dark:border-ecoar-light-900/[0.12] text-white/90 dark:text-ecoar-light-900/90 backdrop-blur-sm',
-    outline: 'bg-transparent border border-ecoar-teal/40 dark:border-ecoar-teal-500/40 text-ecoar-teal/90 dark:text-ecoar-teal-400/90 hover:bg-ecoar-teal/8 dark:hover:bg-ecoar-teal-600/8',
-    ghost: 'bg-transparent text-white/60 dark:text-ecoar-light-900/60 hover:bg-white/[0.03] dark:hover:bg-ecoar-light-900/[0.03] hover:text-white/80 dark:hover:text-ecoar-light-900/80'
+    primary: 'bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white/90 dark:text-ecoar-light-900/90 shadow-lg shadow-ecoar-teal-300/30 dark:shadow-ecoar-teal-600/20',
+    secondary: 'bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.08] hover:bg-ecoar-light-700 dark:hover:bg-ecoar-light-900/[0.12] border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.12] text-ecoar-dark-900 dark:text-ecoar-light-900/90 backdrop-blur-sm',
+    outline: 'bg-transparent border border-ecoar-teal-500/50 dark:border-ecoar-teal-500/40 text-ecoar-teal-700 dark:text-ecoar-teal-400/90 hover:bg-ecoar-teal-50 dark:hover:bg-ecoar-teal-600/8',
+    ghost: 'bg-transparent text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.03] hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80'
   }
   
   const sizeClasses = {
