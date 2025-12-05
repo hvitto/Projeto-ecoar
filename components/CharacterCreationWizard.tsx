@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
 import {
@@ -131,9 +131,10 @@ interface CharacterCreationData {
 
 interface CharacterCreationWizardProps {
   onComplete: (data: CharacterCreationData) => void
+  initialData?: Partial<CharacterCreationData>
 }
 
-export default function CharacterCreationWizard({ onComplete }: CharacterCreationWizardProps) {
+export default function CharacterCreationWizard({ onComplete, initialData }: CharacterCreationWizardProps) {
   const [showIntroduction, setShowIntroduction] = useState(true)
   const [initialLevel, setInitialLevel] = useState(1) // Nível inicial escolhido (1, 2, 3+)
   const [nivelAlmaInicial, setNivelAlmaInicial] = useState<number>(1) // Nível de Alma inicial (1-24)
@@ -180,6 +181,91 @@ export default function CharacterCreationWizard({ onComplete }: CharacterCreatio
   const [armas, setArmas] = useState<string[]>([])
   const [raceBonuses, setRaceBonuses] = useState<Record<string, number>>({})
   const [martialSchoolBonuses, setMartialSchoolBonuses] = useState<Record<string, number>>({})
+  const hasInitialized = useRef(false)
+
+  // Initialize states from initialData when editing an existing character
+  // This should only run once when the component mounts with initialData
+  useEffect(() => {
+    if (!initialData || hasInitialized.current) return
+
+    // Initialize basic selections first (these trigger other effects)
+    if (initialData.genus) setSelectedGenus(initialData.genus)
+    if (initialData.raca) setSelectedRaca(initialData.raca)
+    if (initialData.escolaMarcial) setSelectedEscolaMarcial(initialData.escolaMarcial)
+    if (initialData.localizacao) setSelectedLocalizacao(initialData.localizacao)
+    if (initialData.trilha) setSelectedTrilha(initialData.trilha)
+    if (initialData.ecoar) setSelectedEcoar(initialData.ecoar)
+
+    // Initialize attributes (these already include race/martial school bonuses)
+    if (initialData.attributes) {
+      setAttributes(initialData.attributes)
+    }
+
+    // Initialize skills
+    if (initialData.skills) {
+      setSkills(initialData.skills)
+    }
+
+    // Initialize aptitudes
+    if (initialData.aptitudes) {
+      setAptitudes(initialData.aptitudes)
+    }
+
+    // Initialize physical characteristics
+    if (initialData.tamanho) setTamanho(initialData.tamanho)
+    if (initialData.peso) setPeso(initialData.peso)
+    if (initialData.deslocamento) {
+      setDeslocamento({
+        terrestre: initialData.deslocamento.terrestre || 0,
+        aquatico: initialData.deslocamento.aquatico || 0,
+        aereo: initialData.deslocamento.aereo || 0,
+      })
+    }
+    if (initialData.sentidos) {
+      setSentidos({
+        visao: initialData.sentidos.visao || 0,
+        audicao: initialData.sentidos.audicao || 0,
+        olfato: initialData.sentidos.olfato || 0,
+      })
+    }
+
+    // Initialize singularities
+    if (initialData.singularidades) {
+      setSingularidades(initialData.singularidades)
+    }
+    if (initialData.singularidadesEcoar) {
+      setSingularidadesEcoar(initialData.singularidadesEcoar)
+    }
+
+    // Initialize creation points
+    if (initialData.pontosCriacao) {
+      setPontosCriacao(initialData.pontosCriacao)
+    }
+
+    // Initialize background
+    if (initialData.nome) setNome(initialData.nome)
+    if (initialData.backstory) setBackstory(initialData.backstory)
+    if (initialData.tracoPositivo) setTracoPositivo(initialData.tracoPositivo)
+    if (initialData.tracoNegativo) setTracoNegativo(initialData.tracoNegativo)
+    if (initialData.personalidade) setPersonalidade(initialData.personalidade)
+    if (initialData.ideais) setIdeais(initialData.ideais)
+    if (initialData.vinculos) setVinculos(initialData.vinculos)
+    if (initialData.defeitos) setDefeitos(initialData.defeitos)
+
+    // Initialize equipment
+    if (initialData.equipamentos) {
+      setEquipamentos(initialData.equipamentos)
+    }
+    if (initialData.armas) {
+      setArmas(initialData.armas)
+    }
+
+    // Skip introduction screen when editing
+    setShowIntroduction(false)
+    
+    // Mark as initialized to prevent re-running
+    hasInitialized.current = true
+  }, [initialData])
 
   const availableRaces = useMemo(() => 
     selectedGenus ? getRacesByGenus(selectedGenus) : []

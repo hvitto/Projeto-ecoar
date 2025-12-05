@@ -40,7 +40,7 @@ function AppContent() {
     if (isAuthenticated && (viewMode === 'login' || viewMode === 'register' || viewMode === 'auth')) {
       setViewMode('dashboard')
     }
-  }, [isAuthenticated, isLoading]) // Removido viewMode das dependências para evitar loops
+  }, [isAuthenticated, isLoading, viewMode]) // Incluído viewMode para evitar stale closure
 
   const handleLoginSuccess = () => {
     setViewMode('dashboard')
@@ -141,6 +141,7 @@ function AppContent() {
         <CharacterCreationWizard
           key={wizardKey}
           onComplete={handleWizardComplete}
+          initialData={selectedCharacter?.data}
         />
       )}
 
