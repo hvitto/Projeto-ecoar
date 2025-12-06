@@ -18,10 +18,10 @@ export default function Badge({
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full border'
   
   const variantClasses = {
-    default: 'bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 border-ecoar-teal/25 dark:border-ecoar-teal-500/30',
-    cost: 'bg-ecoar-magenta/15 dark:bg-ecoar-magenta-700/15 text-ecoar-magenta/90 dark:text-ecoar-light-900/90 border-ecoar-magenta/25 dark:border-ecoar-magenta-500/30',
-    bonus: 'bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 border-ecoar-teal/25 dark:border-ecoar-teal-500/30',
-    status: 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] text-white/50 dark:text-ecoar-light-900/50 border-white/[0.08] dark:border-ecoar-light-900/[0.08]'
+    default: 'bg-ecoar-teal-100/50 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border-ecoar-teal-300/50 dark:border-ecoar-teal-500/30',
+    cost: 'bg-ecoar-magenta-100/50 dark:bg-ecoar-magenta-700/15 text-ecoar-magenta-700 dark:text-ecoar-light-900/90 border-ecoar-magenta-300/50 dark:border-ecoar-magenta-500/30',
+    bonus: 'bg-ecoar-teal-100/50 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border-ecoar-teal-300/50 dark:border-ecoar-teal-500/30',
+    status: 'bg-ecoar-light-800/70 dark:bg-ecoar-light-900/[0.03] text-ecoar-dark-600 dark:text-ecoar-light-900/50 border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08]'
   }
   
   const sizeClasses = {

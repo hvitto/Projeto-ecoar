@@ -27,19 +27,19 @@ export default function DisadvantageCard({
       whileHover={{ y: -1 }}
       className={`p-3.5 rounded-lg border transition-all duration-200 text-left ${
         isSelected
-          ? 'bg-ecoar-magenta/15 dark:bg-ecoar-magenta-800/15 border-ecoar-magenta/60 dark:border-ecoar-magenta-500/60 shadow-lg shadow-ecoar-magenta/10 dark:shadow-ecoar-magenta-900/20'
-          : 'bg-white/[0.03] dark:bg-ecoar-light-900/[0.03] border-white/[0.08] dark:border-ecoar-light-900/[0.08] hover:bg-white/[0.06] dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-magenta/30 dark:hover:border-ecoar-magenta-500/30'
+          ? 'bg-ecoar-magenta-100/50 dark:bg-ecoar-magenta-800/15 border-ecoar-magenta-500/60 dark:border-ecoar-magenta-500/60 shadow-lg shadow-ecoar-magenta-200/30 dark:shadow-ecoar-magenta-900/20'
+          : 'bg-ecoar-light-700/50 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800/70 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-magenta-400/40 dark:hover:border-ecoar-magenta-500/30'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <h5 className={`font-medium text-sm ${isSelected ? 'text-white/90 dark:text-ecoar-light-900/90' : 'text-white/80 dark:text-ecoar-light-900/80'}`}>
+        <h5 className={`font-medium text-sm ${isSelected ? 'text-ecoar-dark-900 dark:text-ecoar-light-900/90' : 'text-ecoar-dark-800 dark:text-ecoar-light-900/80'}`}>
           {name}
         </h5>
         {isSelected && (
-          <CheckCircle2 className="w-4 h-4 text-ecoar-magenta/80 dark:text-ecoar-magenta-400/80" />
+          <CheckCircle2 className="w-4 h-4 text-ecoar-magenta-600 dark:text-ecoar-magenta-400/80" />
         )}
       </div>
-      <p className={`text-xs mb-1.5 ${isSelected ? 'text-white/70 dark:text-ecoar-light-900/70' : 'text-white/60 dark:text-ecoar-light-900/60'}`}>
+      <p className={`text-xs mb-1.5 ${isSelected ? 'text-ecoar-dark-700 dark:text-ecoar-light-900/70' : 'text-ecoar-dark-600 dark:text-ecoar-light-900/60'}`}>
         {description}
       </p>
       <div className="flex items-center gap-2">

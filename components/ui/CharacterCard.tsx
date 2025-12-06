@@ -56,16 +56,16 @@ export default function CharacterCard({ character, onView, onEdit, onDelete }: C
   return (
     <Card
       variant="default"
-      className="p-4 hover:border-slate-300 dark:hover:border-ecoar-teal-500/30 transition-all duration-200"
+      className="p-4 hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 transition-all duration-200"
     >
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 truncate mb-1">
+            <h3 className="text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 truncate mb-1">
               {character.name || 'Personagem sem nome'}
             </h3>
-            <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-ecoar-light-900/60">
+            <div className="flex items-center gap-3 text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60">
               {race && (
                 <span className="flex items-center gap-1">
                   <User className="w-3 h-3" />
@@ -83,19 +83,19 @@ export default function CharacterCard({ character, onView, onEdit, onDelete }: C
         {/* Info Preview */}
         <div className="flex-1 mb-4">
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-slate-50 dark:bg-ecoar-light-900/[0.03] rounded px-2 py-1.5 border border-slate-200 dark:border-ecoar-light-900/[0.06]">
-              <div className="text-slate-500 dark:text-ecoar-light-900/50 mb-0.5">Nível</div>
-              <div className="text-slate-900 dark:text-ecoar-light-900/90 font-semibold">{level}</div>
+            <div className="bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] rounded px-2 py-1.5 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+              <div className="text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-0.5">Nível</div>
+              <div className="text-ecoar-dark-900 dark:text-ecoar-light-900/90 font-semibold">{level}</div>
             </div>
-            <div className="bg-slate-50 dark:bg-ecoar-light-900/[0.03] rounded px-2 py-1.5 border border-slate-200 dark:border-ecoar-light-900/[0.06]">
-              <div className="text-slate-500 dark:text-ecoar-light-900/50 mb-0.5">Atributo Médio</div>
-              <div className="text-slate-900 dark:text-ecoar-light-900/90 font-semibold">{getMainAttribute()}</div>
+            <div className="bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] rounded px-2 py-1.5 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+              <div className="text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-0.5">Atributo Médio</div>
+              <div className="text-ecoar-dark-900 dark:text-ecoar-light-900/90 font-semibold">{getMainAttribute()}</div>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-ecoar-light-900/[0.06]">
+        <div className="flex gap-2 pt-3 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
           {onView && (
             <Button
               variant="outline"

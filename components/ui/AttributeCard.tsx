@@ -63,10 +63,10 @@ export default function AttributeCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`
-        relative p-3 rounded-lg border bg-white/80 dark:bg-ecoar-light-900/[0.03] 
+        relative p-3 rounded-lg border bg-ecoar-light-700/80 dark:bg-ecoar-light-900/[0.03] 
         border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] 
         hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30 hover:shadow-lg hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10
-        transition-all duration-200 h-full min-h-[190px] flex flex-col
+        transition-all duration-200 h-full min-h-[190px] flex flex-col overflow-hidden
         ${className}
       `}
     >
@@ -112,7 +112,7 @@ export default function AttributeCard({
             transition-all duration-150
             ${canDecrease
               ? 'bg-ecoar-magenta-100/80 dark:bg-ecoar-magenta/15 border-ecoar-magenta-300/50 dark:border-ecoar-magenta/30 hover:bg-ecoar-magenta-200/80 dark:hover:bg-ecoar-magenta/20 hover:border-ecoar-magenta-400/60 dark:hover:border-ecoar-magenta/40 text-ecoar-magenta-700 dark:text-ecoar-magenta/80 cursor-pointer'
-              : 'bg-ecoar-light-800 dark:bg-white/[0.03] border-ecoar-dark-300/20 dark:border-white/[0.08] text-ecoar-dark-300 dark:text-white/20 cursor-not-allowed opacity-40'
+              : 'bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.08] text-ecoar-dark-300 dark:text-ecoar-light-900/20 cursor-not-allowed opacity-40'
             }
           `}
         >
@@ -142,7 +142,7 @@ export default function AttributeCard({
             transition-all duration-150
             ${canIncrease
               ? 'bg-ecoar-teal-100/80 dark:bg-ecoar-teal/15 border-ecoar-teal-300/50 dark:border-ecoar-teal/30 hover:bg-ecoar-teal-200/80 dark:hover:bg-ecoar-teal/20 hover:border-ecoar-teal-400/60 dark:hover:border-ecoar-teal/40 text-ecoar-teal-700 dark:text-ecoar-teal/80 cursor-pointer'
-              : 'bg-ecoar-light-800 dark:bg-white/[0.03] border-ecoar-dark-300/20 dark:border-white/[0.08] text-ecoar-dark-300 dark:text-white/20 cursor-not-allowed opacity-40'
+              : 'bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.08] text-ecoar-dark-300 dark:text-ecoar-light-900/20 cursor-not-allowed opacity-40'
             }
           `}
         >
@@ -152,7 +152,7 @@ export default function AttributeCard({
 
       {/* Barra de Progresso - mais sutil */}
       <div className="mb-2">
-        <div className="w-full h-0.5 bg-ecoar-dark-300/20 dark:bg-white/[0.03] rounded-full overflow-hidden">
+        <div className="w-full h-0.5 bg-ecoar-dark-300/20 dark:bg-ecoar-light-900/[0.03] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progressPercentage}%` }}
@@ -163,7 +163,7 @@ export default function AttributeCard({
       </div>
 
       {/* Informações Adicionais - footer com altura fixa para uniformidade */}
-      <div className="flex items-center justify-between text-[10px] pt-2 border-t border-ecoar-dark-300/20 dark:border-white/[0.06] min-h-[30px]">
+      <div className="flex items-center justify-between text-[10px] pt-2 border-t border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.06] min-h-[30px]">
         <div className="flex-shrink-0">
           <span className="text-ecoar-dark-600 dark:text-ecoar-light-900/50">Base: </span>
           <span className="text-ecoar-dark-800 dark:text-ecoar-light-900/80 font-medium">{baseValue}</span>

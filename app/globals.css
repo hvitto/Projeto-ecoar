@@ -106,7 +106,7 @@
 @layer components {
   /* Input Fields - Design sutil e elegante */
   .input-field {
-    @apply w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
+    @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
            text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-sm placeholder-ecoar-dark-400/50 dark:placeholder-ecoar-light-900/40
            focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
            focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40 transition-all duration-200
@@ -114,7 +114,7 @@
   }
   
   .input-number {
-    @apply w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
+    @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
            text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-center text-base font-semibold 
            focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
            focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40 transition-all duration-200
@@ -133,9 +133,9 @@
 
   /* Section Cards - Glassmorphism */
   .section-card {
-    @apply bg-white/80 dark:bg-ecoar-dark/80 backdrop-blur-xl rounded-t-2xl rounded-b-xl shadow-2xl 
-           border border-ecoar-dark-300/30 dark:border-ecoar-dark/50 p-6 transition-all duration-300
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal/30 hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal/10
+    @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-800/80 backdrop-blur-xl rounded-t-2xl rounded-b-xl shadow-2xl 
+           border border-ecoar-dark-300/30 dark:border-ecoar-dark-700/50 p-6 transition-all duration-300
+           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30 hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10
            relative overflow-hidden;
   }
 
@@ -163,7 +163,7 @@
 
   /* Stat Boxes - Design sutil */
   .stat-box {
-    @apply bg-white/80 dark:bg-ecoar-dark-700/[0.03] backdrop-blur-sm rounded-lg 
+    @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-700/[0.03] backdrop-blur-sm rounded-lg 
            border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3 text-center 
            hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30 transition-all duration-200
            hover:shadow-lg hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10;
@@ -209,7 +209,7 @@
   /* Badge - Melhor contraste */
   .badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-           bg-ecoar-teal-100 text-ecoar-teal-700 border border-ecoar-teal-300;
+           bg-ecoar-teal-100 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border border-ecoar-teal-300 dark:border-ecoar-teal-500/30;
   }
 }
 
