@@ -1,6 +1,6 @@
 // Ecoar types and data from Ecoar RPG
 
-export type EcoarType = 'apodrecido' | 'elisiade' | 'fenix' | 'geist' | 'immortalis' | 'proelita' | 'revenant' | 'triade'
+export type EcoarType = 'apodrecido' | 'elisiade' | 'fenix' | 'geist' | 'immortalis' | 'lycantropo' | 'proelita' | 'revenant' | 'triade'
 
 export interface Ecoar {
   id: string
@@ -14,49 +14,55 @@ export const ecoarTypes: Ecoar[] = [
     id: 'apodrecido',
     name: 'Apodrecido',
     type: 'apodrecido',
-    description: 'Corrupção da alma que transforma criaturas.',
+    description: 'Eco de aparência cadavérica, com Mente e Mana substituídas por Consciência.',
   },
   {
     id: 'elisiade',
-    name: 'Elisiade',
+    name: 'Elísiade',
     type: 'elisiade',
-    description: 'Ecoar de luz e pureza.',
+    description: 'Eco de origem etérea, nascido através de uma vida passada pura e justa.',
   },
   {
     id: 'fenix',
     name: 'Fênix',
     type: 'fenix',
-    description: 'Ecoar de renascimento e fogo.',
+    description: 'Eco de origem solar, nascido através da vontade de levar o expurgo até o mal.',
   },
   {
     id: 'geist',
     name: 'Geist',
     type: 'geist',
-    description: 'Ecoar de espíritos e espectros.',
+    description: 'Eco fantasmagórico, capaz de possessão e onde Corpo e Fôlego são substituídos por Espírito.',
   },
   {
     id: 'immortalis',
     name: 'Immortalis',
     type: 'immortalis',
-    description: 'Ecoar de imortalidade.',
+    description: 'Eco simples e de natureza imortal, com facilidade para masterizar técnicas.',
+  },
+  {
+    id: 'lycantropo',
+    name: 'Lycantropo',
+    type: 'lycantropo',
+    description: 'Eco de origem lunar, que pode se transformar em um monstro poderoso e descontrolado.',
   },
   {
     id: 'proelita',
     name: 'Proelita',
     type: 'proelita',
-    description: 'Ecoar de batalha e guerra.',
+    description: 'Eco furioso, obcecado com o combate e a guerra, e igualmente dependente de ambos para se manter são.',
   },
   {
     id: 'revenant',
     name: 'Revenant',
     type: 'revenant',
-    description: 'Ecoar de retorno e vingança.',
+    description: 'Eco de origem abissal, uma alma que nem mesmo as chamas do sol conseguiram expurgar, e foi dada uma segunda chance para se redimir.',
   },
   {
     id: 'triade',
     name: 'Tríade',
     type: 'triade',
-    description: 'Ecoar tríplice.',
+    description: 'Eco onde três mentes se fundem em uma, capaz de trocar técnicas conhecidas com facilidade e até mesmo projetar três corpos com mentes e identidades distintas.',
   },
 ]
 

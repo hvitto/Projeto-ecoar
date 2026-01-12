@@ -75,12 +75,13 @@ export function calculateCommonTests(
   habilidadeRaciocínio: number = 0,
   habilidadeReflexos: number = 0,
   habilidadeCompostura: number = 0,
-  bonusEspecialidade: number = 0 // +1 if specialization is chosen
+  bonusEspecialidade: number = 0, // +1 if specialization is chosen
+  sizeWeightPenalty: number = 0 // Penalty to esquiva from size and weight modifiers
 ): CommonTestCalc {
   return {
     arredores: getAttributeModifier(percepcao) + habilidadeAtencao + bonusEspecialidade,
     iniciativa: getAttributeModifier(percepcao) + habilidadeRaciocínio + bonusEspecialidade,
-    esquiva: getAttributeModifier(percepcao) + habilidadeReflexos + bonusEspecialidade,
+    esquiva: getAttributeModifier(percepcao) + habilidadeReflexos + bonusEspecialidade + sizeWeightPenalty,
     coragem: getAttributeModifier(vontade) + habilidadeCompostura + bonusEspecialidade,
   };
 }

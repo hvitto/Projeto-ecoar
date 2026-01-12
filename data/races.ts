@@ -144,7 +144,6 @@ export const races: Race[] = [
       senses: { visao: 800, audicao: 150, olfato: 1 },
       sizeModifier: -1,
       weightModifier: -1,
-      attributes: { forca: -1, vitalidade: -1 },
     },
     image: {
       src: '/assets/images/Tyllow.png',

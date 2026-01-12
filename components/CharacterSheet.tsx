@@ -142,6 +142,20 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
           updated.equipamentos = equipList.join('\n')
         }
         
+        // Initialize size and weight from initialData (convert string to number if needed)
+        if (initialData.tamanho !== undefined && initialData.tamanho !== null) {
+          const tamanhoValue = typeof initialData.tamanho === 'string' 
+            ? parseFloat(initialData.tamanho) 
+            : initialData.tamanho
+          updated.tamanho = isNaN(tamanhoValue) ? 0 : tamanhoValue
+        }
+        if (initialData.peso !== undefined && initialData.peso !== null) {
+          const pesoValue = typeof initialData.peso === 'string' 
+            ? parseFloat(initialData.peso) 
+            : initialData.peso
+          updated.peso = isNaN(pesoValue) ? 0 : pesoValue
+        }
+        
         return updated
       })
       
@@ -151,6 +165,14 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
           if (raceId) {
             const race = getRaceById(raceId)
             if (!race || !race.bonuses) return
+
+            // Apply size and weight modifiers if not already set from initialData
+            if (race.bonuses.sizeModifier !== undefined && !initialData.tamanho) {
+              setCharacterData(prev => ({ ...prev, tamanho: race.bonuses!.sizeModifier! }))
+            }
+            if (race.bonuses.weightModifier !== undefined && !initialData.peso) {
+              setCharacterData(prev => ({ ...prev, peso: race.bonuses!.weightModifier! }))
+            }
 
             if (race.bonuses.movement) {
               setCharacterData(prev => ({
@@ -194,6 +216,40 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                       },
                     }
                   })
+                }
+              })
+            }
+            
+            // Apply automatic bonuses from size and weight modifiers
+            const sizeModifier = race.bonuses.sizeModifier ?? 0
+            const weightModifier = race.bonuses.weightModifier ?? 0
+            
+            // Each +1 size gives +1 strength
+            if (sizeModifier !== 0) {
+              setCharacterData(prev => {
+                const currentForca = prev.forca.nivel
+                const newLevel = currentForca + sizeModifier
+                return {
+                  ...prev,
+                  forca: {
+                    nivel: Math.max(0, Math.min(8, newLevel)),
+                    mod: getAttributeModifier(Math.max(0, Math.min(8, newLevel))),
+                  },
+                }
+              })
+            }
+            
+            // Each +1 weight gives +1 vitality
+            if (weightModifier !== 0) {
+              setCharacterData(prev => {
+                const currentVitalidade = prev.vitalidade.nivel
+                const newLevel = currentVitalidade + weightModifier
+                return {
+                  ...prev,
+                  vitalidade: {
+                    nivel: Math.max(0, Math.min(8, newLevel)),
+                    mod: getAttributeModifier(Math.max(0, Math.min(8, newLevel))),
+                  },
                 }
               })
             }
@@ -294,11 +350,46 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
       })
     }
 
+    // Apply size and weight modifiers
+    const sizeModifier = race.bonuses.sizeModifier ?? 0
+    const weightModifier = race.bonuses.weightModifier ?? 0
+
     if (race.bonuses.sizeModifier !== undefined) {
       updateField('tamanho', race.bonuses.sizeModifier)
     }
     if (race.bonuses.weightModifier !== undefined) {
       updateField('peso', race.bonuses.weightModifier)
+    }
+    
+    // Apply automatic bonuses from size and weight modifiers
+    // Each +1 size gives +1 strength
+    if (sizeModifier !== 0) {
+      setCharacterData(prev => {
+        const currentForca = prev.forca.nivel
+        const newLevel = currentForca + sizeModifier
+        return {
+          ...prev,
+          forca: {
+            nivel: Math.max(0, Math.min(8, newLevel)),
+            mod: getAttributeModifier(Math.max(0, Math.min(8, newLevel))),
+          },
+        }
+      })
+    }
+    
+    // Each +1 weight gives +1 vitality
+    if (weightModifier !== 0) {
+      setCharacterData(prev => {
+        const currentVitalidade = prev.vitalidade.nivel
+        const newLevel = currentVitalidade + weightModifier
+        return {
+          ...prev,
+          vitalidade: {
+            nivel: Math.max(0, Math.min(8, newLevel)),
+            mod: getAttributeModifier(Math.max(0, Math.min(8, newLevel))),
+          },
+        }
+      })
     }
 
     if (race.bonuses.corpo) {
@@ -340,15 +431,26 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
       ? parseInt(characterData.vontade.nivel) || 0
       : characterData.vontade.nivel
 
+    // Calculate esquiva penalty from size and weight modifiers
+    // Each +1 in size OR weight gives -1 to esquiva
+    // So penalty = -(sizeModifier + weightModifier)
+    // Examples: size=-1, weight=-1 => penalty = -(-1 + -1) = +2
+    //           size=+1, weight=+1 => penalty = -(+1 + +1) = -2
+    const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
+    const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
+    const sizeWeightPenalty = -(sizeModifier + weightModifier)
+
     return {
       corpoMax: calculateCorpoMax(vitalidadeLevel),
       menteMax: calculateMenteMax(vontadeLevel),
-      commonTests: calculateCommonTests(percepcaoLevel, vontadeLevel),
+      commonTests: calculateCommonTests(percepcaoLevel, vontadeLevel, 0, 0, 0, 0, 0, sizeWeightPenalty),
     }
   }, [
     characterData.percepcao.nivel,
     characterData.vitalidade.nivel,
-    characterData.vontade.nivel
+    characterData.vontade.nivel,
+    characterData.tamanho,
+    characterData.peso
   ])
 
   const attributes = [
@@ -655,12 +757,26 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                 Testes Comuns
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                {[
+                {(() => {
+                  const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
+                  const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
+                  const sizeWeightPenalty = -(sizeModifier + weightModifier)
+                  const hasSizeWeightEffect = sizeModifier !== 0 || weightModifier !== 0
+                  
+                  return [
                   { key: 'arredores', label: 'Arredores', desc: 'Percepção + Atenção', value: derivedValues.commonTests.arredores },
                   { key: 'iniciativa', label: 'Iniciativa', desc: 'Percepção + Raciocínio', value: derivedValues.commonTests.iniciativa },
-                  { key: 'esquiva', label: 'Esquiva', desc: 'Percepção + Reflexos', value: derivedValues.commonTests.esquiva },
+                    { 
+                      key: 'esquiva', 
+                      label: 'Esquiva', 
+                      desc: hasSizeWeightEffect 
+                        ? `Percepção + Reflexos ${sizeWeightPenalty >= 0 ? '+' : ''}${sizeWeightPenalty} (T/P)`
+                        : 'Percepção + Reflexos', 
+                      value: derivedValues.commonTests.esquiva 
+                    },
                   { key: 'coragem', label: 'Coragem', desc: 'Vontade + Compostura', value: derivedValues.commonTests.coragem },
-                ].map((test) => (
+                  ]
+                })().map((test) => (
                   <div key={test.key} className="text-center py-4 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-teal-50/50 dark:bg-ecoar-teal-900/30 rounded-lg overflow-hidden min-w-0">
                     <div className="text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2 break-words px-2">
                       {test.label}
@@ -673,6 +789,97 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                 ))}
               </div>
             </motion.div>
+
+            {/* Bônus de Raça */}
+            {characterData.raca && (() => {
+              const race = getRaceById(characterData.raca)
+              if (!race?.bonuses) return null
+              
+              const sizeModifier = race.bonuses.sizeModifier ?? 0
+              const weightModifier = race.bonuses.weightModifier ?? 0
+              const hasManualBonuses = race.bonuses.attributes && Object.keys(race.bonuses.attributes).length > 0
+              const hasAutoBonuses = sizeModifier !== 0 || weightModifier !== 0
+              
+              if (!hasManualBonuses && !hasAutoBonuses) return null
+              
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+                >
+                  <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
+                    Bônus de Raça
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Manual attribute bonuses */}
+                    {hasManualBonuses && (
+                      <div>
+                        <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mb-2">Atributos</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(race.bonuses.attributes || {}).map(([attr, value]) => {
+                            const attrNames: Record<string, string> = {
+                              carisma: 'Carisma',
+                              finesse: 'Finesse',
+                              forca: 'Força',
+                              inteligencia: 'Inteligência',
+                              percepcao: 'Percepção',
+                              vitalidade: 'Vitalidade',
+                              vontade: 'Vontade',
+                            }
+                            return (
+                              <span key={attr} className="text-xs px-2 py-1 rounded bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-300 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40">
+                                {attrNames[attr] || attr}: {value > 0 ? '+' : ''}{value}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Automatic bonuses from size and weight */}
+                    {hasAutoBonuses && (
+                      <div>
+                        <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mb-2">Modificadores Físicos</div>
+                        <div className="space-y-2">
+                          {sizeModifier !== 0 && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
+                                Tamanho {sizeModifier}:
+                              </span>
+                              <span className="font-semibold text-ecoar-magenta dark:text-ecoar-magenta-300">
+                                Força {sizeModifier > 0 ? '+' : ''}{sizeModifier}
+                              </span>
+                            </div>
+                          )}
+                          {weightModifier !== 0 && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
+                                Peso {weightModifier}:
+                              </span>
+                              <span className="font-semibold text-ecoar-magenta dark:text-ecoar-magenta-300">
+                                Vitalidade {weightModifier > 0 ? '+' : ''}{weightModifier}
+                              </span>
+                            </div>
+                          )}
+                          {(sizeModifier !== 0 || weightModifier !== 0) && (
+                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200 dark:border-ecoar-light-900/10">
+                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
+                                Penalidade Esquiva:
+                              </span>
+                              <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                {formatModifier(-(sizeModifier + weightModifier))}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })()}
 
             {/* Deslocamentos e Sentidos */}
             <div className="grid grid-cols-2 gap-5">

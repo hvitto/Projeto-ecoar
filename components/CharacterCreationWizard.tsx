@@ -36,6 +36,11 @@ import { creationSingularities, getCreationSingularityById, getCreationSingulari
 import { getAllMartialSchools, getMartialSchoolDataById, MartialSchoolData, MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
 import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
 import { ecoarTypes as ecoaTypes, getEcoarById, Ecoar } from '@/data/ecoar'
+import { 
+  getEcoarSingularitiesByEcoarId, 
+  getEcoarSingularityById, 
+  EcoarSingularity 
+} from '@/data/ecoarSingularities'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
 import { getAttributeModifier, getSkillDice } from '@/lib/calculations'
@@ -141,6 +146,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [initialLevel, setInitialLevel] = useState(1) // Nível inicial escolhido (1, 2, 3+)
   const [nivelAlmaInicial, setNivelAlmaInicial] = useState<number>(1) // Nível de Alma inicial (1-24)
   const [currentStep, setCurrentStep] = useState(0)
+  const [maxStepVisited, setMaxStepVisited] = useState(0)
   const [pcSubStep, setPCSubStep] = useState<'singularidades' | 'traços' | 'escola-marcial'>('singularidades') // 0 = introdução, depois 1-8
   const [selectedGenus, setSelectedGenus] = useState<string>('')
   const [selectedRaca, setSelectedRaca] = useState<string>('')
@@ -297,30 +303,74 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     }))
   }, [totalCreationPoints])
 
+  // Atualiza maxStepVisited quando currentStep muda
+  useEffect(() => {
+    if (currentStep > maxStepVisited) {
+      setMaxStepVisited(currentStep)
+    }
+  }, [currentStep, maxStepVisited])
+
   // Apply race bonuses when race is selected
   useEffect(() => {
     const race = selectedRaca ? getRaceById(selectedRaca) : null
-    const newBonuses = race?.bonuses?.attributes || {}
+    const manualBonuses = race?.bonuses?.attributes || {}
+    
+    // Calculate automatic bonuses from size and weight modifiers
+    const sizeModifier = race?.bonuses?.sizeModifier ?? 0
+    const weightModifier = race?.bonuses?.weightModifier ?? 0
+    const automaticBonuses: Record<string, number> = {}
+    
+    // Each +1 size gives +1 strength
+    if (sizeModifier !== 0) {
+      automaticBonuses.forca = sizeModifier
+    }
+    
+    // Each +1 weight gives +1 vitality
+    if (weightModifier !== 0) {
+      automaticBonuses.vitalidade = weightModifier
+    }
+    
+    // Combine manual and automatic bonuses
+    const newBonuses: Record<string, number> = { ...manualBonuses }
+    Object.entries(automaticBonuses).forEach(([attr, bonus]) => {
+      newBonuses[attr] = (newBonuses[attr] || 0) + bonus
+    })
     
     setAttributes(prevAttrs => {
       const updated = { ...prevAttrs }
       
-      // Remove old race bonuses
-      Object.entries(raceBonuses).forEach(([attr, bonus]) => {
+      // Remove old race bonuses first (restore base values that user allocated)
+      Object.entries(raceBonuses).forEach(([attr, oldBonus]) => {
         const attrKey = attr as keyof typeof updated
-        updated[attrKey] = Math.max(0, updated[attrKey] - bonus)
+        // Current value = oldBase + oldBonus, so oldBase = current - oldBonus
+        const oldBase = updated[attrKey] - oldBonus
+        updated[attrKey] = oldBase
       })
       
-      // Add new race bonuses
+      // Apply new race bonuses directly - this is the initial value (not optional)
+      // The attribute starts at the bonus value automatically
       Object.entries(newBonuses).forEach(([attr, bonus]) => {
         const attrKey = attr as keyof typeof updated
-        updated[attrKey] = Math.max(0, Math.min(8, updated[attrKey] + bonus))
+        const baseValue = updated[attrKey] // Base value after removing old bonus (user-allocated points)
+        // Final value = base (user points) + bonus (race bonus)
+        // If user has 0 points and bonus is -1, final is -1 (starts at -1)
+        // If user has 0 points and bonus is +1, final is +1 (starts at +1)
+        updated[attrKey] = baseValue + bonus // Allow negative if bonus is negative
       })
       
       return updated
     })
     
+    // Initialize size and weight modifiers from race (if not already set from initialData)
+    if (race && sizeModifier !== undefined && tamanho === '') {
+      setTamanho(String(sizeModifier))
+    }
+    if (race && weightModifier !== undefined && peso === '') {
+      setPeso(String(weightModifier))
+    }
+    
     setRaceBonuses(newBonuses)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRaca])
 
   // Apply martial school bonuses when school is selected
@@ -331,16 +381,20 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     setAttributes(prevAttrs => {
       const updated = { ...prevAttrs }
       
-      // Remove old martial school bonuses
-      Object.entries(martialSchoolBonuses).forEach(([attr, bonus]) => {
+      // Remove old martial school bonuses first (restore base values that user allocated)
+      Object.entries(martialSchoolBonuses).forEach(([attr, oldBonus]) => {
         const attrKey = attr as keyof typeof updated
-        updated[attrKey] = Math.max(0, updated[attrKey] - bonus)
+        // Current value = oldBase + oldBonus, so oldBase = current - oldBonus
+        const oldBase = updated[attrKey] - oldBonus
+        updated[attrKey] = oldBase
       })
       
-      // Add new martial school bonuses
+      // Apply new martial school bonuses directly
       Object.entries(newBonuses).forEach(([attr, bonus]) => {
         const attrKey = attr as keyof typeof updated
-        updated[attrKey] = Math.max(0, Math.min(8, updated[attrKey] + bonus))
+        const baseValue = updated[attrKey] // Base value after removing old bonus (user-allocated points)
+        // Final value = base (user points) + bonus (martial school bonus)
+        updated[attrKey] = baseValue + bonus // Allow negative if bonus is negative
       })
       
       return updated
@@ -350,6 +404,25 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEscolaMarcial])
 
+  // Recalculate attribute points whenever bonuses change
+  // This ensures that bonuses don't consume free attribute points
+  useEffect(() => {
+    // Calculate total base points (excluding all bonuses)
+    // Base value = total value - all bonuses (can be negative if bonus is negative)
+    const totalBasePoints = Object.entries(attributes).reduce((sum, [attr, val]) => {
+      const raceBonus = raceBonuses[attr] || 0
+      const martialSchoolBonus = martialSchoolBonuses[attr] || 0
+      const classBonus = 0 // TODO: Add class bonuses if needed
+      const totalBonus = raceBonus + martialSchoolBonus + classBonus
+      // Calculate base value (what user allocated manually)
+      const baseValue = val - totalBonus
+      // Only count positive base values towards the 12 free points
+      return sum + Math.max(0, baseValue)
+    }, 0)
+    
+    // Update available attribute points (12 free points - base points used)
+    setAttributePoints(Math.max(0, 12 - totalBasePoints))
+  }, [attributes, raceBonuses, martialSchoolBonuses])
 
   const canProceed = useMemo(() => {
     switch (currentStep) {
@@ -367,7 +440,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
       case 5:
         return true // Gastando PC - pode avançar (validação feita internamente nas tabs)
       case 6:
-        return nivelAlmaInicial > 1 ? true : false // Evolução - só aparece se nível > 1
+        return true // Evolução - sempre pode avançar (mesmo que nível seja 1, mostra aviso)
       case 7:
         return true // Equipamentos
       case 8:
@@ -378,29 +451,26 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   }, [currentStep, selectedGenus, selectedRaca, attributes, attributePoints, skillPoints, nivelAlmaInicial, nome])
 
   const handleNext = useCallback(() => {
-    if (canProceed && currentStep < totalSteps) {
-      let nextStep = currentStep + 1
-      // Se o próximo step é Evolução (6) mas nível é 1, pula para Equipamentos (7)
-      if (nextStep === 6 && nivelAlmaInicial === 1) {
-        nextStep = 7
-      }
+    if (canProceed && currentStep < 8) { // totalSteps é sempre 8
+      const nextStep = currentStep + 1
       setCurrentStep(nextStep)
+      // Atualiza maxStepVisited se necessário
+      if (nextStep > maxStepVisited) {
+        setMaxStepVisited(nextStep)
+      }
     }
-  }, [canProceed, currentStep, nivelAlmaInicial])
+  }, [canProceed, currentStep, maxStepVisited])
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
-      let prevStep = currentStep - 1
-      // Se o step anterior é Evolução (6) mas nível é 1, pula para Gastando PC (5)
-      if (prevStep === 6 && nivelAlmaInicial === 1) {
-        prevStep = 5
-      }
+      const prevStep = currentStep - 1
       setCurrentStep(prevStep)
     }
-  }, [currentStep, nivelAlmaInicial])
+  }, [currentStep])
 
   const handleFinish = useCallback(() => {
     if (canProceed) {
+      // Keep tamanho and peso as strings (they can be numeric strings for modifiers or text for custom values)
       onComplete({
         genus: selectedGenus,
         raca: selectedRaca,
@@ -437,25 +507,39 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     const oldValue = attributes[attrKey]
     const raceBonus = raceBonuses[attr] || 0
     const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-    const totalBonus = raceBonus + martialSchoolBonus
+    const classBonus = 0 // TODO: Add class bonuses if needed
+    const totalBonus = raceBonus + martialSchoolBonus + classBonus
     
-    const maxLevel = currentStep === 9 ? 8 : 3 // Máximo 3 exceto na Evolução (step 9)
-    const maxTotalValue = maxLevel + totalBonus
+    const maxLevel = currentStep === 9 ? 8 : 3 // Máximo 3 pontos base (exceto na Evolução que é 8)
+    const maxTotalValue = maxLevel + totalBonus // Máximo total = máximo base + bônus
     
-    // Garante que o valor não exceda o máximo e não seja negativo
-    const newValue = Math.max(0, Math.min(maxTotalValue, newTotalValue))
+    // Calculate current base value (what user allocated)
+    const currentBase = oldValue - totalBonus
+    
+    // Calculate new base value from the new total value
+    const newBase = newTotalValue - totalBonus
+    
+    // Base value must be between 0 and maxLevel (user can allocate 0 to 3 points)
+    const clampedNewBase = Math.max(0, Math.min(maxLevel, newBase))
+    
+    // Final value = clamped base + bonus (bonus is always applied, can be negative)
+    const newValue = clampedNewBase + totalBonus
     
     if (newValue === oldValue) return
     
     // Calcula o valor base (sem bônus) antes e depois
-    const oldBaseValue = Math.max(0, oldValue - totalBonus)
-    const newBaseValue = Math.max(0, newValue - totalBonus)
+    // Base pode ser negativo se bônus for negativo e não houver pontos alocados
+    const oldBaseValue = oldValue - totalBonus
+    const newBaseValue = newValue - totalBonus
     
     // Calcula o total de pontos base usados (sem bônus) ANTES da mudança
+    // Só conta pontos base positivos (alocados pelo usuário)
     const oldTotalBasePoints = Object.entries(attributes).reduce((sum, [a, v]) => {
       const rB = raceBonuses[a] || 0
       const mB = martialSchoolBonuses[a] || 0
-      return sum + Math.max(0, v - (rB + mB))
+      const cB = 0 // TODO: Add class bonuses if needed
+      const baseVal = v - (rB + mB + cB)
+      return sum + Math.max(0, baseVal) // Só conta valores base positivos
     }, 0)
     
     // Calcula o total de pontos base usados (sem bônus) DEPOIS da mudança
@@ -463,7 +547,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     const newTotalBasePoints = Object.entries(newAttributes).reduce((sum, [a, v]) => {
       const rB = raceBonuses[a] || 0
       const mB = martialSchoolBonuses[a] || 0
-      return sum + Math.max(0, v - (rB + mB))
+      const cB = 0 // TODO: Add class bonuses if needed
+      const baseVal = v - (rB + mB + cB)
+      return sum + Math.max(0, baseVal) // Só conta valores base positivos
     }, 0)
     
     // Quantos pontos além dos 12 gratuitos estão sendo usados
@@ -503,12 +589,13 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     }
     const baseValues: number[] = []
     
-    // Calcula bônus de cada atributo
+    // Calcula bônus de cada atributo (incluindo raça, escola marcial e classe)
     const bonusValues: number[] = []
     attributeKeys.forEach((attr) => {
       const raceBonus = raceBonuses[attr] || 0
       const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-      const totalBonus = raceBonus + martialSchoolBonus
+      const classBonus = 0 // TODO: Add class bonuses if needed
+      const totalBonus = raceBonus + martialSchoolBonus + classBonus
       bonusValues.push(totalBonus)
     })
     
@@ -628,18 +715,15 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 dark:from-ecoar-dark-900 dark:via-ecoar-dark-800 dark:to-ecoar-dark-700">
       <Header onNewCharacter={() => {}} />
-      <div className="flex-1 p-4 md:p-6">
-        <div className="max-w-[1600px] mx-auto">
-        {/* Layout em 3 colunas: Sidebar | Conteúdo | Preview */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:items-stretch">
-          
-          {/* Sidebar Esquerda - Stepper Vertical */}
-          <aside className="lg:col-span-3 flex flex-col">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col h-full shadow-sm"
-            >
+      {/* Layout com Sidebar Fixa */}
+      <div className="flex-1 flex relative overflow-hidden">
+        {/* Sidebar Esquerda */}
+        <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col h-full shadow-sm overflow-hidden"
+          >
               {/* Header */}
               <div className="mb-5 pb-4 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
                 <h1 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1.5">
@@ -661,18 +745,14 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
               </div>
 
               {/* Steps List */}
-              <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar overflow-x-hidden">
                 {stepTitles.map((title, idx) => {
-                  // Pula o step de Evolução (6) se nível for 1
-                  if (idx === 6 && nivelAlmaInicial === 1) {
-                    return null
-                  }
-                  
                   const stepNum = idx
                   const StepIcon = stepIcons[idx] || Circle
                   const isActive = currentStep === stepNum
                   const isCompleted = currentStep > stepNum
-                  const isClickable = isCompleted || stepNum === currentStep
+                  // Permite clicar em qualquer etapa já visitada (até maxStepVisited) ou na etapa atual
+                  const isClickable = stepNum <= maxStepVisited || stepNum === currentStep
                   const isPCStep = stepNum === 5 // Etapa "Gastando PC"
                   
                   return (
@@ -681,6 +761,10 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                         onClick={() => {
                           if (isClickable && stepNum <= totalSteps) {
                             setCurrentStep(stepNum)
+                            // Atualiza maxStepVisited se necessário
+                            if (stepNum > maxStepVisited) {
+                              setMaxStepVisited(stepNum)
+                            }
                             // Se for a etapa de PC, define a primeira sub-etapa
                             if (isPCStep) {
                               setPCSubStep('singularidades')
@@ -761,15 +845,19 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
             </motion.div>
           </aside>
 
+        {/* Conteúdo Principal */}
+        <div className="flex-1 flex gap-4 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-6 min-w-0">
+          <div className="max-w-[1400px] mx-auto">
           {/* Área Central - Conteúdo do Step */}
-          <main className="lg:col-span-6 flex flex-col">
+          <main className="flex flex-col">
             <motion.div
               key={currentStep}
               variants={stepVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/85 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col h-full"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/85 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col"
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 {/* Step 0: Raça Selection */}
@@ -880,12 +968,53 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   />
                 )}
 
-                {/* Step 6: Evolução (só aparece se nível > 1) */}
-                {currentStep === 6 && nivelAlmaInicial > 1 && (
-                  <EvolutionStep
-                    nivelAlmaInicial={nivelAlmaInicial}
-                    pontosEvolucao={getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0}
-                  />
+                {/* Step 6: Evolução */}
+                {currentStep === 6 && (
+                  nivelAlmaInicial > 1 ? (
+                    <EvolutionStep
+                      nivelAlmaInicial={nivelAlmaInicial}
+                      pontosEvolucao={getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0}
+                    />
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Header */}
+                      <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+                            <Sparkles className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-0.5">
+                              Evolução do Personagem
+                            </h3>
+                            <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50">
+                              Esta etapa está disponível apenas para personagens com Nível de Alma acima de 1
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Aviso */}
+                      <div className="p-6 rounded-lg border-2 border-ecoar-magenta/30 dark:border-ecoar-magenta-500/30 bg-ecoar-magenta/10 dark:bg-ecoar-magenta-800/20">
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-ecoar-magenta dark:text-ecoar-magenta-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-slate-700 dark:text-ecoar-light-900/80 space-y-2">
+                            <p className="font-semibold text-slate-900 dark:text-ecoar-light-900">
+                              Evolução não disponível para Nível de Alma 1
+                            </p>
+                            <p>
+                              A etapa de Evolução permite usar Pontos de Evolução para evoluir atributos, habilidades, aptidões e adquirir singularidades. 
+                              No entanto, esta funcionalidade está disponível apenas para personagens que começam com <strong>Nível de Alma acima de 1</strong>.
+                            </p>
+                            <p>
+                              Se você escolheu começar no Nível de Alma 1, você pode avançar para a próxima etapa. 
+                              Durante o jogo, conforme seu personagem evolui e ganha níveis, você poderá usar Pontos de Evolução para melhorar seu personagem.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {/* Step 7: Equipamentos */}
@@ -966,9 +1095,11 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
             </motion.div>
           </motion.div>
           </main>
-
+          </div>
+          </div>
+          
           {/* Sidebar Direita - Resumo */}
-          <aside className="lg:col-span-3 flex flex-col">
+          <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1023,15 +1154,37 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                               )}
                             </div>
                           )}
-                          {race.bonuses.attributes && Object.keys(race.bonuses.attributes).length > 0 && (
+                          {(race.bonuses.attributes && Object.keys(race.bonuses.attributes).length > 0) || race.bonuses.sizeModifier || race.bonuses.weightModifier ? (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {Object.entries(race.bonuses.attributes).map(([attr, value]) => (
+                              {/* Manual attribute bonuses */}
+                              {race.bonuses.attributes && Object.entries(race.bonuses.attributes).map(([attr, value]) => (
                                 <span key={attr} className="text-xs px-1.5 py-0.5 rounded bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-300 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40">
                                   {attr === 'carisma' ? 'Car' : attr === 'finesse' ? 'Fin' : attr === 'forca' ? 'For' : attr === 'inteligencia' ? 'Int' : attr === 'percepcao' ? 'Per' : attr === 'vitalidade' ? 'Vit' : 'Von'}+{value}
                                 </span>
                               ))}
+                              {/* Automatic bonuses from size modifier */}
+                              {race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0 && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-ecoar-magenta/20 dark:bg-ecoar-magenta-600/30 text-ecoar-magenta dark:text-ecoar-magenta-300 border border-ecoar-magenta/30 dark:border-ecoar-magenta-500/40" title={`Tamanho ${race.bonuses.sizeModifier} = Força ${race.bonuses.sizeModifier > 0 ? '+' : ''}${race.bonuses.sizeModifier}`}>
+                                  For{race.bonuses.sizeModifier > 0 ? '+' : ''}{race.bonuses.sizeModifier} (Tamanho)
+                                </span>
+                              )}
+                              {/* Automatic bonuses from weight modifier */}
+                              {race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0 && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-ecoar-magenta/20 dark:bg-ecoar-magenta-600/30 text-ecoar-magenta dark:text-ecoar-magenta-300 border border-ecoar-magenta/30 dark:border-ecoar-magenta-500/40" title={`Peso ${race.bonuses.weightModifier} = Vitalidade ${race.bonuses.weightModifier > 0 ? '+' : ''}${race.bonuses.weightModifier}`}>
+                                  Vit{race.bonuses.weightModifier > 0 ? '+' : ''}{race.bonuses.weightModifier} (Peso)
+                                </span>
+                              )}
+                              {/* Size and weight modifiers effect on esquiva */}
+                              {(race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0) || (race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0) ? (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 dark:bg-orange-600/30 text-orange-600 dark:text-orange-300 border border-orange-500/30 dark:border-orange-500/40" title={`Esquiva: -(${race.bonuses.sizeModifier ?? 0} + ${race.bonuses.weightModifier ?? 0}) = ${-((race.bonuses.sizeModifier ?? 0) + (race.bonuses.weightModifier ?? 0))}`}>
+                                  Esq{(() => {
+                                    const penalty = -((race.bonuses.sizeModifier ?? 0) + (race.bonuses.weightModifier ?? 0))
+                                    return penalty > 0 ? `+${penalty}` : `${penalty}`
+                                  })()}
+                                </span>
+                              ) : null}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       )
                     })()}
@@ -1260,7 +1413,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
               </div>
             </motion.div>
           </aside>
-        </div>
         </div>
       </div>
       <Footer />
@@ -3310,8 +3462,9 @@ function AttributesStep({
     const totalBasePoints = Object.entries(attributes).reduce((sum, [attr, val]) => {
       const raceBonus = raceBonuses[attr] || 0
       const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-      const classBonus = classBonuses?.[attr] || 0
-      return sum + Math.max(0, val - (raceBonus + martialSchoolBonus + classBonus))
+      const classBonus = 0 // TODO: Add class bonuses if needed - classBonuses?.[attr] || 0
+      const totalBonus = raceBonus + martialSchoolBonus + classBonus
+      return sum + Math.max(0, val - totalBonus)
     }, 0)
     const pointsOverFree = Math.max(0, totalBasePoints - 12)
     return pointsOverFree * 10
@@ -3334,11 +3487,12 @@ function AttributesStep({
     const modifier = getAttributeModifier(value)
     const raceBonus = raceBonuses[attr] || 0
     const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-    const totalBonus = raceBonus + martialSchoolBonus
-    const baseValue = value - totalBonus
+    const classBonus = 0 // TODO: Add class bonuses if needed
+    const totalBonus = raceBonus + martialSchoolBonus + classBonus
+    const baseValue = value - totalBonus // Base value = total - bonus (what user allocated)
     const AttributeIcon = attributeIcons[attr] || Star
-    const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus
-    const canDecrease = baseValue > 0
+    const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus // Máximo total = 3 base + bônus
+    const canDecrease = baseValue > 0 // Pode diminuir apenas se o usuário adicionou pontos (base > 0)
 
     const canIncrease = (() => {
       if (value >= maxValue) return false
@@ -3347,7 +3501,8 @@ function AttributesStep({
         const currentTotalBase = Object.entries(attributes).reduce((sum, [a, v]) => {
           const rB = raceBonuses[a] || 0
           const mB = martialSchoolBonuses[a] || 0
-          return sum + Math.max(0, v - (rB + mB))
+          const cB = 0 // TODO: Add class bonuses if needed
+          return sum + Math.max(0, v - (rB + mB + cB))
         }, 0)
         const newTotalBase = currentTotalBase - baseValue + (baseValue + 1)
         const currentPointsOverFree = Math.max(0, currentTotalBase - 12)
@@ -3374,7 +3529,8 @@ function AttributesStep({
       const currentTotalBase = Object.entries(attributes).reduce((sum, [a, v]) => {
         const rB = raceBonuses[a] || 0
         const mB = martialSchoolBonuses[a] || 0
-        return sum + Math.max(0, v - (rB + mB))
+        const cB = 0 // TODO: Add class bonuses if needed
+        return sum + Math.max(0, v - (rB + mB + cB))
       }, 0)
       const newTotalBase = currentTotalBase - baseValue + (baseValue + 1)
       const currentPointsOverFree = Math.max(0, currentTotalBase - 12)
@@ -5181,6 +5337,10 @@ function PCSpendingStep({
             onSingularidadesEcoarChange={onSingularidadesEcoarChange}
             onPointsChange={onPointsChange}
             pontosCriacao={pontosCriacao}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
           />
         )}
 
@@ -5238,6 +5398,10 @@ function SingularitiesSpendingStep({
   onSingularidadesEcoarChange,
   onPointsChange,
   pontosCriacao,
+  nivelAlma,
+  attributes,
+  skills,
+  aptitudes,
 }: {
   singularidades: string[]
   selectedEcoar: string
@@ -5250,12 +5414,43 @@ function SingularitiesSpendingStep({
   onSingularidadesEcoarChange: (singularidades: string[]) => void
   onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
 }) {
   const [activeTab, setActiveTab] = useState<'criacao' | 'trilha' | 'ecoa'>('criacao')
   const [selectedBruxarias, setSelectedBruxarias] = useState<string[]>([])
   const [selectedCacadaPowers, setSelectedCacadaPowers] = useState<string[]>([])
   const [selectedCacadaEnhancements, setSelectedCacadaEnhancements] = useState<string[]>([])
   const [selectedPathBase, setSelectedPathBase] = useState<string>('')
+
+  // Calcula o custo total incluindo singularidades de Ecoar
+  const calculateTotalCost = useCallback(() => {
+    // Custo das singularidades de criação
+    const criacaoCost = singularidades.reduce((sum, singId) => {
+      let sing: any = getCreationSingularityById(singId)
+      if (!sing) {
+        sing = getSingularityById(singId)
+      }
+      return sum + (sing?.cost || 0)
+    }, 0)
+
+    // Custo das singularidades de Ecoar
+    const ecoarCost = singularidadesEcoar.reduce((sum, singId) => {
+      const sing = getEcoarSingularityById(singId)
+      return sum + (sing?.cost || 0)
+    }, 0)
+
+    // TODO: Adicionar custo de singularidades de trilha quando implementado
+    return criacaoCost + ecoarCost
+  }, [singularidades, singularidadesEcoar])
+
+  // Atualiza o custo total quando qualquer singularidade muda
+  useEffect(() => {
+    const totalCost = calculateTotalCost()
+    onPointsChange(totalCost)
+  }, [singularidades, singularidadesEcoar, calculateTotalCost, onPointsChange])
 
   const toggleSingularity = (id: string, isCreation: boolean = false) => {
     let singularity: any = null
@@ -5273,34 +5468,9 @@ function SingularitiesSpendingStep({
 
     const isSelected = singularidades.includes(id)
     
-    // Calcula o custo total atual das singularidades selecionadas
-    const calculateCurrentCost = () => {
-      return singularidades.reduce((sum, singId) => {
-        let sing: any = null
-        // Tenta encontrar como singularidade de criação primeiro
-        sing = getCreationSingularityById(singId)
-        if (!sing) {
-          // Se não encontrar, tenta como singularidade normal
-          sing = getSingularityById(singId)
-        }
-        return sum + (sing?.cost || 0)
-      }, 0)
-    }
-    
     if (isSelected) {
-      // Remove: calcula o custo atual SEM incluir esta singularidade (já que ela está selecionada)
-      const otherSingularities = singularidades.filter(s => s !== id)
-      const currentCost = otherSingularities.reduce((sum, singId) => {
-        let sing: any = null
-        sing = getCreationSingularityById(singId)
-        if (!sing) {
-          sing = getSingularityById(singId)
-        }
-        return sum + (sing?.cost || 0)
-      }, 0)
-      
-      onSingularidadesChange(otherSingularities)
-      onPointsChange(currentCost)
+      // Remove: o useEffect recalculará o custo total automaticamente
+      onSingularidadesChange(singularidades.filter(s => s !== id))
     } else {
       // Verifica requisitos (não pode ter desvantagens/singularidades conflitantes)
       if (isCreation && 'requirements' in singularity && singularity.requirements) {
@@ -5308,14 +5478,13 @@ function SingularitiesSpendingStep({
         if (hasConflict) return
       }
       
-      // Adiciona: calcula o custo atual (sem esta) e adiciona o custo desta
-      const currentCost = calculateCurrentCost()
-      const newCost = currentCost + cost
+      // Calcula o custo total atual incluindo singularidades de Ecoar
+      const currentTotalCost = calculateTotalCost()
       
       // Verifica se tem PC suficiente
       if (pontosCriacao.disponiveis >= cost) {
         onSingularidadesChange([...singularidades, id])
-        onPointsChange(newCost)
+        // O useEffect recalculará o custo total automaticamente
       }
     }
   }
@@ -5454,8 +5623,197 @@ function SingularitiesSpendingStep({
             singularidadesEcoar={singularidadesEcoar}
             onEcoarSelect={onEcoarSelect}
             onSingularidadesEcoarChange={onSingularidadesEcoarChange}
+            pontosDisponiveis={pontosDisponiveis}
+            onPointsChange={onPointsChange}
+            pontosCriacao={pontosCriacao}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
           />
         )}
+      </div>
+    </div>
+  )
+}
+
+// Ecoar Singularities List Component
+function EcoarSingularitiesList({
+  selectedEcoar,
+  singularidadesEcoar,
+  onSingularidadesEcoarChange,
+  pontosDisponiveis,
+  onPointsChange,
+  pontosCriacao,
+  nivelAlma,
+  attributes,
+  skills,
+  aptitudes,
+}: {
+  selectedEcoar: string
+  singularidadesEcoar: string[]
+  onSingularidadesEcoarChange: (singularidades: string[]) => void
+  pontosDisponiveis: number
+  onPointsChange: (gastos: number) => void
+  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
+}) {
+  const ecoarSingularitiesList = selectedEcoar ? getEcoarSingularitiesByEcoarId(selectedEcoar) : []
+  
+  // O cálculo do custo total é feito pelo componente pai (SingularitiesSpendingStep)
+  // através de um useEffect que monitora singularidadesEcoar
+
+  // Valida todos os requisitos de uma singularidade
+  const checkRequirements = useCallback((singularity: EcoarSingularity): { valid: boolean; missingReqs: string[] } => {
+    const missingReqs: string[] = []
+    
+    if (!singularity.requirements) {
+      return { valid: true, missingReqs: [] }
+    }
+
+    // Verifica singularidade anterior
+    if (singularity.requirements.previous) {
+      if (!singularidadesEcoar.includes(singularity.requirements.previous)) {
+        const prevSing = getEcoarSingularityById(singularity.requirements.previous!)
+        missingReqs.push(`Requer: ${prevSing?.name || 'Singularidade anterior'}`)
+      }
+    }
+
+    // Verifica nível de alma
+    if (singularity.requirements.nivelAlma) {
+      if (nivelAlma < singularity.requirements.nivelAlma) {
+        missingReqs.push(`Requer Nível de Alma ${singularity.requirements.nivelAlma}+`)
+      }
+    }
+
+    // Verifica atributos
+    if (singularity.requirements.attributes) {
+      Object.entries(singularity.requirements.attributes).forEach(([attr, minValue]) => {
+        const currentValue = attributes[attr] || 0
+        if (currentValue < minValue) {
+          const attrName = attr.charAt(0).toUpperCase() + attr.slice(1)
+          missingReqs.push(`Requer ${attrName} ${minValue}+`)
+        }
+      })
+    }
+
+    // Verifica habilidades
+    if (singularity.requirements.skills) {
+      Object.entries(singularity.requirements.skills).forEach(([skillId, minLevel]) => {
+        const skill = skills[skillId]
+        const currentLevel = skill?.level || 0
+        if (currentLevel < minLevel) {
+          const skillData = getSkillById(skillId)
+          missingReqs.push(`Requer ${skillData?.name || skillId} nível ${minLevel}+`)
+        }
+      })
+    }
+
+    // Verifica aptidões
+    if (singularity.requirements.aptitudes) {
+      Object.entries(singularity.requirements.aptitudes).forEach(([aptId, minValue]) => {
+        const currentValue = aptitudes[aptId] || 0
+        if (currentValue < minValue) {
+          const aptData = getAptitudeById(aptId)
+          missingReqs.push(`Requer ${aptData?.name || aptId} ${minValue}+`)
+        }
+      })
+    }
+
+    return { valid: missingReqs.length === 0, missingReqs }
+  }, [singularidadesEcoar, nivelAlma, attributes, skills, aptitudes])
+
+  // Gera texto descritivo dos requisitos não atendidos
+  const getRequirementText = useCallback((singularity: EcoarSingularity): string | undefined => {
+    const { missingReqs } = checkRequirements(singularity)
+    if (missingReqs.length === 0) return undefined
+    return missingReqs.join(', ')
+  }, [checkRequirements])
+
+  const toggleSingularity = (id: string) => {
+    const singularity = getEcoarSingularityById(id)
+    if (!singularity) return
+
+    const isSelected = singularidadesEcoar.includes(id)
+    
+    if (isSelected) {
+      // Remove: o useEffect no componente pai recalculará o custo total automaticamente
+      onSingularidadesEcoarChange(singularidadesEcoar.filter(s => s !== id))
+    } else {
+      // Verifica requisitos
+      const { valid } = checkRequirements(singularity)
+      if (!valid) return
+
+      // Verifica se tem PC suficiente
+      if (pontosCriacao.disponiveis >= singularity.cost) {
+        onSingularidadesEcoarChange([...singularidadesEcoar, id])
+        // O onPointsChange será chamado automaticamente pelo useEffect no componente pai
+      }
+    }
+  }
+
+  if (!ecoarSingularitiesList || ecoarSingularitiesList.length === 0) {
+    return (
+      <div>
+        <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-4">Singularidades do Ecoar</h4>
+        <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm mb-4">
+          Selecione singularidades específicas do seu Ecoar
+        </p>
+        <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
+          <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">
+            Este ecoar ainda não possui singularidades cadastradas.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-2">Singularidades do Ecoar</h4>
+        <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm mb-3">
+          Selecione singularidades específicas do seu Ecoar
+        </p>
+        <div className={`text-lg font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal' : 'text-ecoar-magenta'}`}>
+          PC Disponíveis: {pontosDisponiveis}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {ecoarSingularitiesList.map((singularity) => {
+          const isSelected = singularidadesEcoar.includes(singularity.id)
+          const { valid, missingReqs } = checkRequirements(singularity)
+          const canAfford = pontosCriacao.disponiveis >= singularity.cost
+          const canSelect = valid && (singularity.cost === 0 || canAfford)
+          const requirementText = getRequirementText(singularity)
+          
+          return (
+            <SingularityCard
+              key={singularity.id}
+              name={singularity.name}
+              description={singularity.description}
+              cost={singularity.cost}
+              costLabel={singularity.cost === 0 ? undefined : 'PC'}
+              secondaryCost={singularity.cost === 0 ? 'Inata' : undefined}
+              isSelected={isSelected}
+              canAfford={canAfford}
+              canSelect={canSelect}
+              onClick={() => toggleSingularity(singularity.id)}
+              effects={singularity.effects}
+              variant="teal"
+              footer={
+                requirementText ? (
+                  <div className="text-xs text-ecoar-magenta dark:text-ecoar-magenta-400 mt-2 pt-2 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+                    {requirementText}
+                  </div>
+                ) : undefined
+              }
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -5467,11 +5825,25 @@ function EcoarSelection({
   singularidadesEcoar,
   onEcoarSelect,
   onSingularidadesEcoarChange,
+  pontosDisponiveis,
+  onPointsChange,
+  pontosCriacao,
+  nivelAlma,
+  attributes,
+  skills,
+  aptitudes,
 }: {
   selectedEcoar: string
   singularidadesEcoar: string[]
   onEcoarSelect: (id: string) => void
   onSingularidadesEcoarChange: (singularidades: string[]) => void
+  pontosDisponiveis: number
+  onPointsChange: (gastos: number) => void
+  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
 }) {
   return (
     <div className="space-y-6">
@@ -5497,15 +5869,18 @@ function EcoarSelection({
         </div>
       </div>
 
-      {selectedEcoar && (
-        <div>
-          <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-4">Singularidades do Ecoar</h4>
-          <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm mb-4">Selecione singularidades específicas do seu Ecoar</p>
-          <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
-            <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">Funcionalidade em desenvolvimento...</p>
-          </div>
-        </div>
-      )}
+      {selectedEcoar && <EcoarSingularitiesList 
+        selectedEcoar={selectedEcoar}
+        singularidadesEcoar={singularidadesEcoar}
+        onSingularidadesEcoarChange={onSingularidadesEcoarChange}
+        pontosDisponiveis={pontosDisponiveis}
+        onPointsChange={onPointsChange}
+        pontosCriacao={pontosCriacao}
+        nivelAlma={nivelAlma}
+        attributes={attributes}
+        skills={skills}
+        aptitudes={aptitudes}
+      />}
     </div>
   )
 }
@@ -5541,7 +5916,9 @@ function TraitsSpendingStep({
     return Object.entries(attrs).reduce((sum, [a, v]) => {
       const rB = raceBonuses[a] || 0
       const mB = martialSchoolBonuses[a] || 0
-      return sum + Math.max(0, v - (rB + mB))
+      const cB = 0 // TODO: Add class bonuses if needed
+      const totalBonus = rB + mB + cB
+      return sum + Math.max(0, v - totalBonus)
     }, 0)
   }
 
@@ -5570,7 +5947,8 @@ function TraitsSpendingStep({
     const oldValue = attributes[attrKey]
     const raceBonus = raceBonuses[attr] || 0
     const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-    const totalBonus = raceBonus + martialSchoolBonus
+    const classBonus = 0 // TODO: Add class bonuses if needed
+    const totalBonus = raceBonus + martialSchoolBonus + classBonus
     
     const maxTotalValue = 3 + totalBonus
     const newValue = Math.max(0, Math.min(maxTotalValue, newTotalValue))

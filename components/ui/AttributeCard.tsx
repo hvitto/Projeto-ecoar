@@ -85,14 +85,22 @@ export default function AttributeCard({
         </div>
         {/* Badges de Bônus - sempre reserva espaço para manter uniformidade */}
         <div className="flex items-center gap-1 flex-shrink-0 min-w-[32px] justify-end">
-          {raceBonus > 0 && (
-            <Badge variant="cost" size="sm" className="text-[9px] px-1 py-0.5 opacity-80">
-              +{raceBonus}
+          {raceBonus !== 0 && (
+            <Badge 
+              variant={raceBonus > 0 ? "cost" : "disadvantage"} 
+              size="sm" 
+              className="text-[9px] px-1 py-0.5 opacity-80"
+            >
+              {raceBonus > 0 ? '+' : ''}{raceBonus}
             </Badge>
           )}
-          {martialSchoolBonus > 0 && (
-            <Badge variant="bonus" size="sm" className="text-[9px] px-1 py-0.5 opacity-80">
-              +{martialSchoolBonus}
+          {martialSchoolBonus !== 0 && (
+            <Badge 
+              variant={martialSchoolBonus > 0 ? "bonus" : "disadvantage"} 
+              size="sm" 
+              className="text-[9px] px-1 py-0.5 opacity-80"
+            >
+              {martialSchoolBonus > 0 ? '+' : ''}{martialSchoolBonus}
             </Badge>
           )}
         </div>
@@ -169,10 +177,12 @@ export default function AttributeCard({
           <span className="text-ecoar-dark-800 dark:text-ecoar-light-900/80 font-medium">{baseValue}</span>
         </div>
         <div className="flex items-center gap-2 flex-1 justify-end">
-          {totalBonus > 0 && (
+          {totalBonus !== 0 && (
             <div className="flex-shrink-0">
               <span className="text-ecoar-dark-600 dark:text-ecoar-light-900/50">Bônus: </span>
-              <span className="text-ecoar-teal-600 dark:text-ecoar-teal-400/80 font-medium">+{totalBonus}</span>
+              <span className={`font-medium ${totalBonus > 0 ? 'text-ecoar-teal-600 dark:text-ecoar-teal-400/80' : 'text-orange-600 dark:text-orange-400/80'}`}>
+                {totalBonus > 0 ? '+' : ''}{totalBonus}
+              </span>
             </div>
           )}
           {isEvolutionStep && pcCost !== undefined && pcCost > 0 && (
