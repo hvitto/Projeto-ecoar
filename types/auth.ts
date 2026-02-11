@@ -62,5 +62,6 @@ export enum AuthError {
   USERNAME_REQUIRED = 'Nome de usuário é obrigatório',
   INVALID_USERNAME = 'Nome de usuário inválido',
   USERNAME_ALREADY_EXISTS = 'Nome de usuário já está em uso',
+  EMAIL_NOT_VERIFIED = 'Confirme seu email antes de fazer login. Verifique sua caixa de entrada.',
 }
 

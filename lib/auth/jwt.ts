@@ -38,3 +38,27 @@ export async function verifyToken(token: string): Promise<JwtPayload | null> {
     return null
   }
 }
+
+// Token de verificação de email (validade 24h)
+export interface VerificationPayload {
+  userId: string
+  purpose: 'email_verification'
+}
+
+export async function signVerificationToken(userId: string): Promise<string> {
+  return new jose.SignJWT({ userId, purpose: 'email_verification' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('24h')
+    .setIssuedAt()
+    .sign(getSecret())
+}
+
+export async function verifyVerificationToken(token: string): Promise<VerificationPayload | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecret())
+    if (payload.purpose !== 'email_verification' || !payload.userId) return null
+    return { userId: payload.userId as string, purpose: 'email_verification' }
+  } catch {
+    return null
+  }
+}

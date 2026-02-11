@@ -29,6 +29,9 @@ The app always uses the API and database. Create a `.env` file in the project ro
 - **`DATABASE_URL`** (obrigatório) – Connection string PostgreSQL, ex.: Neon.
 - **`JWT_SECRET`** (obrigatório) – Chave para assinar os JWTs (ex.: `openssl rand -hex 32`).
 - **`NEXT_PUBLIC_API_URL`** – Em desenvolvimento pode omitir (usa a mesma origem). Em produção defina a URL pública do app (ex.: `https://seu-app.vercel.app`) para as chamadas à API.
+- **`RESEND_API_KEY`** – Chave da API do [Resend](https://resend.com) para envio de emails de confirmação (cadastro por email/senha).
+- **`EMAIL_FROM`** – Endereço remetente dos emails (ex.: `noreply@seudominio.com` ou use o domínio do Resend).
+- **`GOOGLE_CLIENT_ID`** e **`GOOGLE_CLIENT_SECRET`** – Credenciais OAuth 2.0 do [Google Cloud Console](https://console.cloud.google.com/apis/credentials) para login com Google.
 
 ### Para outras pessoas usarem
 

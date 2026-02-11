@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
-import { hashPassword, signToken } from '@/lib/auth/jwt'
+import { hashPassword, signVerificationToken } from '@/lib/auth/jwt'
 import { config } from '@/lib/config'
 import { AuthError } from '@/types/auth'
+import { sendVerificationEmail } from '@/lib/email/sendVerificationEmail'
 
 const EMAIL_REGEX = config.VALIDATION.EMAIL_REGEX
 const MIN_PASSWORD = config.VALIDATION.MIN_PASSWORD_LENGTH
@@ -77,20 +78,21 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(String(password))
     const rows = (await sql`
-      INSERT INTO users (email, full_name, username, password_hash)
-      VALUES (${normalizedEmail}, ${String(fullName).trim()}, ${normalizedUsername}, ${passwordHash})
+      INSERT INTO users (email, full_name, username, password_hash, auth_provider)
+      VALUES (${normalizedEmail}, ${String(fullName).trim()}, ${normalizedUsername}, ${passwordHash}, 'email')
       RETURNING id, email, full_name, username, created_at
     `) as Array<{ id: string; email: string; full_name: string; username: string; created_at: string }>
     const row = rows[0]
-    const user = {
-      id: row.id,
-      email: row.email,
-      fullName: row.full_name,
-      username: row.username,
-      createdAt: row.created_at,
-    }
-    const token = await signToken({ userId: row.id })
-    return NextResponse.json({ success: true, user, token })
+
+    const verificationToken = await signVerificationToken(row.id)
+    const origin = process.env.NEXT_PUBLIC_API_URL || ''
+    const verificationLink = `${origin.replace(/\/$/, '')}/api/auth/verify-email?token=${encodeURIComponent(verificationToken)}`
+    await sendVerificationEmail(normalizedEmail, verificationLink)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Verifique seu email para ativar sua conta. Enviamos um link de confirmação.',
+    })
   } catch (err) {
     console.error('Register error:', err)
     return NextResponse.json({ success: false, error: 'Erro ao cadastrar' }, { status: 500 })

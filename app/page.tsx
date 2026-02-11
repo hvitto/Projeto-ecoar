@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { config } from '@/lib/config'
 import { AppProvider } from '@/contexts/AppContext'
 import CharacterSheet from '@/components/CharacterSheet'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
@@ -13,12 +15,40 @@ import { CharacterWithMetadata } from '@/types/auth'
 
 type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet'
 
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
+
 function AppContent() {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const { user, isAuthenticated, isLoading, refreshUser } = useAuth()
   const [viewMode, setViewMode] = useState<ViewMode>('auth')
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithMetadata | null>(null)
   const [wizardKey, setWizardKey] = useState(0)
+  const [loginMessage, setLoginMessage] = useState<string | null>(null)
   const hasInitialized = useRef(false)
+
+  useEffect(() => {
+    const token = searchParams.get('token')
+    if (token && typeof window !== 'undefined') {
+      const session = { token, user: null, expiresAt: Date.now() + SESSION_DURATION }
+      localStorage.setItem(config.STORAGE_KEYS.AUTH, JSON.stringify(session))
+      window.history.replaceState({}, '', window.location.pathname)
+      refreshUser().then(() => {})
+    }
+  }, [searchParams, refreshUser])
+
+  useEffect(() => {
+    const verified = searchParams.get('verified')
+    const error = searchParams.get('error')
+    if (verified === '1') {
+      setLoginMessage('Email confirmado. Faça login.')
+      setViewMode('login')
+    }
+    if (error === 'invalid_token') setLoginMessage('Link de verificação inválido ou expirado.')
+    if (error === 'missing_token') setLoginMessage('Link inválido.')
+    if (error === 'email_already_used') setLoginMessage('Este email já está cadastrado com senha. Use o login por email.')
+    if (error === 'google_not_configured' || error === 'token_exchange_failed' || error === 'userinfo_failed') setLoginMessage('Erro ao entrar com Google. Tente novamente.')
+    if (error === 'no_email') setLoginMessage('Não foi possível obter seu email do Google.')
+  }, [searchParams])
 
   // Ajustar viewMode inicial baseado na autenticação
   useEffect(() => {
@@ -104,6 +134,8 @@ function AppContent() {
         <LoginForm
           onSwitchToRegister={() => setViewMode('register')}
           onSuccess={handleLoginSuccess}
+          initialMessage={loginMessage}
+          onMessageShown={() => setLoginMessage(null)}
         />
       )
     }
@@ -117,11 +149,12 @@ function AppContent() {
       )
     }
 
-    // Fallback: se viewMode não está definido, mostrar login
     return (
       <LoginForm
         onSwitchToRegister={() => setViewMode('register')}
         onSuccess={handleLoginSuccess}
+        initialMessage={loginMessage}
+        onMessageShown={() => setLoginMessage(null)}
       />
     )
   }
@@ -158,5 +191,9 @@ function AppContent() {
 }
 
 export default function Home() {
-  return <AppContent />
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">Carregando...</div>}>
+      <AppContent />
+    </Suspense>
+  )
 }

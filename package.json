@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "resend": "^4.0.0",
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.23.24",

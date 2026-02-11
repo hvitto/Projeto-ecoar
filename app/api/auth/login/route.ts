@@ -21,17 +21,23 @@ export async function POST(request: Request) {
 
     const normalizedEmail = String(email).toLowerCase()
     const rows = (await sql`
-      SELECT id, email, full_name, username, password_hash, created_at
+      SELECT id, email, full_name, username, password_hash, created_at, email_verified_at
       FROM users WHERE email = ${normalizedEmail} LIMIT 1
-    `) as Array<{ id: string; email: string; full_name: string; username: string; password_hash: string; created_at: string }>
+    `) as Array<{ id: string; email: string; full_name: string; username: string; password_hash: string | null; created_at: string; email_verified_at: string | null }>
     if (rows.length === 0) {
       return NextResponse.json({ success: false, error: AuthError.INVALID_CREDENTIALS }, { status: 401 })
     }
 
     const row = rows[0]
+    if (!row.password_hash) {
+      return NextResponse.json({ success: false, error: 'Esta conta usa login com Google. Use o botão "Entrar com Google".' }, { status: 400 })
+    }
     const valid = await verifyPassword(String(password), row.password_hash)
     if (!valid) {
       return NextResponse.json({ success: false, error: AuthError.INVALID_CREDENTIALS }, { status: 401 })
+    }
+    if (row.email_verified_at == null) {
+      return NextResponse.json({ success: false, error: AuthError.EMAIL_NOT_VERIFIED }, { status: 403 })
     }
 
     const user = {
