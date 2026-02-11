@@ -1,22 +1,29 @@
-// Configuração do sistema - permite alternar entre localStorage e API
+// Configuração do sistema - app usa sempre API e banco de dados
+
+function getApiBaseUrl(): string {
+  const origin = typeof process.env.NEXT_PUBLIC_API_URL === 'string' && process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL
+    : typeof window !== 'undefined'
+      ? window.location.origin
+      : ''
+  return origin ? `${origin.replace(/\/$/, '')}/api` : '/api'
+}
 
 export const config = {
-  // Flag para usar localStorage (true) ou API (false)
-  USE_LOCAL_STORAGE: true,
-  
-  // Configurações de localStorage
+  USE_LOCAL_STORAGE: false,
+
+  // Chave usada no navegador para guardar o token JWT (sessão)
   STORAGE_KEYS: {
     USERS: 'ecoar-users',
     AUTH: 'ecoar-auth',
     CHARACTERS_PREFIX: 'ecoar-characters-',
   },
-  
-  // Configurações de sessão (quando usar localStorage)
-  SESSION_DURATION: 7 * 24 * 60 * 60 * 1000, // 7 dias em milissegundos
-  
-  // Configurações de API (preparado para futuro)
+
+  // Configurações de API
   API: {
-    BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+    get BASE_URL() {
+      return getApiBaseUrl()
+    },
     ENDPOINTS: {
       LOGIN: '/auth/login',
       REGISTER: '/auth/register',

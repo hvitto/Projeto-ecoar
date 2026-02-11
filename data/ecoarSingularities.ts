@@ -132,8 +132,8 @@ export const ecoarSingularities: EcoarSingularity[] = [
 ]
 
 // Funções auxiliares
-export const getEcoarSingularitiesByEcoarId = (ecoaId: string): EcoarSingularity[] => {
-  return ecoarSingularities.filter(sing => sing.ecoaId === ecoaId)
+export const getEcoarSingularitiesByEcoarId = (ecoarId: string): EcoarSingularity[] => {
+  return ecoarSingularities.filter(sing => sing.ecoarId === ecoarId)
 }
 
 export const getEcoarSingularityById = (id: string): EcoarSingularity | undefined => {

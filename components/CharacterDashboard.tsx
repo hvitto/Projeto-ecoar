@@ -33,13 +33,12 @@ export default function CharacterDashboard({
     }
   }, [user])
 
-  const loadCharacters = () => {
+  const loadCharacters = async () => {
     if (!user) return
-    
+
     setIsLoading(true)
     try {
-      const userCharacters = getUserCharacters(user.id)
-      // Ordenar por data de criação (mais recente primeiro)
+      const userCharacters = await getUserCharacters(user.id)
       const sorted = [...userCharacters].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
@@ -60,9 +59,9 @@ export default function CharacterDashboard({
 
     setDeletingId(characterId)
     try {
-      const success = deleteCharacter(user.id, characterId)
+      const success = await deleteCharacter(user.id, characterId)
       if (success) {
-        loadCharacters()
+        await loadCharacters()
       }
     } catch (error) {
       console.error('Error deleting character:', error)

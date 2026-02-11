@@ -8,7 +8,7 @@ Sistema moderno de criação e gerenciamento de personagens para o RPG ECOAR, in
 - Ficha de personagem completa com todos os campos do sistema ECOAR
 - Interface moderna com design limpo e intuitivo
 - Layout responsivo para desktop e mobile
-- Persistência de dados no localStorage
+- Persistência de dados via API e banco PostgreSQL (Neon)
 - Navegação fluida entre wizard e ficha de personagem
 - Atualizações em tempo real com gerenciamento de estado React
 
@@ -21,6 +21,21 @@ First, install the dependencies:
 ```bash
 npm install
 ```
+
+### Environment variables
+
+The app always uses the API and database. Create a `.env` file in the project root (never commit it) with:
+
+- **`DATABASE_URL`** (obrigatório) – Connection string PostgreSQL, ex.: Neon.
+- **`JWT_SECRET`** (obrigatório) – Chave para assinar os JWTs (ex.: `openssl rand -hex 32`).
+- **`NEXT_PUBLIC_API_URL`** – Em desenvolvimento pode omitir (usa a mesma origem). Em produção defina a URL pública do app (ex.: `https://seu-app.vercel.app`) para as chamadas à API.
+
+### Para outras pessoas usarem
+
+1. Faça o deploy do projeto (ex.: [Vercel](https://vercel.com)) conectando o repositório.
+2. No painel do host, configure as variáveis de ambiente: `DATABASE_URL`, `JWT_SECRET` e `NEXT_PUBLIC_API_URL` (URL do deploy).
+3. O banco deve estar criado (tabelas `users` e `characters` no Neon). Se ainda não rodou o SQL de criação, use o SQL Editor do Neon ou o script/migration do projeto.
+4. Qualquer pessoa que acessar a URL do deploy poderá se cadastrar, fazer login e usar o app.
 
 ### Development
 
@@ -99,7 +114,7 @@ Projeto-ecoar/
 - ✅ Limpeza de arquivos lock duplicados
 - ✅ Adicionado botão de edição na ficha do personagem
 - ✅ Melhorada navegação com Header funcional
-- ✅ Implementada persistência de dados no localStorage
+- ✅ Persistência via API e banco PostgreSQL (Neon)
 - ✅ Fluxo intuitivo entre wizard e ficha de personagem
-- ✅ Sistema de autenticação local (login/registro)
+- ✅ Sistema de autenticação (login/registro) e fichas na API
 - ✅ Dashboard de gerenciamento de personagens

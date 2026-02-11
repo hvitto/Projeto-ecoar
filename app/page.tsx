@@ -63,8 +63,7 @@ function AppContent() {
     }
 
     try {
-      // Salvar ficha vinculada ao usuário
-      const characterWithMetadata = saveCharacter(user.id, data)
+      const characterWithMetadata = await saveCharacter(user.id, data)
       setSelectedCharacter(characterWithMetadata)
       setViewMode('sheet')
     } catch (error) {
@@ -141,7 +140,7 @@ function AppContent() {
         <CharacterCreationWizard
           key={wizardKey}
           onComplete={handleWizardComplete}
-          initialData={selectedCharacter?.data}
+          initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
         />
       )}
 

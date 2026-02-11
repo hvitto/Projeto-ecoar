@@ -176,6 +176,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [singularidades, setSingularidades] = useState<string[]>([])
   const [selectedEcoar, setSelectedEcoar] = useState<string>('')
   const [singularidadesEcoar, setSingularidadesEcoar] = useState<string[]>([])
+  const [singularidadesRaciais, setSingularidadesRaciais] = useState<string[]>([])
   const [pontosCriacao, setPontosCriacao] = useState({ obtidos: 30, gastos: 0, disponiveis: 30 }) // Começa com 30
   const [nome, setNome] = useState('')
   const [backstory, setBackstory] = useState('')
@@ -817,7 +818,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                           {([
                             { id: 'singularidades', label: 'Singularidades', icon: Sparkles },
                             { id: 'traços', label: 'Traços', icon: Zap },
-                            { id: 'escola-marcial', label: 'Escola Marcial', icon: Sword },
                           ] as const).map(({ id, label, icon: SubIcon }) => {
                             const isSubActive = pcSubStep === id
                             return (
@@ -951,6 +951,21 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     aptitudes={aptitudes}
                     selectedEscolaMarcial={selectedEscolaMarcial}
                     onEscolaMarcialSelect={setSelectedEscolaMarcial}
+                    selectedRaca={selectedRaca}
+                    singularidadesMarciais={singularidades.filter(s => {
+                      const school = getMartialSchoolDataById(selectedEscolaMarcial)
+                      return school?.singularities.some(sing => sing.id === s)
+                    })}
+                    onSingularidadesMarciaisChange={(singIds) => {
+                      // Remove singularidades marciais antigas e adiciona novas
+                      const otherSingularities = singularidades.filter(s => {
+                        const school = getMartialSchoolDataById(selectedEscolaMarcial)
+                        return !school?.singularities.some(sing => sing.id === s)
+                      })
+                      setSingularidades([...otherSingularities, ...singIds])
+                    }}
+                    singularidadesRaciais={singularidadesRaciais}
+                    onSingularidadesRaciaisChange={setSingularidadesRaciais}
                     raceBonuses={raceBonuses}
                     martialSchoolBonuses={martialSchoolBonuses}
                     pontosDisponiveis={pontosCriacao.disponiveis}
@@ -5280,6 +5295,11 @@ function PCSpendingStep({
   aptitudes,
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
+  selectedRaca,
+  singularidadesMarciais,
+  onSingularidadesMarciaisChange,
+  singularidadesRaciais,
+  onSingularidadesRaciaisChange,
   raceBonuses,
   martialSchoolBonuses,
   pontosDisponiveis,
@@ -5305,6 +5325,11 @@ function PCSpendingStep({
   aptitudes: Record<string, number>
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
+  selectedRaca: string
+  singularidadesMarciais: string[]
+  onSingularidadesMarciaisChange: (ids: string[]) => void
+  singularidadesRaciais: string[]
+  onSingularidadesRaciaisChange: (ids: string[]) => void
   raceBonuses: Record<string, number>
   martialSchoolBonuses: Record<string, number>
   pontosDisponiveis: number
@@ -5331,6 +5356,13 @@ function PCSpendingStep({
             singularidadesEcoar={singularidadesEcoar}
             selectedTrilha={selectedTrilha}
             onTrilhaSelect={onTrilhaSelect}
+            selectedEscolaMarcial={selectedEscolaMarcial}
+            onEscolaMarcialSelect={onEscolaMarcialSelect}
+            singularidadesMarciais={singularidadesMarciais}
+            onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
+            selectedRaca={selectedRaca}
+            singularidadesRaciais={singularidadesRaciais}
+            onSingularidadesRaciaisChange={onSingularidadesRaciaisChange}
             pontosDisponiveis={pontosDisponiveis}
             onSingularidadesChange={onSingularidadesChange}
             onEcoarSelect={onEcoarSelect}
@@ -5359,27 +5391,6 @@ function PCSpendingStep({
           />
         )}
 
-        {activeSubStep === 'escola-marcial' && (
-          <MartialSchoolPCSpendingStep
-            selectedEscolaMarcial={selectedEscolaMarcial}
-            onSelect={onEscolaMarcialSelect}
-            singularidadesMarciais={singularidades.filter(s => {
-              const school = getMartialSchoolDataById(selectedEscolaMarcial)
-              return school?.singularities.some(sing => sing.id === s)
-            })}
-            onSingularidadesChange={(singIds) => {
-              // Remove singularidades marciais antigas e adiciona novas
-              const otherSingularities = singularidades.filter(s => {
-                const school = getMartialSchoolDataById(selectedEscolaMarcial)
-                return !school?.singularities.some(sing => sing.id === s)
-              })
-              onSingularidadesChange([...otherSingularities, ...singIds])
-            }}
-            pontosDisponiveis={pontosDisponiveis}
-            onPointsChange={onPointsChange}
-            nivelAlma={nivelAlma}
-          />
-        )}
       </div>
     </div>
   )
@@ -5392,6 +5403,13 @@ function SingularitiesSpendingStep({
   singularidadesEcoar,
   selectedTrilha,
   onTrilhaSelect,
+  selectedEscolaMarcial,
+  onEscolaMarcialSelect,
+  singularidadesMarciais,
+  onSingularidadesMarciaisChange,
+  selectedRaca,
+  singularidadesRaciais,
+  onSingularidadesRaciaisChange,
   pontosDisponiveis,
   onSingularidadesChange,
   onEcoarSelect,
@@ -5408,6 +5426,13 @@ function SingularitiesSpendingStep({
   singularidadesEcoar: string[]
   selectedTrilha: string
   onTrilhaSelect: (id: string) => void
+  selectedEscolaMarcial: string
+  onEscolaMarcialSelect: (id: string) => void
+  singularidadesMarciais: string[]
+  onSingularidadesMarciaisChange: (ids: string[]) => void
+  selectedRaca: string
+  singularidadesRaciais: string[]
+  onSingularidadesRaciaisChange: (ids: string[]) => void
   pontosDisponiveis: number
   onSingularidadesChange: (singularidades: string[]) => void
   onEcoarSelect: (id: string) => void
@@ -5419,16 +5444,21 @@ function SingularitiesSpendingStep({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
-  const [activeTab, setActiveTab] = useState<'criacao' | 'trilha' | 'ecoa'>('criacao')
+  const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
   const [selectedBruxarias, setSelectedBruxarias] = useState<string[]>([])
   const [selectedCacadaPowers, setSelectedCacadaPowers] = useState<string[]>([])
   const [selectedCacadaEnhancements, setSelectedCacadaEnhancements] = useState<string[]>([])
   const [selectedPathBase, setSelectedPathBase] = useState<string>('')
 
-  // Calcula o custo total incluindo singularidades de Ecoar
+  // Calcula o custo total incluindo todas as singularidades
   const calculateTotalCost = useCallback(() => {
-    // Custo das singularidades de criação
+    // Custo das singularidades de criação (excluindo marciais e raciais)
+    const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
     const criacaoCost = singularidades.reduce((sum, singId) => {
+      // Pula singularidades marciais (elas são gerenciadas separadamente)
+      if (school?.singularities.some(s => s.id === singId)) {
+        return sum
+      }
       let sing: any = getCreationSingularityById(singId)
       if (!sing) {
         sing = getSingularityById(singId)
@@ -5442,15 +5472,23 @@ function SingularitiesSpendingStep({
       return sum + (sing?.cost || 0)
     }, 0)
 
-    // TODO: Adicionar custo de singularidades de trilha quando implementado
-    return criacaoCost + ecoarCost
-  }, [singularidades, singularidadesEcoar])
+    // Custo das singularidades marciais (converte PE para PC: 1 PE = 10 PC)
+    const marciaisCost = school ? singularidadesMarciais.reduce((sum, singId) => {
+      const sing = school.singularities.find(s => s.id === singId)
+      return sum + (sing ? (sing.cost * 10) : 0)
+    }, 0) : 0
+
+    // Custo das singularidades raciais (quando implementado)
+    const raciaisCost = 0 // TODO: Implementar quando dados estiverem disponíveis
+
+    return criacaoCost + ecoarCost + marciaisCost + raciaisCost
+  }, [singularidades, singularidadesEcoar, singularidadesMarciais, selectedEscolaMarcial])
 
   // Atualiza o custo total quando qualquer singularidade muda
   useEffect(() => {
     const totalCost = calculateTotalCost()
     onPointsChange(totalCost)
-  }, [singularidades, singularidadesEcoar, calculateTotalCost, onPointsChange])
+  }, [singularidades, singularidadesEcoar, singularidadesMarciais, calculateTotalCost, onPointsChange])
 
   const toggleSingularity = (id: string, isCreation: boolean = false) => {
     let singularity: any = null
@@ -5519,7 +5557,7 @@ function SingularitiesSpendingStep({
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
-        {(['criacao', 'trilha', 'ecoa'] as const).map((tab) => (
+        {(['criacao', 'marciais', 'raciais', 'trilha', 'ecoa'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -5530,6 +5568,8 @@ function SingularitiesSpendingStep({
             }`}
           >
             {tab === 'criacao' && 'Singularidades de Criação'}
+            {tab === 'marciais' && 'Singularidades Marciais'}
+            {tab === 'raciais' && 'Singularidades Raciais'}
             {tab === 'trilha' && 'Singularidades de Trilha'}
             {tab === 'ecoa' && 'Ecoar'}
           </button>
@@ -5588,6 +5628,37 @@ function SingularitiesSpendingStep({
               )
             })}
           </div>
+        )}
+
+        {activeTab === 'marciais' && (
+          <MartialSingularitiesTab
+            selectedEscolaMarcial={selectedEscolaMarcial}
+            onEscolaMarcialSelect={onEscolaMarcialSelect}
+            singularidadesMarciais={singularidadesMarciais}
+            onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
+            pontosDisponiveis={pontosDisponiveis}
+            onPointsChange={onPointsChange}
+            pontosCriacao={pontosCriacao}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
+          />
+        )}
+
+        {activeTab === 'raciais' && (
+          <RacialSingularitiesTab
+            selectedRaca={selectedRaca}
+            singularidadesRaciais={singularidadesRaciais}
+            onSingularidadesRaciaisChange={onSingularidadesRaciaisChange}
+            pontosDisponiveis={pontosDisponiveis}
+            onPointsChange={onPointsChange}
+            pontosCriacao={pontosCriacao}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
+          />
         )}
 
         {activeTab === 'trilha' && (
@@ -5814,6 +5885,353 @@ function EcoarSingularitiesList({
             />
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// Martial Singularities Tab Component
+function MartialSingularitiesTab({
+  selectedEscolaMarcial,
+  onEscolaMarcialSelect,
+  singularidadesMarciais,
+  onSingularidadesMarciaisChange,
+  pontosDisponiveis,
+  onPointsChange,
+  pontosCriacao,
+  nivelAlma,
+  attributes,
+  skills,
+  aptitudes,
+}: {
+  selectedEscolaMarcial: string
+  onEscolaMarcialSelect: (id: string) => void
+  singularidadesMarciais: string[]
+  onSingularidadesMarciaisChange: (ids: string[]) => void
+  pontosDisponiveis: number
+  onPointsChange: (gastos: number) => void
+  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
+}) {
+  const allMartialSchools = getAllMartialSchools()
+  const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
+
+  // Calcula pontos gastos (converte PE para PC: 1 PE = 10 PC)
+  const calculateCost = useCallback(() => {
+    if (!school) return 0
+    return singularidadesMarciais.reduce((sum, singId) => {
+      const sing = school.singularities.find(s => s.id === singId)
+      return sum + (sing ? (sing.cost * 10) : 0) // Converte PE para PC
+    }, 0)
+  }, [school, singularidadesMarciais])
+
+  // Atualiza pontos gastos quando singularidades mudam
+  useEffect(() => {
+    const total = calculateCost()
+    onPointsChange(total)
+  }, [singularidadesMarciais, calculateCost, onPointsChange])
+
+  // Valida requisitos de uma singularidade marcial
+  const checkRequirements = useCallback((singularity: MartialSchoolSingularity): { valid: boolean; missingReqs: string[] } => {
+    const missingReqs: string[] = []
+
+    // Verifica singularidade anterior
+    if (singularity.requirements.previous) {
+      if (!singularidadesMarciais.includes(singularity.requirements.previous)) {
+        const prevSing = school?.singularities.find(s => s.id === singularity.requirements.previous)
+        missingReqs.push(`Requer: ${prevSing?.name || 'Singularidade anterior'}`)
+      }
+    }
+
+    // Verifica nível de alma
+    if (singularity.requirements.nivelAlma) {
+      if (nivelAlma < singularity.requirements.nivelAlma) {
+        missingReqs.push(`Requer Nível de Alma ${singularity.requirements.nivelAlma}+`)
+      }
+    }
+
+    // Verifica atributos
+    if (singularity.requirements.attributes) {
+      Object.entries(singularity.requirements.attributes).forEach(([attr, minValue]) => {
+        const currentValue = attributes[attr] || 0
+        if (currentValue < minValue) {
+          const attrName = attr.charAt(0).toUpperCase() + attr.slice(1)
+          missingReqs.push(`Requer ${attrName} ${minValue}+`)
+        }
+      })
+    }
+
+    // Verifica habilidades
+    if (singularity.requirements.skills) {
+      Object.entries(singularity.requirements.skills).forEach(([skillId, minLevel]) => {
+        const skill = skills[skillId]
+        const currentLevel = skill?.level || 0
+        if (currentLevel < minLevel) {
+          const skillData = getSkillById(skillId)
+          missingReqs.push(`Requer ${skillData?.name || skillId} nível ${minLevel}+`)
+        }
+      })
+    }
+
+    // Verifica aptidões
+    if (singularity.requirements.aptitudes) {
+      Object.entries(singularity.requirements.aptitudes).forEach(([aptId, minValue]) => {
+        const currentValue = aptitudes[aptId] || 0
+        if (currentValue < minValue) {
+          const aptData = getAptitudeById(aptId)
+          missingReqs.push(`Requer ${aptData?.name || aptId} ${minValue}+`)
+        }
+      })
+    }
+
+    return { valid: missingReqs.length === 0, missingReqs }
+  }, [singularidadesMarciais, nivelAlma, attributes, skills, aptitudes, school])
+
+  const toggleSingularity = (id: string) => {
+    if (!school) return
+
+    const singularity = school.singularities.find(s => s.id === id)
+    if (!singularity) return
+
+    const isSelected = singularidadesMarciais.includes(id)
+    const costInPC = singularity.cost * 10 // Converte PE para PC
+
+    if (isSelected) {
+      onSingularidadesMarciaisChange(singularidadesMarciais.filter(s => s !== id))
+    } else {
+      // Verifica requisitos
+      const { valid } = checkRequirements(singularity)
+      if (!valid) return
+
+      // Verifica se tem PC suficiente
+      if (pontosCriacao.disponiveis >= costInPC) {
+        onSingularidadesMarciaisChange([...singularidadesMarciais, id])
+      }
+    }
+  }
+
+  // Se não tem escola selecionada, mostra seleção
+  if (!selectedEscolaMarcial || !school) {
+    return (
+      <div className="space-y-5">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+              <Sword className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-0.5">
+                Singularidades Marciais
+              </h3>
+              <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50">
+                Escolha sua escola marcial para comprar singularidades com Pontos de Criação
+              </p>
+            </div>
+          </div>
+          <div className={`mt-3 text-base font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal/90 dark:text-ecoar-teal-400/90' : 'text-ecoar-magenta/90 dark:text-ecoar-magenta-400/90'}`}>
+            PC Disponíveis: {pontosDisponiveis}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allMartialSchools.map((schoolItem, index) => (
+            <motion.button
+              key={schoolItem.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              onClick={() => onEscolaMarcialSelect(schoolItem.id)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative p-4 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-teal-400 dark:hover:border-ecoar-teal-500/30 transition-all text-left"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg mb-1 text-slate-900 dark:text-ecoar-light-900/90">
+                    {schoolItem.name}
+                  </h4>
+                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-ecoar-light-900/60">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-ecoar-light-900/20">{schoolItem.class}</span>
+                    <span>{schoolItem.aptitude}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed mb-3 text-slate-600 dark:text-ecoar-light-900/60">
+                {schoolItem.description}
+              </p>
+              <div className="space-y-1 text-xs text-slate-500 dark:text-ecoar-light-900/50">
+                <div><span className="font-medium">Ferramenta:</span> {schoolItem.tool}</div>
+                <div className="mt-2">
+                  <span className="font-medium">{schoolItem.singularities.length} singularidades</span>
+                </div>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Se tem escola selecionada, mostra lista de singularidades
+  return (
+    <div className="space-y-6">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
+              <Sword className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">
+                Singularidades da {school.name}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-0.5">
+                Custo: 1 PE = 10 PC
+              </p>
+            </div>
+          </div>
+          <div className={`text-lg font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal dark:text-ecoar-teal-400' : 'text-ecoar-magenta dark:text-ecoar-magenta-400'}`}>
+            PC Disponíveis: {pontosDisponiveis}
+          </div>
+        </div>
+        <button
+          onClick={() => onEscolaMarcialSelect('')}
+          className="flex items-center gap-2 text-slate-600 dark:text-ecoar-light-900/70 hover:text-slate-900 dark:text-ecoar-light-900 text-sm transition-colors mt-2"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Trocar escola marcial
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {school.singularities.map((singularity) => {
+          const isSelected = singularidadesMarciais.includes(singularity.id)
+          const costInPC = singularity.cost * 10 // Converte PE para PC
+          const canAfford = pontosCriacao.disponiveis >= costInPC
+          const { valid, missingReqs } = checkRequirements(singularity)
+          const canSelect = valid && canAfford
+          const requirementText = missingReqs.length > 0 ? missingReqs.join(', ') : undefined
+
+          return (
+            <SingularityCard
+              key={singularity.id}
+              name={singularity.name}
+              description={singularity.description}
+              cost={costInPC}
+              costLabel="PC"
+              secondaryCost={`${singularity.cost} PE`}
+              isSelected={isSelected}
+              canAfford={canAfford}
+              canSelect={canSelect}
+              onClick={() => toggleSingularity(singularity.id)}
+              level={singularity.level}
+              effects={singularity.effects}
+              variant="teal"
+              footer={
+                requirementText ? (
+                  <div className="text-xs text-ecoar-magenta dark:text-ecoar-magenta-400 mt-2 pt-2 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+                    {requirementText}
+                  </div>
+                ) : undefined
+              }
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Racial Singularities Tab Component
+function RacialSingularitiesTab({
+  selectedRaca,
+  singularidadesRaciais,
+  onSingularidadesRaciaisChange,
+  pontosDisponiveis,
+  onPointsChange,
+  pontosCriacao,
+  nivelAlma,
+  attributes,
+  skills,
+  aptitudes,
+}: {
+  selectedRaca: string
+  singularidadesRaciais: string[]
+  onSingularidadesRaciaisChange: (ids: string[]) => void
+  pontosDisponiveis: number
+  onPointsChange: (gastos: number) => void
+  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  nivelAlma: number
+  attributes: Record<string, number>
+  skills: Record<string, { level: number; specialization?: string }>
+  aptitudes: Record<string, number>
+}) {
+  const race = selectedRaca ? getRaceById(selectedRaca) : null
+
+  // Placeholder para quando os dados forem adicionados
+  useEffect(() => {
+    // Quando os dados de singularidades raciais forem implementados, 
+    // calcular o custo total aqui similar às outras tabs
+    onPointsChange(0)
+  }, [singularidadesRaciais, onPointsChange])
+
+  if (!selectedRaca || !race) {
+    return (
+      <div className="space-y-5">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+              <Users className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-0.5">
+                Singularidades Raciais
+              </h3>
+              <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50">
+                Selecione uma raça para ver singularidades disponíveis
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
+          <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">
+            Por favor, selecione uma raça na Etapa 0 para ver as singularidades raciais disponíveis.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">
+                Singularidades Raciais - {race.name}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-0.5">
+                Singularidades específicas da sua raça
+              </p>
+            </div>
+          </div>
+          <div className={`text-lg font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal dark:text-ecoar-teal-400' : 'text-ecoar-magenta dark:text-ecoar-magenta-400'}`}>
+            PC Disponíveis: {pontosDisponiveis}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
+        <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">
+          As singularidades raciais ainda não foram implementadas. Esta funcionalidade estará disponível em breve.
+        </p>
       </div>
     </div>
   )
