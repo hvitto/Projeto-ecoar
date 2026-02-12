@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createTable } from '@/lib/storage/tablesApiService'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { ArrowLeft } from 'lucide-react'
+import { fadeInUp } from '@/lib/motionVariants'
 
 export default function CriarMesaPage() {
   const router = useRouter()
@@ -43,14 +45,14 @@ export default function CriarMesaPage() {
 
   return (
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <motion.div className="max-w-lg mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6"
+          className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Criar mesa</h1>
+        <h1 className="text-2xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Criar mesa</h1>
         <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mb-6">
           Defina o nome, capa e data da próxima sessão. Você será o GM desta mesa.
         </p>
@@ -83,7 +85,7 @@ export default function CriarMesaPage() {
               value={nextSessionAt}
               onChange={(e) => setNextSessionAt(e.target.value)}
               disabled={loading}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900"
+              className="input-field w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900"
             />
           </div>
           <div>
@@ -96,14 +98,14 @@ export default function CriarMesaPage() {
               disabled={loading}
               rows={3}
               placeholder="Breve descrição da campanha ou mesa"
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900 resize-none"
+              className="input-field w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900 resize-none"
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full" size="lg">
             {loading ? 'Criando...' : 'Criar mesa'}
           </Button>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }

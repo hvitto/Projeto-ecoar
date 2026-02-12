@@ -2,15 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Design tokens - transições e easing */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-smooth: 400ms;
+  --duration-slow: 500ms;
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer base {
   /* Tema Claro (padrão) */
   body,
   body[data-theme='light'],
   html[data-theme='light'] body {
     @apply bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 text-ecoar-dark;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: var(--font-body), system-ui, sans-serif;
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out);
   }
   
   /* Tema Escuro - Paleta ECOAR */
@@ -18,9 +29,9 @@
   html[data-theme='dark'] body,
   html.dark body {
     @apply bg-gradient-to-br from-ecoar-dark-900 via-ecoar-dark-800 to-ecoar-dark-700 text-ecoar-light-900;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: var(--font-body), system-ui, sans-serif;
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out);
   }
   
   /* Bordas baseadas no tema */
@@ -109,16 +120,18 @@
     @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
            text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-sm placeholder-ecoar-dark-400/50 dark:placeholder-ecoar-light-900/40
            focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
-           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40 transition-all duration-200
+           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40
            hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
+    transition: all var(--duration-fast) var(--ease-out);
   }
   
   .input-number {
     @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
            text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-center text-base font-semibold 
            focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
-           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40 transition-all duration-200
+           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40
            hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
   /* Section Headers - Design sutil */
@@ -134,9 +147,10 @@
   /* Section Cards - Glassmorphism */
   .section-card {
     @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-800/80 backdrop-blur-xl rounded-t-2xl rounded-b-xl shadow-2xl 
-           border border-ecoar-dark-300/30 dark:border-ecoar-dark-700/50 p-6 transition-all duration-300
+           border border-ecoar-dark-300/30 dark:border-ecoar-dark-700/50 p-6
            hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30 hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10
            relative overflow-hidden;
+    transition: all var(--duration-smooth) var(--ease-out-expo);
   }
 
   .section-card::before {
@@ -154,7 +168,7 @@
       rgba(182, 99, 169, 0.5) 80%, 
       transparent 100%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--duration-normal) var(--ease-out);
   }
 
   .section-card:hover::before {
@@ -165,8 +179,9 @@
   .stat-box {
     @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-700/[0.03] backdrop-blur-sm rounded-lg 
            border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3 text-center 
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30 transition-all duration-200
+           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30
            hover:shadow-lg hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10;
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
   .stat-label {
@@ -186,14 +201,16 @@
     @apply px-5 py-2.5 bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 
            text-white rounded-lg font-semibold 
            hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 
-           transition-all duration-200 shadow-lg shadow-ecoar-teal-300/30
+           shadow-lg shadow-ecoar-teal-300/30
            active:scale-95;
+    transition: all var(--duration-fast) var(--ease-out);
   }
   
   .btn-secondary {
     @apply px-5 py-2.5 bg-ecoar-dark-600 text-white rounded-lg font-semibold 
-           hover:bg-ecoar-dark-700 transition-all duration-200 
+           hover:bg-ecoar-dark-700
            border border-ecoar-dark-500 shadow-md;
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
   /* Label - Melhor contraste */
@@ -265,4 +282,58 @@
 
 .animate-slideIn {
   animation: slideIn 0.4s ease-out;
+}
+
+/* Login background – dispersão dos globos (movimento visível, fundo que se mescla) */
+@keyframes login-disperse1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(48px, -36px) scale(1.04); }
+  66% { transform: translate(-32px, 40px) scale(0.98); }
+}
+
+@keyframes login-disperse2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-52px, -24px) scale(1.03); }
+}
+
+@keyframes login-disperse3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(36px, 44px) scale(0.97); }
+  75% { transform: translate(-40px, -32px) scale(1.05); }
+}
+
+.login-disperse1 {
+  animation: login-disperse1 12s ease-in-out infinite;
+}
+
+.login-disperse2 {
+  animation: login-disperse2 10s ease-in-out infinite;
+}
+
+.login-disperse3 {
+  animation: login-disperse3 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-disperse1,
+  .login-disperse2,
+  .login-disperse3 {
+    animation: none;
+  }
+}
+
+/* Login background – reflexo animado (gradiente animado) */
+@keyframes login-bg-shine {
+  0%, 100% { opacity: 1; transform: translate(0, 0); }
+  50% { opacity: 0.7; transform: translate(2%, 1%); }
+}
+
+.login-bg-shine {
+  animation: login-bg-shine 18s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg-shine {
+    animation: none;
+  }
 }

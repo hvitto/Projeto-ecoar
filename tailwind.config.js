@@ -100,8 +100,31 @@ module.exports = {
         },
       },
       fontFamily: {
-        'ecoar': ['Montserrat', 'system-ui', 'sans-serif'],
-        'ecoar-display': ['"Afterglow"', 'Georgia', 'serif'],
+        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        'ecoar': ['var(--font-body)', 'system-ui', 'sans-serif'],
+        'ecoar-display': ['var(--font-display)', 'Georgia', 'serif'],
+      },
+      transitionDuration: {
+        fast: '150ms',
+        normal: '300ms',
+        smooth: '400ms',
+        slow: '500ms',
+      },
+      transitionTimingFunction: {
+        'out': 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+      },
+      animation: {
+        'float': 'float 8s ease-in-out infinite',
+        'float-delayed': 'float 10s ease-in-out 1s infinite',
       },
     },
   },

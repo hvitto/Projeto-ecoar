@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ReactNode } from 'react'
 import { Crown } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import { fadeInUp } from '@/lib/motionVariants'
 
 interface AuthCardProps {
   children: ReactNode
@@ -14,43 +15,41 @@ interface AuthCardProps {
 
 export default function AuthCard({ children, title, subtitle, footer }: AuthCardProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md"
-      >
-        <Card className="p-6 md:p-8 bg-white/90 dark:bg-ecoar-dark-800/60 backdrop-blur-xl border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.12] shadow-lg">
-          {/* Header com Logo */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-12 h-12 bg-ecoar-teal-100/80 dark:bg-ecoar-teal-600/15 rounded-xl flex items-center justify-center border border-ecoar-teal-300/50 dark:border-ecoar-teal-500/20 mb-4">
-              <Crown className="w-6 h-6 text-ecoar-teal-600 dark:text-ecoar-teal-400/80" />
-            </div>
-            <h1 className="text-2xl font-bold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-center">
-                {subtitle}
-              </p>
-            )}
+    <motion.div
+      variants={fadeInUp}
+      initial="hidden"
+      animate="visible"
+      className="w-full"
+    >
+      <Card className="p-6 md:p-8 rounded-xl bg-white/95 dark:bg-ecoar-dark-800/90 backdrop-blur-xl border border-ecoar-dark-200/50 dark:border-ecoar-light-900/10 shadow-lg">
+        {/* Header minimalista */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-10 h-10 bg-ecoar-teal-100/80 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center border border-ecoar-teal-300/40 dark:border-ecoar-teal-500/20 mb-3">
+            <Crown className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400/90" />
           </div>
-
-          {/* Conteúdo do formulário */}
-          <div className="mb-6">
-            {children}
-          </div>
-
-          {/* Footer com links alternativos */}
-          {footer && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
-              {footer}
-            </div>
+          <h1 className="text-xl font-semibold tracking-tight text-ecoar-dark-900 dark:text-ecoar-light-900/95 mb-0.5">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-sm text-ecoar-dark-500 dark:text-ecoar-light-900/55 text-center">
+              {subtitle}
+            </p>
           )}
-        </Card>
-      </motion.div>
-    </div>
+        </div>
+
+        {/* Conteúdo do formulário */}
+        <div className="mb-6">
+          {children}
+        </div>
+
+        {/* Footer com links alternativos */}
+        {footer && (
+          <div className="pt-4 border-t border-ecoar-dark-200/40 dark:border-ecoar-light-900/[0.08]">
+            {footer}
+          </div>
+        )}
+      </Card>
+    </motion.div>
   )
 }
 

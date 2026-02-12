@@ -28,7 +28,7 @@ export default function Button({
   type = 'button',
   ...motionProps
 }: ButtonProps) {
-  const baseClasses = 'flex items-center justify-center gap-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+  const baseClasses = 'flex items-center justify-center gap-2 font-medium transition-all duration-fast disabled:opacity-50 disabled:cursor-not-allowed'
   
   const variantClasses = {
     primary: 'bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white/90 dark:text-ecoar-light-900/90 shadow-lg shadow-ecoar-teal-300/30 dark:shadow-ecoar-teal-600/20',
@@ -50,8 +50,9 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      whileHover={disabled ? {} : { scale: 1.01 }}
-      whileTap={disabled ? {} : { scale: 0.99 }}
+      whileHover={disabled ? {} : { scale: 1.02 }}
+      whileTap={disabled ? {} : { scale: 0.98 }}
+      transition={{ type: 'tween', duration: 0.2 }}
       className={classes}
       {...motionProps}
     >

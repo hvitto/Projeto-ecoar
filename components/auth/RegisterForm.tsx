@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { staggerContainer, staggerItem } from '@/lib/motionVariants'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import AuthCard from './AuthCard'
@@ -144,11 +145,11 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
       subtitle="Cadastre-se para começar a criar seus personagens"
       footer={
         <div className="text-center">
-          <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/60">
+          <p className="text-sm text-ecoar-dark-500 dark:text-ecoar-light-900/55">
             Já tem uma conta?{' '}
             <button
               onClick={onSwitchToLogin}
-              className="text-ecoar-teal-600 dark:text-ecoar-teal-400/90 hover:text-ecoar-teal-700 dark:hover:text-ecoar-teal-400 font-medium transition-colors"
+              className="text-ecoar-dark-700 dark:text-ecoar-light-900/80 hover:underline font-medium transition-colors duration-fast"
             >
               Entrar
             </button>
@@ -156,23 +157,15 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <motion.form onSubmit={handleSubmit} className="space-y-4" variants={staggerContainer} initial="hidden" animate="visible">
         {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400"
-          >
+          <motion.div variants={staggerItem} className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
             {error}
           </motion.div>
         )}
 
         {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2"
-          >
+          <motion.div variants={staggerItem} className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2">
             {successMessage ? (
               <p>{successMessage}</p>
             ) : (
@@ -193,7 +186,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="text"
-          label="Nome"
+          label="NOME"
           placeholder="Seu nome"
           value={firstName}
           onChange={(e) => {
@@ -212,7 +205,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="text"
-          label="Sobrenome"
+          label="SOBRENOME"
           placeholder="Seu sobrenome"
           value={lastName}
           onChange={(e) => {
@@ -231,7 +224,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="text"
-          label="Nome de Usuário"
+          label="NOME DE USUÁRIO"
           placeholder="nome_usuario"
           value={username}
           onChange={(e) => {
@@ -251,7 +244,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="email"
-          label="Email"
+          label="EMAIL"
           placeholder="seu@email.com"
           value={email}
           onChange={(e) => {
@@ -270,7 +263,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="password"
-          label="Senha"
+          label="SENHA"
           placeholder="Mínimo 6 caracteres"
           value={password}
           onChange={(e) => {
@@ -291,7 +284,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="password"
-          label="Confirmar Senha"
+          label="CONFIRMAR SENHA"
           placeholder="Digite a senha novamente"
           value={confirmPassword}
           onChange={(e) => {
@@ -312,7 +305,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
           type="submit"
           disabled={isLoading || success || !firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
           leftIcon={UserPlus}
-          className="w-full"
+          className="w-full rounded-lg bg-ecoar-dark-900 dark:bg-ecoar-dark-900 text-white hover:bg-ecoar-dark-800 dark:hover:bg-ecoar-dark-800 shadow-none"
           size="lg"
         >
           {isLoading ? 'Criando conta...' : success ? 'Conta criada!' : 'Criar conta'}
@@ -339,7 +332,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
           </svg>
           Entrar com Google
         </a>
-      </form>
+      </motion.form>
     </AuthCard>
   )
 }

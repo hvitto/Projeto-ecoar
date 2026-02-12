@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { config } from '@/lib/config'
@@ -10,8 +11,10 @@ import CharacterCreationWizard from '@/components/CharacterCreationWizard'
 import CharacterDashboard from '@/components/CharacterDashboard'
 import LoginForm from '@/components/auth/LoginForm'
 import RegisterForm from '@/components/auth/RegisterForm'
+import LoginBackground from '@/components/LoginBackground'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 import { CharacterWithMetadata } from '@/types/auth'
+import { pageTransition } from '@/lib/motionVariants'
 
 type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet'
 
@@ -54,7 +57,6 @@ function AppContent() {
   useEffect(() => {
     if (isLoading) return
 
-    // Inicialização: definir modo inicial apenas uma vez
     if (!hasInitialized.current) {
       if (isAuthenticated) {
         setViewMode('dashboard')
@@ -65,12 +67,10 @@ function AppContent() {
       return
     }
 
-    // Após inicialização: apenas redirecionar para dashboard quando autenticado
-    // Mas não sobrescrever se usuário está navegando entre login/register
     if (isAuthenticated && (viewMode === 'login' || viewMode === 'register' || viewMode === 'auth')) {
       setViewMode('dashboard')
     }
-  }, [isAuthenticated, isLoading, viewMode]) // Incluído viewMode para evitar stale closure
+  }, [isAuthenticated, isLoading, viewMode])
 
   const handleLoginSuccess = () => {
     setViewMode('dashboard')
@@ -127,65 +127,88 @@ function AppContent() {
     )
   }
 
-  // Auth screens - verificar antes de qualquer outra coisa
+  // Auth screens - fundo estilo Sean Halpin (gradiente + formas) + formulário centralizado
+  const authLayout = (
+    <div className="min-h-screen relative">
+      <LoginBackground />
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 md:p-6">
+        <div className="w-full max-w-md">
+          {viewMode === 'register' ? (
+            <RegisterForm
+              onSwitchToLogin={() => setViewMode('login')}
+              onSuccess={handleRegisterSuccess}
+            />
+          ) : (
+            <LoginForm
+              onSwitchToRegister={() => setViewMode('register')}
+              onSuccess={handleLoginSuccess}
+              initialMessage={loginMessage}
+              onMessageShown={() => setLoginMessage(null)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
   if (!isAuthenticated) {
-    if (viewMode === 'login') {
-      return (
-        <LoginForm
-          onSwitchToRegister={() => setViewMode('register')}
-          onSuccess={handleLoginSuccess}
-          initialMessage={loginMessage}
-          onMessageShown={() => setLoginMessage(null)}
-        />
-      )
-    }
-
-    if (viewMode === 'register') {
-      return (
-        <RegisterForm
-          onSwitchToLogin={() => setViewMode('login')}
-          onSuccess={handleRegisterSuccess}
-        />
-      )
-    }
-
-    return (
-      <LoginForm
-        onSwitchToRegister={() => setViewMode('register')}
-        onSuccess={handleLoginSuccess}
-        initialMessage={loginMessage}
-        onMessageShown={() => setLoginMessage(null)}
-      />
-    )
+    return authLayout
   }
 
   return (
     <AppProvider onNewCharacter={handleNewCharacter}>
-      {viewMode === 'dashboard' && (
-        <CharacterDashboard
-          onNewCharacter={handleNewCharacter}
-          onViewCharacter={handleViewCharacter}
-          onEditCharacter={handleEditCharacter}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {viewMode === 'dashboard' && (
+          <motion.div
+            key="dashboard"
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-full"
+          >
+            <CharacterDashboard
+              onNewCharacter={handleNewCharacter}
+              onViewCharacter={handleViewCharacter}
+              onEditCharacter={handleEditCharacter}
+            />
+          </motion.div>
+        )}
 
-      {viewMode === 'wizard' && (
-        <CharacterCreationWizard
-          key={wizardKey}
-          onComplete={handleWizardComplete}
-          initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
-        />
-      )}
+        {viewMode === 'wizard' && (
+          <motion.div
+            key="wizard"
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-full"
+          >
+            <CharacterCreationWizard
+              key={wizardKey}
+              onComplete={handleWizardComplete}
+              initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
+            />
+          </motion.div>
+        )}
 
-      {viewMode === 'sheet' && selectedCharacter && (
-        <div className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900">
-          <CharacterSheet
-            initialData={selectedCharacter.data}
-            onEdit={() => handleEditCharacter(selectedCharacter)}
-            onBackToDashboard={handleGoToDashboard}
-          />
-        </div>
-      )}
+        {viewMode === 'sheet' && selectedCharacter && (
+          <motion.div
+            key="sheet"
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900"
+          >
+            <CharacterSheet
+              initialData={selectedCharacter.data}
+              onEdit={() => handleEditCharacter(selectedCharacter)}
+              onBackToDashboard={handleGoToDashboard}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppProvider>
   )
 }

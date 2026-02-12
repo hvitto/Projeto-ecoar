@@ -21,7 +21,7 @@ export default function Card({
   className = '',
   ...motionProps
 }: CardProps) {
-  const baseClasses = 'rounded-lg border transition-all duration-200 overflow-hidden'
+  const baseClasses = 'rounded-lg border transition-all duration-normal overflow-hidden'
   
   const variantClasses = {
     default: 'bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
@@ -44,9 +44,9 @@ export default function Card({
     return (
       <motion.div
         onClick={onClick}
-        whileHover={disabled ? {} : { scale: 1.01 }}
-        whileTap={disabled ? {} : { scale: 0.99 }}
-        className={classes}
+        whileHover={disabled ? {} : { y: -2, transition: { duration: 0.2 } }}
+        whileTap={disabled ? {} : { scale: 0.99, transition: { duration: 0.15 } }}
+        className={`${classes} hover:shadow-md dark:hover:shadow-ecoar-teal-600/10`}
         {...motionProps}
       >
         {children}

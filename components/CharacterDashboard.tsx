@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { fadeInUp, staggerContainer, staggerItem } from '@/lib/motionVariants'
 import { getUserCharacters, deleteCharacter } from '@/lib/storage/characterStorage'
 import { getUserTables } from '@/lib/storage/tablesApiService'
 import { CharacterWithMetadata } from '@/types/auth'
@@ -107,14 +108,10 @@ export default function CharacterDashboard({
       
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-8">
         {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-ecoar-light-900/90 mb-1">
+              <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-1">
                 Minhas Fichas
               </h1>
               <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60">
@@ -143,11 +140,7 @@ export default function CharacterDashboard({
         </motion.div>
 
         {/* Suas mesas */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
-        >
+        <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900/90">
               Suas mesas
@@ -172,7 +165,7 @@ export default function CharacterDashboard({
               Você não está em nenhuma mesa. Crie uma ou peça o link/código ao GM.
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" variants={staggerContainer} initial="hidden" animate="visible">
               {tables.map((t) => {
                 const nextSession = t.nextSessionAt
                   ? new Date(t.nextSessionAt).toLocaleDateString('pt-BR', {
@@ -185,8 +178,10 @@ export default function CharacterDashboard({
                 return (
                   <Link key={t.id} href={`/mesas/${t.id}`}>
                     <motion.div
-                      whileHover={{ scale: 1.01 }}
-                      className="p-4 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 hover:border-ecoar-teal-300 dark:hover:border-ecoar-teal/40 transition-colors cursor-pointer"
+                      variants={staggerItem}
+                      whileHover={{ y: -2 }}
+                      transition={{ duration: 0.2 }}
+                      className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 hover:border-ecoar-teal-300 dark:hover:border-ecoar-teal/40 hover:shadow-md dark:hover:shadow-ecoar-teal-600/10 transition-all duration-normal cursor-pointer"
                     >
                       {t.coverImageUrl ? (
                         <img
@@ -211,7 +206,7 @@ export default function CharacterDashboard({
                   </Link>
                 )
               })}
-            </div>
+            </motion.div>
           )}
         </motion.section>
 
@@ -221,11 +216,7 @@ export default function CharacterDashboard({
             <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando fichas...</div>
           </div>
         ) : characters.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20"
-          >
+          <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="flex flex-col items-center justify-center py-20">
             <div className="w-24 h-24 bg-slate-50 dark:bg-ecoar-light-900/[0.03] rounded-full flex items-center justify-center border border-slate-200 dark:border-ecoar-light-900/[0.08] mb-6">
               <FileText className="w-12 h-12 text-slate-400 dark:text-ecoar-light-900/40" />
             </div>
@@ -246,17 +237,13 @@ export default function CharacterDashboard({
           </motion.div>
         ) : (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {characters.map((character, index) => (
-              <motion.div
-                key={character.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
+            {characters.map((character) => (
+              <motion.div key={character.id} variants={staggerItem}>
                 <CharacterCard
                   character={character}
                   onView={() => onViewCharacter(character)}

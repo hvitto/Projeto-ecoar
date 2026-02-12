@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { fadeInUp } from '@/lib/motionVariants'
 import {
   getTable,
   getTableCharacters,
@@ -159,7 +161,7 @@ export default function MesaPage() {
     return (
       <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 px-4 py-8">
         <p className="text-red-400 mb-4">{error ?? 'Mesa não encontrada'}</p>
-        <Link href="/" className="text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline">
+        <Link href="/" className="text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline transition-colors duration-fast">
           Voltar ao início
         </Link>
       </div>
@@ -173,7 +175,7 @@ export default function MesaPage() {
           <button
             type="button"
             onClick={handleBackFromWizard}
-            className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline"
+            className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline transition-colors duration-fast"
           >
             <ArrowLeft className="w-4 h-4" /> Cancelar e voltar à mesa
           </button>
@@ -204,14 +206,14 @@ export default function MesaPage() {
   if (viewMode === 'pickCharacter') {
     return (
       <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <motion.div className="max-w-2xl mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
           <button
             onClick={() => setViewMode('list')}
-            className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6"
+            className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
           >
             <ArrowLeft className="w-4 h-4" /> Voltar
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Usar ficha existente</h2>
+          <h2 className="text-xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Usar ficha existente</h2>
           <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mb-4">
             Escolha uma das suas fichas para usar nesta mesa.
           </p>
@@ -219,7 +221,7 @@ export default function MesaPage() {
             {myCharacters.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800"
+                className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 transition-all duration-normal hover:shadow-md"
               >
                 <span className="font-medium text-slate-900 dark:text-ecoar-light-900">{c.name}</span>
                 <Button size="sm" onClick={() => handlePickCharacter(c)}>
@@ -231,7 +233,7 @@ export default function MesaPage() {
           {myCharacters.length === 0 && (
             <p className="text-sm text-slate-500">Você não tem fichas. Crie uma nova na mesa.</p>
           )}
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -248,10 +250,10 @@ export default function MesaPage() {
 
   return (
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <div className="max-w-[1200px] mx-auto px-4 py-8">
+      <motion.div className="max-w-[1200px] mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6"
+          className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
@@ -363,7 +365,7 @@ export default function MesaPage() {
             ))}
           </ul>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

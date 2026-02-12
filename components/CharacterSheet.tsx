@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motionVariants'
 import {
   User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
   TrendingUp, Sword, BookOpen, Package, FileText, Target,
@@ -475,8 +476,9 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
           <aside className="lg:col-span-3 space-y-5 min-w-0">
             {/* Atributos */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
               transition={{ duration: 0.4 }}
               className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
             >
@@ -523,8 +525,9 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
 
             {/* Níveis */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
               className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
             >
@@ -584,8 +587,9 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
 
             {/* Limites */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
               transition={{ duration: 0.4, delay: 0.2 }}
               className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
             >
@@ -631,8 +635,9 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
           <main className="lg:col-span-6 space-y-5 min-w-0">
             {/* Header do Personagem */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
               transition={{ duration: 0.4 }}
               className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
             >
@@ -748,8 +753,9 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
 
             {/* Testes Comuns */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
               className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
             >

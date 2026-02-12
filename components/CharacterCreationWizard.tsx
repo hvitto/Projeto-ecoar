@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
+import { fadeInUp, motionTransition } from '@/lib/motionVariants'
 import {
   Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
   Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight,
@@ -666,8 +667,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     return (
       <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 p-4 md:p-6 flex items-center justify-center">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
             className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg p-6 md:p-8 max-w-3xl w-full shadow-lg"
           >
           <div className="text-center mb-6">
@@ -721,8 +723,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
         {/* Sidebar Esquerda */}
         <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4 overflow-y-auto">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
             className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col h-full shadow-sm overflow-hidden"
           >
               {/* Header */}
@@ -737,7 +740,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal to-dark:to-ecoar-magenta"
                     initial={{ width: 0 }}
                     animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    transition={motionTransition.smooth}
                   />
                 </div>
                 <p className="text-[11px] text-ecoar-dark-500 dark:text-ecoar-light-900/40 mt-1.5 text-center">

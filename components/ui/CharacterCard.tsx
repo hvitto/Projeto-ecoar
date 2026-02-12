@@ -56,7 +56,7 @@ export default function CharacterCard({ character, onView, onEdit, onDelete }: C
   return (
     <Card
       variant="default"
-      className="p-4 hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 transition-all duration-200"
+      className="p-4 rounded-xl hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 hover:shadow-md dark:hover:shadow-ecoar-teal-600/10 transition-all duration-normal"
     >
       <div className="flex flex-col h-full">
         {/* Header */}
