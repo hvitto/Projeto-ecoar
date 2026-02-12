@@ -465,10 +465,13 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
   ]
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <Header onNewCharacter={onEdit} onGoToDashboard={onBackToDashboard} />
-      <div className="py-6 px-3 sm:px-4 md:px-6 overflow-x-hidden">
-        <div className="max-w-[1600px] mx-auto">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
+      <div className="flex-shrink-0">
+        <Header onNewCharacter={onEdit} onGoToDashboard={onBackToDashboard} />
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="py-6 px-3 sm:px-4 md:px-6">
+          <div className="max-w-[1600px] mx-auto">
         {/* Layout em 3 colunas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           
@@ -994,7 +997,8 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
             </motion.div>
           </aside>
         </div>
-      </div>
+          </div>
+        </div>
       </div>
     </div>
   )

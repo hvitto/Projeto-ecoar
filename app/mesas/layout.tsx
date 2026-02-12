@@ -17,13 +17,15 @@ export default function MesasLayout({ children }: { children: React.ReactNode })
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">
-        <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando...</div>
+      <div className="h-full min-h-0 flex flex-col">
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando...</div>
+        </div>
       </div>
     )
   }
   if (!isAuthenticated) {
     return null
   }
-  return <>{children}</>
+  return <div className="h-full min-h-0 flex flex-col">{children}</div>
 }

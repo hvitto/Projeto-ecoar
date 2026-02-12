@@ -103,10 +103,12 @@ export default function CharacterDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <Header onNewCharacter={onNewCharacter} />
-      
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
+      <div className="flex-shrink-0">
+        <Header onNewCharacter={onNewCharacter} />
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8">
         {/* Header Section */}
         <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -256,6 +258,7 @@ export default function CharacterDashboard({
             ))}
           </motion.div>
         )}
+        </div>
       </div>
     </div>
   )

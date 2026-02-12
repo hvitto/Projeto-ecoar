@@ -151,26 +151,30 @@ export default function MesaPage() {
 
   if (loading && !table) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">
-        <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando mesa...</div>
+      <div className="h-full min-h-0 flex flex-col">
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando mesa...</div>
+        </div>
       </div>
     )
   }
 
   if (error || !table) {
     return (
-      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+      <div className="h-full min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
         <p className="text-red-400 mb-4">{error ?? 'Mesa não encontrada'}</p>
         <Link href="/" className="text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline transition-colors duration-fast">
           Voltar ao início
         </Link>
+        </div>
       </div>
     )
   }
 
   if (viewMode === 'wizard') {
     return (
-      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
+      <div className="h-full min-h-0 flex flex-col overflow-hidden">
         <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-ecoar-light/95 dark:bg-ecoar-dark-900/95 border-b border-slate-200 dark:border-ecoar-light-900/20">
           <button
             type="button"
@@ -190,7 +194,7 @@ export default function MesaPage() {
 
   if (viewMode === 'sheet' && selectedCharacter) {
     return (
-      <div className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900">
+      <div className="h-full min-h-0 flex flex-col overflow-hidden">
         <CharacterSheet
           initialData={selectedCharacter.data}
           onEdit={() => {
@@ -205,7 +209,8 @@ export default function MesaPage() {
 
   if (viewMode === 'pickCharacter') {
     return (
-      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
+      <div className="h-full min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <motion.div className="max-w-2xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6" variants={fadeInUp} initial="hidden" animate="visible">
           <button
             onClick={() => setViewMode('list')}
@@ -234,6 +239,7 @@ export default function MesaPage() {
             <p className="text-sm text-slate-500">Você não tem fichas. Crie uma nova na mesa.</p>
           )}
         </motion.div>
+        </div>
       </div>
     )
   }
@@ -249,7 +255,8 @@ export default function MesaPage() {
     : null
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
       <motion.div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
@@ -366,6 +373,7 @@ export default function MesaPage() {
           </ul>
         )}
       </motion.div>
+      </div>
     </div>
   )
 }

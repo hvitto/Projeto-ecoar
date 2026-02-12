@@ -25,9 +25,9 @@ const heroDefaults: Required<Omit<RaceImageHeroConfig, 'style'>> & { style: Requ
   translateY: '0',
   zIndex: 0,
   style: {
-    width: '30rem',
-    height: '38rem',
-    maxWidth: '900px',
+    width: '20rem',
+    height: '26rem',
+    maxWidth: '560px',
   },
 }
 

@@ -11,7 +11,6 @@ import CharacterCreationWizard from '@/components/CharacterCreationWizard'
 import CharacterDashboard from '@/components/CharacterDashboard'
 import LoginForm from '@/components/auth/LoginForm'
 import RegisterForm from '@/components/auth/RegisterForm'
-import LoginBackground from '@/components/LoginBackground'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 import { CharacterWithMetadata } from '@/types/auth'
 import { pageTransition } from '@/lib/motionVariants'
@@ -121,32 +120,29 @@ function AppContent() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">
-        <div className="text-white/60 dark:text-ecoar-light-900/60">Carregando...</div>
+      <div className="flex-1 flex items-center justify-center min-h-0">
+        <div className="text-ecoar-dark-600 dark:text-ecoar-light-900/60">Carregando...</div>
       </div>
     )
   }
 
-  // Auth screens - fundo estilo Sean Halpin (gradiente + formas) + formulário centralizado
+  // Auth screens – fundo vem do layout raiz; preenche altura sem scroll
   const authLayout = (
-    <div className="min-h-screen min-h-[100dvh] relative">
-      <LoginBackground />
-      <div className="relative z-10 min-h-screen min-h-[100dvh] flex items-center justify-center overflow-y-auto px-3 py-4 sm:p-4 md:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-        <div className="w-full max-w-md">
-          {viewMode === 'register' ? (
-            <RegisterForm
-              onSwitchToLogin={() => setViewMode('login')}
-              onSuccess={handleRegisterSuccess}
-            />
-          ) : (
-            <LoginForm
-              onSwitchToRegister={() => setViewMode('register')}
-              onSuccess={handleLoginSuccess}
-              initialMessage={loginMessage}
-              onMessageShown={() => setLoginMessage(null)}
-            />
-          )}
-        </div>
+    <div className="flex-1 flex flex-col min-h-0 items-center justify-center px-3 py-4 sm:p-4 md:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="w-full max-w-md">
+        {viewMode === 'register' ? (
+          <RegisterForm
+            onSwitchToLogin={() => setViewMode('login')}
+            onSuccess={handleRegisterSuccess}
+          />
+        ) : (
+          <LoginForm
+            onSwitchToRegister={() => setViewMode('register')}
+            onSuccess={handleLoginSuccess}
+            initialMessage={loginMessage}
+            onMessageShown={() => setLoginMessage(null)}
+          />
+        )}
       </div>
     </div>
   )
@@ -157,17 +153,18 @@ function AppContent() {
 
   return (
     <AppProvider onNewCharacter={handleNewCharacter}>
-      <AnimatePresence mode="wait">
-        {viewMode === 'dashboard' && (
-          <motion.div
-            key="dashboard"
-            variants={pageTransition}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="min-h-full"
-          >
-            <CharacterDashboard
+      <div className="flex-1 flex flex-col min-h-0">
+        <AnimatePresence mode="wait">
+          {viewMode === 'dashboard' && (
+            <motion.div
+              key="dashboard"
+              variants={pageTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              <CharacterDashboard
               onNewCharacter={handleNewCharacter}
               onViewCharacter={handleViewCharacter}
               onEditCharacter={handleEditCharacter}
@@ -175,16 +172,16 @@ function AppContent() {
           </motion.div>
         )}
 
-        {viewMode === 'wizard' && (
-          <motion.div
-            key="wizard"
-            variants={pageTransition}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="min-h-full"
-          >
-            <CharacterCreationWizard
+          {viewMode === 'wizard' && (
+            <motion.div
+              key="wizard"
+              variants={pageTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              <CharacterCreationWizard
               key={wizardKey}
               onComplete={handleWizardComplete}
               initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
@@ -192,30 +189,31 @@ function AppContent() {
           </motion.div>
         )}
 
-        {viewMode === 'sheet' && selectedCharacter && (
-          <motion.div
-            key="sheet"
-            variants={pageTransition}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="min-h-full bg-ecoar-light dark:bg-ecoar-dark-900"
-          >
-            <CharacterSheet
+          {viewMode === 'sheet' && selectedCharacter && (
+            <motion.div
+              key="sheet"
+              variants={pageTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              <CharacterSheet
               initialData={selectedCharacter.data}
               onEdit={() => handleEditCharacter(selectedCharacter)}
               onBackToDashboard={handleGoToDashboard}
             />
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </AppProvider>
   )
 }
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">Carregando...</div>}>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-0">Carregando...</div>}>
       <AppContent />
     </Suspense>
   )

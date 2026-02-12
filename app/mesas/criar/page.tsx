@@ -44,8 +44,9 @@ export default function CriarMesaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <motion.div className="max-w-lg mx-auto px-3 py-6 sm:py-8" variants={fadeInUp} initial="hidden" animate="visible">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <motion.div className="max-w-lg mx-auto px-3 py-6 sm:py-8" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
@@ -105,7 +106,8 @@ export default function CriarMesaPage() {
             {loading ? 'Criando...' : 'Criar mesa'}
           </Button>
         </form>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   )
 }

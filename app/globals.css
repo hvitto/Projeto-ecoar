@@ -347,3 +347,13 @@
     animation: none;
   }
 }
+
+/* Oculta a barra de rolagem mantendo scroll (rodinha, toque) */
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

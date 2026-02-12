@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { fadeInUp, motionTransition } from '@/lib/motionVariants'
 import {
   Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight,
+  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
   CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
   Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
   Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X
@@ -24,7 +24,6 @@ import MovementCard from '@/components/ui/MovementCard'
 import SenseCard from '@/components/ui/SenseCard'
 import SummaryItem from '@/components/ui/SummaryItem'
 import MartialSchoolCard from '@/components/ui/MartialSchoolCard'
-import AttributeCard from '@/components/ui/AttributeCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { races, getAllGenus, getRacesByGenus, getRaceById, Race, RaceImageConfig } from '@/data/races'
@@ -662,71 +661,81 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   // A lógica de pular o passo 6 é tratada em handleNext/handleBack, não no totalSteps
   const totalSteps = stepTitles.length - 1  // Sempre 8 (índice do último passo)
 
-  // Tela de Introdução
+  // Tela de Introdução: Header + conteúdo largo; CTA e Footer ficam abaixo, é preciso rolar para alcançar
   if (showIntroduction) {
     return (
-      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 p-4 md:p-6 flex items-center justify-center">
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg p-6 md:p-8 max-w-3xl w-full shadow-lg"
-          >
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-4 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-              <ScrollText className="w-6 h-6 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-            </div>
-            <h1 className="text-xl font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-3">
-              Bem-vindo ao ECOAR
-            </h1>
-            <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-sm mb-6 leading-relaxed">
-              Crie seu personagem e embarque em uma jornada épica neste mundo de fantasia sombria.
-              Escolha o nível inicial do seu personagem para começar.
-            </p>
-          </div>
+      <div className="min-h-screen flex flex-col">
+        <Header onNewCharacter={() => {}} />
+        <main className="flex-1 w-full min-h-[calc(100vh-4rem)] px-3 sm:px-4 md:px-6 py-6 md:py-8">
+          <div className="max-w-[1600px] mx-auto">
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-6 md:p-8 shadow-lg"
+            >
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-3 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+                  <ScrollText className="w-6 h-6 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+                </div>
+                <h1 className="text-xl font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
+                  Bem-vindo ao ECOAR
+                </h1>
+                <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-sm max-w-xl">
+                  Crie seu personagem e embarque em uma jornada épica. Escolha o nível inicial abaixo.
+                </p>
+              </div>
 
-          {/* Seleção de Nível Inicial */}
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-3 text-center">
-              Nível Inicial do Personagem
-            </h2>
-            <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-5 text-center">
-              Esta escolha deve ser feita pelo Mestre Absoluto. Por padrão, recomenda-se Nível de Alma 1 para iniciantes.
-            </p>
-            <SoulLevelSelectionStep
-              nivelAlmaInicial={nivelAlmaInicial}
-              onSelect={setNivelAlmaInicial}
-            />
-          </div>
+              <h2 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
+                Nível Inicial do Personagem
+              </h2>
+              <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-4">
+                Esta escolha deve ser feita pelo Mestre Absoluto. Por padrão, recomenda-se Nível de Alma 1 para iniciantes.
+              </p>
+              <SoulLevelSelectionStep
+                nivelAlmaInicial={nivelAlmaInicial}
+                onSelect={setNivelAlmaInicial}
+              />
 
-          <motion.button
-            onClick={() => {
-              setShowIntroduction(false)
-              setCurrentStep(0) // Começa em Raça (step 0)
-            }}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-                className="w-full py-2.5 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm transition-all shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20"
-          >
-            Começar Criação
-          </motion.button>
-        </motion.div>
+              {/* CTA abaixo do conteúdo: é preciso rolar para alcançar */}
+              <div className="mt-8 pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/60">
+                  Nível {nivelAlmaInicial} selecionado
+                </p>
+                <motion.button
+                  onClick={() => {
+                    setShowIntroduction(false)
+                    setCurrentStep(0)
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full sm:w-auto min-w-[200px] py-2.5 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm transition-all shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20"
+                >
+                  Começar Criação
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        </main>
+        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 dark:from-ecoar-dark-900 dark:via-ecoar-dark-800 dark:to-ecoar-dark-700">
-      <Header onNewCharacter={() => {}} />
-      {/* Layout com Sidebar Fixa */}
-      <div className="flex-1 flex relative overflow-y-auto overflow-x-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden">
+      <div className="flex-shrink-0">
+        <Header onNewCharacter={() => {}} />
+      </div>
+      {/* Área de conteúdo preenche a viewport para o footer ficar sempre abaixo da dobra (só visível ao rolar) */}
+      <div className="flex-1 min-h-[calc(100dvh-5rem)] flex items-stretch gap-4 min-w-0">
         {/* Sidebar Esquerda */}
-        <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4 overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
           <motion.div
             variants={fadeInUp}
             initial="hidden"
             animate="visible"
-            className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col h-full shadow-sm overflow-hidden"
+            className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden"
           >
               {/* Header */}
               <div className="mb-5 pb-4 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
@@ -749,7 +758,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
               </div>
 
               {/* Steps List */}
-              <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar overflow-x-hidden">
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar overflow-x-hidden">
                 {stepTitles.map((title, idx) => {
                   const stepNum = idx
                   const StepIcon = stepIcons[idx] || Circle
@@ -848,21 +857,59 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
             </motion.div>
           </aside>
 
-        {/* Conteúdo Principal */}
-        <div className="flex-1 flex gap-4 overflow-y-auto overflow-x-hidden">
-          <div className="flex-1 px-3 sm:px-4 md:px-6 py-4 sm:py-6 min-w-0 max-w-full">
-          <div className="max-w-[1400px] mx-auto">
+        {/* Conteúdo Principal - altura natural para que o footer fique abaixo ao rolar */}
+        <div className="flex-1 min-h-0 flex gap-4 min-w-0 items-stretch">
+          <div className="flex-1 min-h-0 flex flex-col min-w-0 max-w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+          <div className="max-w-[1400px] mx-auto w-full flex flex-col min-h-full">
           {/* Área Central - Conteúdo do Step */}
-          <main className="flex flex-col">
+          <main className="flex flex-col w-full min-h-full">
             <motion.div
               key={currentStep}
               variants={stepVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/85 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/85 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col w-full min-h-0 flex-1"
             >
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+              {/* Botões no topo à direita; na etapa 0 (detalhe da raça) vão no header do painel, alinhados ao título */}
+              {!(currentStep === 0 && selectedRaca) && (
+                <div className="flex justify-end gap-2 shrink-0 pb-4">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    leftIcon={ChevronLeft}
+                    onClick={handleBack}
+                    disabled={currentStep === 0}
+                    className="min-h-[44px]"
+                  >
+                    Voltar
+                  </Button>
+                  {currentStep < totalSteps ? (
+                    <Button
+                      variant="primary"
+                      size="md"
+                      rightIcon={ChevronRight}
+                      onClick={handleNext}
+                      disabled={!canProceed}
+                      className="min-h-[44px]"
+                    >
+                      Próximo
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="md"
+                      leftIcon={Sparkle}
+                      onClick={handleFinish}
+                      disabled={!canProceed}
+                      className="min-h-[44px]"
+                    >
+                      Finalizar
+                    </Button>
+                  )}
+                </div>
+              )}
+              <div className="flex flex-col w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-5 scrollbar-hide pr-1">
                 {/* Step 0: Raça Selection */}
                 {currentStep === 0 && (
                   selectedRaca ? (
@@ -872,6 +919,43 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                       getItemById={getRaceById}
                       onBack={() => setSelectedRaca('')}
                       onSelect={(id) => setSelectedRaca(id)}
+                      headerActions={
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="md"
+                            leftIcon={ChevronLeft}
+                            onClick={handleBack}
+                            disabled={currentStep === 0}
+                            className="min-h-[44px]"
+                          >
+                            Voltar
+                          </Button>
+                          {currentStep < totalSteps ? (
+                            <Button
+                              variant="primary"
+                              size="md"
+                              rightIcon={ChevronRight}
+                              onClick={handleNext}
+                              disabled={!canProceed}
+                              className="min-h-[44px]"
+                            >
+                              Próximo
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="md"
+                              leftIcon={Sparkle}
+                              onClick={handleFinish}
+                              disabled={!canProceed}
+                              className="min-h-[44px]"
+                            >
+                              Finalizar
+                            </Button>
+                          )}
+                        </div>
+                      }
                     />
                   ) : (
                     <RaceSelectionStep
@@ -1071,65 +1155,22 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   />
                 )}
               </div>
-
-            {/* Navigation Buttons */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex justify-between gap-4 mt-auto pt-6"
-            >
-              <Button
-                variant="secondary"
-                size="md"
-                leftIcon={ChevronLeft}
-                onClick={handleBack}
-                disabled={currentStep === 0}
-                className="min-h-[44px]"
-              >
-                Voltar
-              </Button>
-              
-              {currentStep < totalSteps ? (
-                <Button
-                  variant="primary"
-                  size="md"
-                  rightIcon={ChevronRight}
-                  onClick={handleNext}
-                  disabled={!canProceed}
-                  className="min-h-[44px]"
-                >
-                  Próximo
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="md"
-                  leftIcon={Sparkle}
-                  onClick={handleFinish}
-                  disabled={!canProceed}
-                  className="min-h-[44px]"
-                >
-                  Finalizar
-                </Button>
-              )}
-            </motion.div>
           </motion.div>
           </main>
           </div>
           </div>
           
           {/* Sidebar Direita - Resumo */}
-          <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4">
+          <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col h-full shadow-sm"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/70 uppercase tracking-wider mb-3 shrink-0">
                 Resumo
               </h3>
-              <div className="space-y-3 text-xs">
+              <div className="space-y-3 text-xs flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
                 {/* Raça com detalhes */}
                 {selectedRaca && (
                   <div>
@@ -1436,7 +1477,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
           </aside>
         </div>
       </div>
-      <Footer />
+      <div className="flex-shrink-0">
+        <Footer />
+      </div>
     </div>
   )
 }
@@ -2509,13 +2552,15 @@ function SelectionDetailsPanel({
   selectedId, 
   getItemById,
   onBack,
-  onSelect
+  onSelect,
+  headerActions
 }: { 
   type: 'race' | 'path' | 'location' | 'martialSchool'
   selectedId: string
   getItemById: (id: string) => any
   onBack?: () => void
   onSelect?: (id: string) => void
+  headerActions?: React.ReactNode
 }) {
   const item = getItemById(selectedId)
   if (!item) return null
@@ -2546,7 +2591,7 @@ function SelectionDetailsPanel({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-4"
     >
       {/* Header com Botão Voltar */}
       <div className="border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 pb-4">
@@ -2559,22 +2604,25 @@ function SelectionDetailsPanel({
             Voltar para seleção
           </button>
         )}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-ecoar-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
-            {type === 'race' && <Users className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
-            {type === 'path' && <Route className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
-            {type === 'location' && <MapPin className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
-            {type === 'martialSchool' && <Sword className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
+        <div className="flex items-center gap-3 mb-2 justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 flex-shrink-0 bg-ecoar-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
+              {type === 'race' && <Users className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
+              {type === 'path' && <Route className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
+              {type === 'location' && <MapPin className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
+              {type === 'martialSchool' && <Sword className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">{item.name}</h3>
+              <p className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60 mt-0.5">
+                {type === 'race' && 'Raça'}
+                {type === 'path' && 'Trilha'}
+                {type === 'location' && 'Localização'}
+                {type === 'martialSchool' && 'Escola Marcial'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">{item.name}</h3>
-            <p className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60 mt-0.5">
-              {type === 'race' && 'Raça'}
-              {type === 'path' && 'Trilha'}
-              {type === 'location' && 'Localização'}
-              {type === 'martialSchool' && 'Escola Marcial'}
-            </p>
-          </div>
+          {headerActions && <div className="flex items-center gap-2 flex-shrink-0">{headerActions}</div>}
         </div>
         <p className="text-sm text-ecoar-dark-700 dark:text-ecoar-light-900/80 leading-relaxed mt-3">
           {item.description}
@@ -2582,7 +2630,7 @@ function SelectionDetailsPanel({
       </div>
 
       {/* Layout em 2 colunas: Arte à esquerda | INFO à direita */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 relative">
         {showRaceImage && raceImageConfig?.src && (
           <RaceImage
             variant="hero"
@@ -2594,9 +2642,9 @@ function SelectionDetailsPanel({
 
         <div className={showRaceImage ? 'relative z-10' : 'space-y-4'}>
           {showRaceImage ? (
-            <div className="min-h-[400px]" />
+            <div className="min-h-[280px]" />
           ) : (
-            <div className="bg-ecoar-light-800 dark:bg-ecoar-light-900/10 rounded-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 p-6 min-h-[400px] flex items-center justify-center">
+            <div className="bg-ecoar-light-800 dark:bg-ecoar-light-900/10 rounded-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 p-6 min-h-[280px] flex items-center justify-center">
               <div className="text-center text-ecoar-dark-400 dark:text-ecoar-light-900/40 text-sm">
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-ecoar-dark-300 dark:text-ecoar-light-900/30 text-xs">
@@ -2609,10 +2657,10 @@ function SelectionDetailsPanel({
         </div>
 
         {/* Lado Direito - INFO */}
-        <div className="space-y-6 relative z-10">
+        <div className="space-y-4 relative z-10">
           {/* Bônus Detalhados com Explicações */}
           {item.bonuses && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
                 <h4 className="text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 uppercase tracking-wider">
@@ -3078,16 +3126,16 @@ function RaceComparisonSection({
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.3 }}
-      className="pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 mt-6"
+      className="pt-5 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 mt-5"
     >
-      <div className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 rounded-xl p-6 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 shadow-xl">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
-          <h3 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">
+      <div className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 rounded-xl p-3 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 shadow-xl">
+        <div className="flex items-center gap-2 mb-2">
+          <Target className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
+          <h3 className="text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">
             Comparar com outras Raças
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
         {otherRaces.slice(0, 6).map((otherRace, index) => {
           const otherBonuses = getBonusesSummary(otherRace)
           
@@ -3108,11 +3156,11 @@ function RaceComparisonSection({
               transition={{ delay: index * 0.05 }}
               onClick={() => onSelect(otherRace.id)}
               whileHover={{ y: -2 }}
-              className="relative p-3 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-700 dark:bg-ecoar-dark-800 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-dark-700 hover:border-ecoar-teal-400 dark:hover:border-ecoar-teal-500/40 transition-all text-left"
+              className="relative p-2.5 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-700 dark:bg-ecoar-dark-800 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-dark-700 hover:border-ecoar-teal-400 dark:hover:border-ecoar-teal-500/40 transition-all text-left"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-ecoar-dark-500 dark:text-ecoar-light-900/60" />
-                <h5 className="text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Users className="w-3.5 h-3.5 text-ecoar-dark-500 dark:text-ecoar-light-900/60" />
+                <h5 className="text-xs font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90">
                   {otherRace.name}
                 </h5>
               </div>
@@ -3159,7 +3207,7 @@ function RaceComparisonSection({
           )
         })}
         </div>
-        <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50 mt-3 flex items-center gap-2">
+        <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50 mt-1.5 flex items-center gap-2">
           <Eye className="w-3 h-3 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
           <span>Bônus em rosa indicam diferenças em relação à raça selecionada</span>
         </p>
@@ -3191,152 +3239,134 @@ function SoulLevelSelectionStep({
   const bgInfo = isLight ? 'bg-ecoar-teal/5 border-ecoar-teal/20' : 'bg-slate-50 dark:bg-ecoar-light-900/10 dark:bg-ecoar-light-900/10 border-slate-200 dark:border-ecoar-light-900/20 dark:border-ecoar-light-900/20'
   const selectedSoulLevel = getSoulLevelByNivel(nivelAlmaInicial)
   const estagios = getEstagios()
+  const initialTabIndex = selectedSoulLevel ? estagios.indexOf(selectedSoulLevel.estagio) : 0
+  const [openEstagioIndex, setOpenEstagioIndex] = useState(initialTabIndex >= 0 ? initialTabIndex : 0)
+  const [infoOpen, setInfoOpen] = useState(false)
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className={`w-8 h-8 ${bgIcon} rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20`}>
-            <Crown className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-          </div>
-          <div>
-            <h3 className={`text-lg font-semibold ${textColor} mb-0.5`}>
-              Nível de Alma Inicial
-            </h3>
-            <p className={`text-xs ${textColorMuted}`}>
-              Escolha o Nível de Alma inicial do seu personagem. Esta escolha deve ser feita pelo Mestre Absoluto.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Informação sobre o nível selecionado */}
+    <div className="space-y-4">
+      {/* Resumo compacto do nível selecionado (uma linha) */}
       {selectedSoulLevel && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`${bgCard} border rounded-xl p-6 mb-6`}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${bgIcon} rounded-lg flex items-center justify-center`}>
-                <Star className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-              </div>
-              <div>
-                <p className={`text-xs ${textColorSubtle} uppercase tracking-wider`}>Nível de Alma</p>
-                <p className={`text-lg font-bold ${textColor}`}>{selectedSoulLevel.nivel}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${bgIcon} rounded-lg flex items-center justify-center`}>
-                <Sparkles className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-              </div>
-              <div>
-                <p className={`text-xs ${textColorSubtle} uppercase tracking-wider`}>Pontos de Evolução</p>
-                <p className={`text-lg font-bold ${textColor}`}>{selectedSoulLevel.pontosEvolucao}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${bgIcon} rounded-lg flex items-center justify-center`}>
-                <Zap className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-              </div>
-              <div>
-                <p className={`text-xs ${textColorSubtle} uppercase tracking-wider`}>Nível de Poder</p>
-                <p className={`text-lg font-bold ${textColor}`}>{selectedSoulLevel.nivelPoder}</p>
-              </div>
-            </div>
+        <div className={`flex flex-wrap items-center gap-2 sm:gap-3 py-2.5 px-4 rounded-lg border ${bgCard} border-ecoar-dark-300/30 dark:border-ecoar-light-900/20`}>
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-ecoar-teal dark:text-ecoar-teal-400 flex-shrink-0" />
+            <span className={`text-sm font-semibold ${textColor}`}>Nível {selectedSoulLevel.nivel}</span>
           </div>
-          <div className={`mt-4 pt-4 border-t ${isLight ? 'border-ecoar-teal/20' : 'border-ecoar-teal/20'}`}>
-            <p className={`text-sm font-semibold ${textColor} mb-2`}>{selectedSoulLevel.estagio}</p>
-            {selectedSoulLevel.nivel > 1 && (
-              <div className="space-y-2 mt-3">
-                <p className={`text-xs ${textColorMuted}`}>
-                  Você receberá <span className="font-bold text-ecoar-teal dark:text-ecoar-teal-400">{selectedSoulLevel.pontosEvolucao} Pontos de Evolução</span> para usar na criação do personagem.
-                </p>
-                <p className={`text-xs ${textColorMuted}`}>
-                  Bônus em dinheiro: <span className="font-bold text-ecoar-teal dark:text-ecoar-teal-400">ȼ{selectedSoulLevel.pontosEvolucao * 50}</span> ({selectedSoulLevel.pontosEvolucao} × ȼ50)
-                </p>
-              </div>
-            )}
-            {selectedSoulLevel.nivel === 1 && (
-              <p className={`text-xs ${textColorMuted} mt-2`}>
-                Recomendado para jogadores iniciantes. Comece do zero e evolua junto com o grupo.
-              </p>
-            )}
-          </div>
-        </motion.div>
+          <span className="text-slate-400 dark:text-ecoar-light-900/40">·</span>
+          <span className={`text-sm ${textColorMuted}`}>{selectedSoulLevel.pontosEvolucao} PE</span>
+          <span className="text-slate-400 dark:text-ecoar-light-900/40">·</span>
+          <span className={`text-sm ${textColorMuted}`}>Poder {selectedSoulLevel.nivelPoder}</span>
+          <span className="text-slate-400 dark:text-ecoar-light-900/40 hidden sm:inline">·</span>
+          <span className={`text-xs ${textColorMuted} w-full sm:w-auto`}>
+            {selectedSoulLevel.nivel === 1
+              ? 'Recomendado para iniciantes. Comece do zero e evolua com o grupo.'
+              : `${selectedSoulLevel.pontosEvolucao} PE + ȼ${selectedSoulLevel.pontosEvolucao * 50} extras na criação.`
+            }
+          </span>
+        </div>
       )}
 
-      {/* Seleção por Estágio */}
-      <div className="space-y-6">
+      {/* Tabs por estágio + 4 níveis em uma linha (sem lista/scroll) */}
+      <div className="flex flex-wrap gap-2 mb-3">
         {estagios.map((estagio, estagioIndex) => {
           const niveisDoEstagio = soulLevels.filter(sl => sl.estagio === estagio)
           const nivelPoder = niveisDoEstagio[0]?.nivelPoder || 0
-
+          const isActive = openEstagioIndex === estagioIndex
+          const shortName = estagio.replace(/^Personagem\s+/, '')
           return (
-            <div key={estagio} className="space-y-3">
-              <div className="flex items-center gap-3 mb-2">
-                <h4 className={`text-lg font-semibold ${textColor}`}>{estagio}</h4>
-                <span className="text-xs px-2 py-1 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-300 rounded-full border border-ecoar-teal/30 dark:border-ecoar-teal-500/40">
-                  Nível de Poder {nivelPoder}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {niveisDoEstagio.map((soulLevel) => {
-                  const isSelected = nivelAlmaInicial === soulLevel.nivel
-                  return (
-                    <motion.button
-                      key={soulLevel.nivel}
-                      onClick={() => onSelect(soulLevel.nivel)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`p-3.5 rounded-lg border transition-all text-left ${
-                        isSelected
-                          ? `${bgSelected} shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20`
-                          : `${bgUnselected} ${isLight ? 'hover:bg-ecoar-teal/5' : 'hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 dark:hover:bg-ecoar-light-900/15'} hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/40`
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-lg font-bold ${isSelected ? textColor : textColorMuted}`}>
-                          Nível {soulLevel.nivel}
-                        </span>
-                        {isSelected && (
-                          <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <p className={`text-xs ${textColorMuted}`}>
-                          {soulLevel.pontosEvolucao} PE
-                        </p>
-                        {soulLevel.nivel > 1 && (
-                          <p className="text-xs text-ecoar-teal dark:text-ecoar-teal-400">
-                            +ȼ{soulLevel.pontosEvolucao * 50}
-                          </p>
-                        )}
-                      </div>
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </div>
+            <button
+              key={estagio}
+              type="button"
+              onClick={() => setOpenEstagioIndex(estagioIndex)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${
+                isActive
+                  ? `${bgSelected} border-ecoar-teal/50 dark:border-ecoar-teal-500/50 shadow-md`
+                  : `${bgUnselected} ${isLight ? 'hover:bg-ecoar-teal/5 hover:border-ecoar-teal/30' : 'hover:bg-ecoar-light-900/10 hover:border-ecoar-teal-500/30'} border-ecoar-dark-300/30 dark:border-ecoar-light-900/20`
+              }`}
+            >
+              <span className={isActive ? textColor : textColorMuted}>{shortName}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-ecoar-teal/15 dark:bg-ecoar-teal-600/20 text-ecoar-teal dark:text-ecoar-teal-400">
+                Poder {nivelPoder}
+              </span>
+            </button>
           )
         })}
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {(() => {
+          const estagioAtivo = estagios[openEstagioIndex]
+          const niveisDoEstagio = estagioAtivo ? soulLevels.filter(sl => sl.estagio === estagioAtivo) : []
+          return niveisDoEstagio.map((soulLevel) => {
+            const isSelected = nivelAlmaInicial === soulLevel.nivel
+            return (
+              <motion.button
+                key={soulLevel.nivel}
+                onClick={() => onSelect(soulLevel.nivel)}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className={`p-3.5 rounded-lg border transition-all text-left ${
+                  isSelected
+                    ? `${bgSelected} shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20`
+                    : `${bgUnselected} ${isLight ? 'hover:bg-ecoar-teal/5' : 'hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15'} hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/40`
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-lg font-bold ${isSelected ? textColor : textColorMuted}`}>
+                    Nível {soulLevel.nivel}
+                  </span>
+                  {isSelected && (
+                    <CheckCircle2 className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className={`text-xs ${textColorMuted}`}>{soulLevel.pontosEvolucao} PE</p>
+                  {soulLevel.nivel > 1 && (
+                    <p className="text-xs text-ecoar-teal dark:text-ecoar-teal-400">
+                      +ȼ{soulLevel.pontosEvolucao * 50}
+                    </p>
+                  )}
+                </div>
+              </motion.button>
+            )
+          })
+        })()}
+      </div>
 
-      {/* Nota informativa */}
-      <div className={`mt-6 p-4 ${bgInfo} border rounded-lg`}>
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-ecoar-teal flex-shrink-0 mt-0.5" />
-          <div className={`text-xs ${textColorMuted} space-y-1`}>
-            <p>
-              <strong className={textColor}>Por padrão:</strong> É recomendado para jogadores iniciantes ou casuais que os personagens comecem no início (Nível de Alma 1) e que todos aprendam juntos, evoluindo de forma conjunta.
-            </p>
-            <p>
-              <strong className={textColor}>Nível acima de 1:</strong> Caso seu Nível de Alma inicial seja acima de 1, você pode usar estes Pontos de Evolução durante a criação de personagem para adquirir singularidades ou evoluir traços, e deverão ser gastos conforme as regras de evolução vistas mais para frente. Para cada Ponto de Evolução inicial, você também recebe ȼ50 extras.
-            </p>
-          </div>
-        </div>
+      {/* Saiba mais (colapsável, fechado por padrão) */}
+      <div className={`mt-4 rounded-lg border overflow-hidden ${bgInfo} border-ecoar-dark-300/20 dark:border-ecoar-light-900/20`}>
+        <button
+          type="button"
+          onClick={() => setInfoOpen((o) => !o)}
+          className="w-full flex items-center justify-between gap-2 py-2.5 px-3 text-left transition-colors hover:bg-ecoar-teal/5 dark:hover:bg-ecoar-light-900/10"
+        >
+          <span className="flex items-center gap-2 text-sm text-ecoar-teal dark:text-ecoar-teal-400">
+            <Info className="w-4 h-4 flex-shrink-0" />
+            Saiba mais sobre níveis iniciais
+          </span>
+          <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-ecoar-light-900/60 transition-transform duration-200 flex-shrink-0 ${infoOpen ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence initial={false}>
+          {infoOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-3 pb-3 pt-0 border-t border-ecoar-teal/10 dark:border-ecoar-light-900/10">
+                <div className={`text-xs ${textColorMuted} space-y-2 pt-2`}>
+                  <p>
+                    <strong className={textColor}>Por padrão:</strong> É recomendado para jogadores iniciantes ou casuais que os personagens comecem no início (Nível de Alma 1) e que todos aprendam juntos, evoluindo de forma conjunta.
+                  </p>
+                  <p>
+                    <strong className={textColor}>Nível acima de 1:</strong> Caso seu Nível de Alma inicial seja acima de 1, você pode usar estes Pontos de Evolução durante a criação de personagem para adquirir singularidades ou evoluir traços, e deverão ser gastos conforme as regras de evolução vistas mais para frente. Para cada Ponto de Evolução inicial, você também recebe ȼ50 extras.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -3502,95 +3532,68 @@ function AttributesStep({
     vontade: 'Força mental e determinação. Afeta resistência a efeitos mentais e controle.',
   }
 
-  // Função helper para renderizar um card de atributo
-  const renderAttributeCard = (attr: string) => {
+  const [expandedAttribute, setExpandedAttribute] = useState<string | null>(null)
+
+  // Valores e regras por atributo (para a lista compacta)
+  const getAttributeRowData = (attr: string) => {
     const value = attributes[attr]
     const modifier = getAttributeModifier(value)
     const raceBonus = raceBonuses[attr] || 0
     const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-    const classBonus = 0 // TODO: Add class bonuses if needed
+    const classBonus = 0
     const totalBonus = raceBonus + martialSchoolBonus + classBonus
-    const baseValue = value - totalBonus // Base value = total - bonus (what user allocated)
-    const AttributeIcon = attributeIcons[attr] || Star
-    const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus // Máximo total = 3 base + bônus
-    const canDecrease = baseValue > 0 // Pode diminuir apenas se o usuário adicionou pontos (base > 0)
-
+    const baseValue = value - totalBonus
+    const maxValue = (isEvolutionStep ? 8 : 3) + totalBonus
+    const canDecrease = baseValue > 0
     const canIncrease = (() => {
       if (value >= maxValue) return false
       if (isEvolutionStep) {
-        // Calcula o custo de aumentar este atributo em 1 ponto
         const currentTotalBase = Object.entries(attributes).reduce((sum, [a, v]) => {
           const rB = raceBonuses[a] || 0
           const mB = martialSchoolBonuses[a] || 0
-          const cB = 0 // TODO: Add class bonuses if needed
-          return sum + Math.max(0, v - (rB + mB + cB))
+          return sum + Math.max(0, v - (rB + mB + classBonus))
         }, 0)
         const newTotalBase = currentTotalBase - baseValue + (baseValue + 1)
         const currentPointsOverFree = Math.max(0, currentTotalBase - 12)
         const newPointsOverFree = Math.max(0, newTotalBase - 12)
-        const pointsOverFreeDiff = newPointsOverFree - currentPointsOverFree
-        const costInPC = pointsOverFreeDiff * 10
-        
-        // Se não há custo (redistribuição dentro dos gratuitos ou diminuindo), permite
+        const costInPC = (newPointsOverFree - currentPointsOverFree) * 10
         if (costInPC <= 0) return true
-        
-        // Calcula PC disponível considerando gastos atuais de atributos
-        const currentGastosAtributos = currentPointsOverFree * 10
-        const pcDisponivelParaAtributos = pontosCriacao.disponiveis - currentGastosAtributos
-        
-        // Só permite aumentar se houver PC suficiente
+        const pcDisponivelParaAtributos = pontosCriacao.disponiveis - currentPointsOverFree * 10
         return pcDisponivelParaAtributos >= costInPC
       }
       return attributePoints > 0
     })()
-
-    // Calcula custo em PC para este atributo
-    const calculatePCCost = () => {
+    const pcCost = (() => {
       if (!isEvolutionStep) return 0
       const currentTotalBase = Object.entries(attributes).reduce((sum, [a, v]) => {
         const rB = raceBonuses[a] || 0
         const mB = martialSchoolBonuses[a] || 0
-        const cB = 0 // TODO: Add class bonuses if needed
-        return sum + Math.max(0, v - (rB + mB + cB))
+        return sum + Math.max(0, v - (rB + mB + classBonus))
       }, 0)
       const newTotalBase = currentTotalBase - baseValue + (baseValue + 1)
       const currentPointsOverFree = Math.max(0, currentTotalBase - 12)
       const newPointsOverFree = Math.max(0, newTotalBase - 12)
-      const pointsOverFreeDiff = newPointsOverFree - currentPointsOverFree
-      return pointsOverFreeDiff * 10
+      return (newPointsOverFree - currentPointsOverFree) * 10
+    })()
+    return {
+      value,
+      modifier,
+      raceBonus,
+      martialSchoolBonus,
+      totalBonus,
+      baseValue,
+      maxValue,
+      canDecrease,
+      canIncrease,
+      pcCost,
+      Icon: attributeIcons[attr] || Star,
     }
-
-    return (
-      <AttributeCard
-        key={attr}
-        label={attributeLabels[attr]}
-        value={value}
-        modifier={modifier}
-        maxValue={maxValue}
-        baseValue={baseValue}
-        icon={AttributeIcon}
-        raceBonus={raceBonus}
-        martialSchoolBonus={martialSchoolBonus}
-        canIncrease={canIncrease}
-        canDecrease={canDecrease}
-        onIncrease={() => {
-          const newValue = value + 1
-          if (newValue <= maxValue) {
-            onUpdate(attr, newValue)
-          }
-        }}
-        onDecrease={() => onUpdate(attr, value - 1)}
-        description={attributeDescriptions[attr]}
-        isEvolutionStep={isEvolutionStep}
-        pcCost={canIncrease && isEvolutionStep ? calculatePCCost() : undefined}
-      />
-    )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
             <Zap className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
@@ -3613,47 +3616,42 @@ function AttributesStep({
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div className={`p-3.5 rounded-lg border transition-all ${
-          attributePoints >= 0 
-            ? 'bg-ecoar-teal/10 dark:bg-ecoar-teal-600/20 border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900' 
-            : 'bg-ecoar-magenta/10 dark:bg-ecoar-magenta-600/20 border-ecoar-magenta/30 dark:border-ecoar-magenta-500/40 text-white dark:text-ecoar-light-900'
-        }`}>
-          {!isEvolutionStep && (
-            <>
-              <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">Pontos Gratuitos</div>
-              <div className={`text-2xl font-bold ${attributePoints >= 0 ? 'text-ecoar-teal dark:text-ecoar-teal-400' : 'text-ecoar-magenta dark:text-ecoar-magenta-400'}`}>
-                {attributePoints}
-              </div>
-            </>
-          )}
-          {isEvolutionStep && (
-            <>
-              <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">PC Disponíveis</div>
-              <div className={`text-2xl font-bold ${pontosCriacao.disponiveis >= 0 ? 'text-ecoar-teal dark:text-ecoar-teal-400' : 'text-ecoar-magenta dark:text-ecoar-magenta-400'}`}>
-                {pontosCriacao.disponiveis}
-              </div>
-            </>
-          )}
+      {/* Barra única: pontos restantes / PC + Aleatório (harmoniosa com a tabela de atributos) */}
+      <div className="flex items-center justify-between py-2.5 px-4 mb-4 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-700/50 dark:bg-ecoar-light-900/[0.03]">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-600 dark:text-ecoar-light-900/60">
+            {!isEvolutionStep ? 'Pontos restantes' : 'PC disponíveis'}
+          </span>
+          <span
+            className={`text-xl font-bold tabular-nums ${
+              !isEvolutionStep
+                ? attributePoints >= 0
+                  ? 'text-ecoar-teal-600 dark:text-ecoar-teal-400'
+                  : 'text-ecoar-magenta-600 dark:text-ecoar-magenta-400'
+                : pontosCriacao.disponiveis >= 0
+                  ? 'text-ecoar-teal-600 dark:text-ecoar-teal-400'
+                  : 'text-ecoar-magenta-600 dark:text-ecoar-magenta-400'
+            }`}
+          >
+            {!isEvolutionStep ? attributePoints : pontosCriacao.disponiveis}
+          </span>
         </div>
         {!isEvolutionStep && (
-          <motion.button
+          <button
+            type="button"
             onClick={onRandomize}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="p-4 rounded-xl border bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 border-ecoar-teal/30 dark:border-ecoar-teal-500/40 text-white dark:text-ecoar-light-900 flex items-center justify-center gap-2 font-semibold transition-all shadow-lg shadow-ecoar-teal/20 dark:shadow-ecoar-teal-600/30"
+            className="flex items-center gap-2 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 px-3 py-2 text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90 hover:bg-ecoar-teal/10 dark:hover:bg-ecoar-teal-600/20 transition-colors"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
             Aleatório
-          </motion.button>
+          </button>
         )}
       </div>
 
       {/* Bônus Aplicados */}
               {(Object.keys(raceBonuses).length > 0 || Object.keys(martialSchoolBonuses).length > 0) && (
-        <div className="mb-6 p-4 bg-slate-50 dark:bg-ecoar-light-900/10 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 dark:border-ecoar-light-900/20 rounded-lg">
-          <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-3">Bônus aplicados automaticamente</p>
+        <div className="mb-4 p-3 bg-slate-50 dark:bg-ecoar-light-900/10 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 dark:border-ecoar-light-900/20 rounded-lg">
+          <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-2">Bônus aplicados automaticamente</p>
           <div className="flex flex-wrap gap-4 text-sm">
             {Object.keys(raceBonuses).length > 0 && (
               <div className="text-slate-700 dark:text-ecoar-light-900/80 dark:text-ecoar-light-900/80">
@@ -3677,29 +3675,97 @@ function AttributesStep({
         </div>
       )}
 
-      {/* Grid Unificado de Atributos - Layout 4-3 */}
-      <div className="space-y-7">
-        {/* Primeira Linha: 4 cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
-          {Object.keys(attributes).slice(0, 4).map((attr) => (
-            <div key={attr} className="w-full">
-              {renderAttributeCard(attr)}
-            </div>
-          ))}
+      {/* Lista única de atributos (sem cards) */}
+      <div className="rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-700/50 dark:bg-ecoar-light-900/[0.03] overflow-hidden">
+        <div className={`grid gap-4 py-2 px-3 text-xs font-semibold text-slate-500 dark:text-ecoar-light-900/60 uppercase tracking-wider border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 ${isEvolutionStep ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]'}`}>
+          <span>Atributo</span>
+          <span className="text-center w-20">Valor</span>
+          <span className="w-10 text-right">Mod</span>
+          {isEvolutionStep && <span className="w-14 text-right">Custo</span>}
         </div>
-        
-        {/* Segunda Linha: 3 cards centralizados mantendo o mesmo tamanho */}
-        <div className="flex justify-center items-start gap-7">
-          {Object.keys(attributes).slice(4, 7).map((attr) => {
-            // Calcula a largura exata de um card da primeira linha: (100% - 3*gaps) / 4
-            const cardWidth = 'calc((100% - 3 * 1.75rem) / 4)'
-            return (
-              <div key={attr} className="flex-shrink-0" style={{ width: cardWidth, maxWidth: cardWidth, minWidth: cardWidth }}>
-                {renderAttributeCard(attr)}
+        {Object.keys(attributes).map((attr) => {
+          const row = getAttributeRowData(attr)
+          const { Icon } = row
+          const isExpanded = expandedAttribute === attr
+          return (
+            <div key={attr}>
+              <div
+                className={`grid gap-4 items-center py-2 px-3 border-b border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.06] ${isEvolutionStep ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]'}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpandedAttribute((prev) => (prev === attr ? null : attr))}
+                  className="flex items-center gap-3 min-w-0 w-full text-left bg-transparent border-0 cursor-pointer py-0 px-0 rounded"
+                >
+                  <div className="w-6 h-6 rounded-md bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-3 h-3 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-900 dark:text-ecoar-light-900 truncate">
+                    {attributeLabels[attr]}
+                  </span>
+                  {row.totalBonus !== 0 && (
+                    <span className="text-xs text-slate-500 dark:text-ecoar-light-900/50 flex-shrink-0">
+                      +{row.totalBonus}
+                    </span>
+                  )}
+                  <motion.span
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-shrink-0 ml-auto mr-1 text-slate-500 dark:text-ecoar-light-900/50"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.span>
+                </button>
+                <div className="flex items-center gap-1.5 justify-center w-20">
+                  <button
+                    type="button"
+                    onClick={() => row.canDecrease && onUpdate(attr, row.value - 1)}
+                    disabled={!row.canDecrease}
+                    className="w-8 h-8 rounded-full border flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 text-slate-600 dark:text-ecoar-light-900/70 hover:enabled:bg-ecoar-magenta/10 hover:enabled:border-ecoar-magenta/30 dark:hover:enabled:border-ecoar-magenta-500/40"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-lg font-bold text-slate-900 dark:text-ecoar-light-900 w-6 text-center tabular-nums">
+                    {row.value}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (row.canIncrease && row.value + 1 <= row.maxValue) onUpdate(attr, row.value + 1)
+                    }}
+                    disabled={!row.canIncrease}
+                    className="w-8 h-8 rounded-full border flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 text-slate-600 dark:text-ecoar-light-900/70 hover:enabled:bg-ecoar-teal/10 hover:enabled:border-ecoar-teal/30 dark:hover:enabled:border-ecoar-teal-500/40"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <span className={`text-sm font-semibold w-10 text-right tabular-nums ${row.modifier >= 0 ? 'text-ecoar-teal-600 dark:text-ecoar-teal-400' : 'text-slate-600 dark:text-ecoar-light-900/70'}`}>
+                  {row.modifier >= 0 ? '+' : ''}{row.modifier}
+                </span>
+                {isEvolutionStep && (
+                  <span className="text-xs text-slate-500 dark:text-ecoar-light-900/50 w-14 text-right">
+                    {row.canIncrease && row.pcCost > 0 ? `${row.pcCost} PC` : '—'}
+                  </span>
+                )}
               </div>
-            )
-          })}
-        </div>
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mx-3 mb-2 mt-1 rounded-lg border border-ecoar-dark-300/25 dark:border-ecoar-light-900/15 bg-ecoar-light-800/80 dark:bg-ecoar-light-900/[0.06] px-3 py-2 text-xs leading-snug text-slate-600 dark:text-ecoar-light-900/80 shadow-sm line-clamp-3">
+                      {attributeDescriptions[attr]}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

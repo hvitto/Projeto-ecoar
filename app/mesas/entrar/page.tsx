@@ -55,15 +55,18 @@ export default function EntrarMesaPage() {
 
   if (joining) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ecoar-light dark:bg-ecoar-dark-900">
-        <div className="text-slate-600 dark:text-ecoar-light-900/60">Entrando na mesa...</div>
+      <div className="h-full min-h-0 flex flex-col">
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-slate-600 dark:text-ecoar-light-900/60">Entrando na mesa...</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <motion.div className="max-w-lg mx-auto px-3 py-6 sm:py-8" variants={fadeInUp} initial="hidden" animate="visible">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <motion.div className="max-w-lg mx-auto px-3 py-6 sm:py-8" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
@@ -92,7 +95,8 @@ export default function EntrarMesaPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   )
 }
