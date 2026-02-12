@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: 'Sistema de criação e gerenciamento de personagens para o RPG ECOAR',
 }
 
+export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' as const }
+
 export default function RootLayout({
   children,
 }: {
@@ -46,7 +48,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="flex flex-col min-h-screen font-body antialiased">
+      <body className="flex flex-col min-h-screen min-h-[100dvh] font-body antialiased pb-[env(safe-area-inset-bottom)]">
         <Providers>
           {children}
         </Providers>

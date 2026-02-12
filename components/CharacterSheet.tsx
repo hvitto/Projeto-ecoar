@@ -467,7 +467,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
   return (
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
       <Header onNewCharacter={onEdit} onGoToDashboard={onBackToDashboard} />
-      <div className="py-8 px-4 md:px-6">
+      <div className="py-6 px-3 sm:px-4 md:px-6 overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
         {/* Layout em 3 colunas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -480,7 +480,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Atributos
@@ -529,7 +529,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Níveis
@@ -591,7 +591,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Limites
@@ -639,7 +639,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <div className="flex items-center justify-between mb-5 min-w-0">
                 <input
@@ -757,7 +757,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Testes Comuns
@@ -813,7 +813,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.15 }}
-                  className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+                  className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
                 >
                   <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                     Bônus de Raça
@@ -893,7 +893,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
               >
                 <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                   Deslocamentos
@@ -925,7 +925,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
-                className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+                className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
               >
                 <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                   Sentidos
@@ -962,7 +962,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-            className="bg-white/50 dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+            className="bg-white/50 dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Equipamentos
@@ -980,7 +980,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Anotações

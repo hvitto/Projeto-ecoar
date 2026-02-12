@@ -38,7 +38,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
 
   return (
     <header className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-xl border-b border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.05] sticky top-0 z-50 shadow-sm">
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-3">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo/Brand */}
           <motion.button
@@ -101,7 +101,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             {user && onGoToDashboard && (
               <button
                 onClick={onGoToDashboard}
-                className="w-9 h-9 flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
                 aria-label="Dashboard"
               >
                 <Home className="w-5 h-5" />
@@ -110,7 +110,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             <ThemeSwitcher />
             <button 
               onClick={handleNewCharacter}
-              className="w-9 h-9 flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
               aria-label="Novo personagem"
             >
               <UserPlus className="w-5 h-5" />
@@ -118,7 +118,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             {user && (
               <button
                 onClick={handleLogout}
-                className="w-9 h-9 flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
                 aria-label="Sair"
               >
                 <LogOut className="w-5 h-5" />

@@ -39,8 +39,8 @@ export default function Button({
   
   const sizeClasses = {
     sm: 'px-2.5 py-1 text-xs rounded-md',
-    md: 'px-4 py-2 text-sm rounded-lg',
-    lg: 'px-5 py-2.5 text-base rounded-lg'
+    md: 'px-4 py-2 text-sm rounded-lg min-h-[44px]',
+    lg: 'px-5 py-2.5 text-base rounded-lg min-h-[44px]'
   }
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`

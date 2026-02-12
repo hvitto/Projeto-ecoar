@@ -6,7 +6,7 @@ import { Heart, Github, Globe } from 'lucide-react'
 export default function Footer() {
   return (
     <footer className="bg-ecoar-dark-600/70 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] mt-auto">
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
           {/* Brand */}
           <div>

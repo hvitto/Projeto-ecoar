@@ -716,10 +716,10 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 dark:from-ecoar-dark-900 dark:via-ecoar-dark-800 dark:to-ecoar-dark-700">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 dark:from-ecoar-dark-900 dark:via-ecoar-dark-800 dark:to-ecoar-dark-700">
       <Header onNewCharacter={() => {}} />
       {/* Layout com Sidebar Fixa */}
-      <div className="flex-1 flex relative overflow-hidden">
+      <div className="flex-1 flex relative overflow-y-auto overflow-x-hidden">
         {/* Sidebar Esquerda */}
         <aside className="hidden lg:flex flex-col w-80 flex-shrink-0 p-4 overflow-y-auto">
           <motion.div
@@ -737,7 +737,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                 {/* Progress Bar */}
                 <div className="mt-3 w-full bg-ecoar-dark-300/20 dark:bg-white/[0.03] rounded-full h-1 overflow-hidden">
                   <motion.div 
-                    className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal to-dark:to-ecoar-magenta"
+                    className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal dark:to-ecoar-magenta"
                     initial={{ width: 0 }}
                     animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
                     transition={motionTransition.smooth}
@@ -849,8 +849,8 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
           </aside>
 
         {/* Conteúdo Principal */}
-        <div className="flex-1 flex gap-4 overflow-y-auto">
-          <div className="flex-1 p-4 md:p-6 min-w-0">
+        <div className="flex-1 flex gap-4 overflow-y-auto overflow-x-hidden">
+          <div className="flex-1 px-3 sm:px-4 md:px-6 py-4 sm:py-6 min-w-0 max-w-full">
           <div className="max-w-[1400px] mx-auto">
           {/* Área Central - Conteúdo do Step */}
           <main className="flex flex-col">
@@ -1085,6 +1085,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                 leftIcon={ChevronLeft}
                 onClick={handleBack}
                 disabled={currentStep === 0}
+                className="min-h-[44px]"
               >
                 Voltar
               </Button>
@@ -1096,6 +1097,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   rightIcon={ChevronRight}
                   onClick={handleNext}
                   disabled={!canProceed}
+                  className="min-h-[44px]"
                 >
                   Próximo
                 </Button>
@@ -1106,6 +1108,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   leftIcon={Sparkle}
                   onClick={handleFinish}
                   disabled={!canProceed}
+                  className="min-h-[44px]"
                 >
                   Finalizar
                 </Button>

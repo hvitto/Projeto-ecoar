@@ -305,7 +305,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
           type="submit"
           disabled={isLoading || success || !firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
           leftIcon={UserPlus}
-          className="w-full rounded-lg bg-ecoar-dark-900 dark:bg-ecoar-dark-900 text-white hover:bg-ecoar-dark-800 dark:hover:bg-ecoar-dark-800 shadow-none"
+          className="w-full min-h-[44px] rounded-lg bg-ecoar-dark-900 dark:bg-ecoar-dark-900 text-white hover:bg-ecoar-dark-800 dark:hover:bg-ecoar-dark-800 shadow-none"
           size="lg"
         >
           {isLoading ? 'Criando conta...' : success ? 'Conta criada!' : 'Criar conta'}
@@ -322,7 +322,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <a
           href={typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google` : '/api/auth/google'}
-          className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-lg border border-ecoar-dark-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-800 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-dark-50 dark:hover:bg-ecoar-dark-700 transition-colors font-medium text-sm"
+          className="flex items-center justify-center gap-2 w-full min-h-[44px] py-3 px-4 rounded-lg border border-ecoar-dark-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-800 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-dark-50 dark:hover:bg-ecoar-dark-700 transition-colors font-medium text-sm"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

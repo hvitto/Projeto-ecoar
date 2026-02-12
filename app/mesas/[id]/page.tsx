@@ -159,7 +159,7 @@ export default function MesaPage() {
 
   if (error || !table) {
     return (
-      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 px-4 py-8">
+      <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900 px-3 sm:px-4 md:px-6 py-4 sm:py-6">
         <p className="text-red-400 mb-4">{error ?? 'Mesa não encontrada'}</p>
         <Link href="/" className="text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline transition-colors duration-fast">
           Voltar ao início
@@ -206,7 +206,7 @@ export default function MesaPage() {
   if (viewMode === 'pickCharacter') {
     return (
       <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-        <motion.div className="max-w-2xl mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
+        <motion.div className="max-w-2xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6" variants={fadeInUp} initial="hidden" animate="visible">
           <button
             onClick={() => setViewMode('list')}
             className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
@@ -250,7 +250,7 @@ export default function MesaPage() {
 
   return (
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <motion.div className="max-w-[1200px] mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
+      <motion.div className="max-w-[1200px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"

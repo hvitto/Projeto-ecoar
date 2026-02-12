@@ -106,7 +106,7 @@ export default function CharacterDashboard({
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
       <Header onNewCharacter={onNewCharacter} />
       
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-8">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8">
         {/* Header Section */}
         <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -118,12 +118,13 @@ export default function CharacterDashboard({
                 Olá, {user.username || user.email.split('@')[0]}! Gerencie seus personagens aqui.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <Button
                 variant="primary"
                 leftIcon={UserPlus}
                 onClick={onNewCharacter}
                 size="lg"
+                className="w-full sm:w-auto min-h-[44px]"
               >
                 Nova Ficha
               </Button>
@@ -132,6 +133,7 @@ export default function CharacterDashboard({
                 leftIcon={LogOut}
                 onClick={handleLogout}
                 size="md"
+                className="w-full sm:w-auto min-h-[44px]"
               >
                 Sair
               </Button>

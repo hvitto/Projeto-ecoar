@@ -124,7 +124,12 @@
            hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
     transition: all var(--duration-fast) var(--ease-out);
   }
-  
+  @media (max-width: 768px) {
+    .input-field {
+      font-size: 16px;
+    }
+  }
+
   .input-number {
     @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
            text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-center text-base font-semibold 
@@ -132,6 +137,11 @@
            focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40
            hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
     transition: all var(--duration-fast) var(--ease-out);
+  }
+  @media (max-width: 768px) {
+    .input-number {
+      font-size: 16px;
+    }
   }
 
   /* Section Headers - Design sutil */

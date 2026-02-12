@@ -45,14 +45,14 @@ export default function CriarMesaPage() {
 
   return (
     <div className="min-h-screen bg-ecoar-light dark:bg-ecoar-dark-900">
-      <motion.div className="max-w-lg mx-auto px-4 py-8" variants={fadeInUp} initial="hidden" animate="visible">
+      <motion.div className="max-w-lg mx-auto px-3 py-6 sm:py-8" variants={fadeInUp} initial="hidden" animate="visible">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
-        <h1 className="text-2xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Criar mesa</h1>
+        <h1 className="text-xl sm:text-2xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Criar mesa</h1>
         <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mb-6">
           Defina o nome, capa e data da próxima sessão. Você será o GM desta mesa.
         </p>

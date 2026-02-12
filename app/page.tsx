@@ -129,9 +129,9 @@ function AppContent() {
 
   // Auth screens - fundo estilo Sean Halpin (gradiente + formas) + formulário centralizado
   const authLayout = (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen min-h-[100dvh] relative">
       <LoginBackground />
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 md:p-6">
+      <div className="relative z-10 min-h-screen min-h-[100dvh] flex items-center justify-center overflow-y-auto px-3 py-4 sm:p-4 md:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <div className="w-full max-w-md">
           {viewMode === 'register' ? (
             <RegisterForm
