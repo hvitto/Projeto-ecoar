@@ -23,7 +23,7 @@ function getCorsHeaders(origin: string | null) {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const origin = request.headers.get('origin')
 
   // Preflight: responder OPTIONS com headers CORS
