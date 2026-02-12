@@ -71,9 +71,12 @@ export const apiAuthService = {
     if (!response.ok) {
       return { success: false, error: data.error || 'Erro ao cadastrar' }
     }
-    if (data.success && data.user && data.token) {
-      saveSession(data.token, data.user)
-      return { success: true, user: data.user, token: data.token }
+    if (data.success) {
+      if (data.user && data.token) {
+        saveSession(data.token, data.user)
+        return { success: true, user: data.user, token: data.token }
+      }
+      return { success: true, message: data.message }
     }
     return { success: false, error: data.error || 'Erro ao cadastrar' }
   },

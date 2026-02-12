@@ -22,6 +22,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const validateField = (field: string, value: string): string | null => {
@@ -63,6 +64,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
     setError(null)
     setFieldErrors({})
     setSuccess(false)
+    setSuccessMessage(null)
 
     // Validações de todos os campos
     const errors: Record<string, string> = {}
@@ -97,6 +99,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
     if (result.success) {
       setSuccess(true)
+      if (result.message) setSuccessMessage(result.message)
       if (result.user) {
         if (onSuccess) setTimeout(() => onSuccess(), 1000)
       }
@@ -163,7 +166,11 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
             animate={{ opacity: 1, y: 0 }}
             className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2"
           >
-            <p>Enviamos um email de confirmação para <strong>{email}</strong>. Clique no link para ativar sua conta.</p>
+            {successMessage ? (
+              <p>{successMessage}</p>
+            ) : (
+              <p>Enviamos um email de confirmação para <strong>{email}</strong>. Clique no link para ativar sua conta.</p>
+            )}
             <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/70">Não recebeu? Verifique o spam ou</p>
             <button
               type="button"

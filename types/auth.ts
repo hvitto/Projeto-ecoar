@@ -13,6 +13,7 @@ export interface AuthResult {
   user?: User
   error?: string
   token?: string
+  message?: string
 }
 
 export interface AuthSession {
