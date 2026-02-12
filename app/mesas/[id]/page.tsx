@@ -97,7 +97,9 @@ export default function MesaPage() {
   const handleCreateNewCharacter = () => setViewMode('wizard')
   const handleUseExistingCharacter = () => setViewMode('pickCharacter')
 
-  const handleWizardComplete = async (data: Record<string, unknown>) => {
+  const handleWizardComplete = async (
+    data: Parameters<Parameters<typeof CharacterCreationWizard>[0]['onComplete']>[0]
+  ) => {
     if (!user || !tableId) return
     try {
       const created = await saveCharacter(user.id, data as CharacterWithMetadata['data'])
