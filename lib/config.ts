@@ -30,6 +30,8 @@ export const config = {
       LOGOUT: '/auth/logout',
       CURRENT_USER: '/auth/me',
       CHARACTERS: '/characters',
+      TABLES: '/tables',
+      TABLES_JOIN: '/tables/join',
     },
   },
   

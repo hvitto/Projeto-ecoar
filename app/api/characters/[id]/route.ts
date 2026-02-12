@@ -26,10 +26,25 @@ export async function GET(
 
   const { id } = await params
   try {
-    const rows = (await sql`
+    let rows = (await sql`
       SELECT id, user_id, name, data, created_at, updated_at
       FROM characters WHERE id = ${id} AND user_id = ${auth.userId} LIMIT 1
     `) as Array<{ id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }>
+    if (rows.length === 0) {
+      const memberRows = (await sql`
+        SELECT 1 FROM game_table_members gtm
+        JOIN game_tables gt ON gt.id = gtm.table_id
+        WHERE gtm.character_id = ${id}
+          AND (gtm.user_id = ${auth.userId} OR gt.gm_user_id = ${auth.userId})
+        LIMIT 1
+      `) as Array<{ '?column?': number }>
+      if (memberRows.length > 0) {
+        rows = (await sql`
+          SELECT id, user_id, name, data, created_at, updated_at
+          FROM characters WHERE id = ${id} LIMIT 1
+        `) as Array<{ id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }>
+      }
+    }
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Ficha não encontrada' }, { status: 404 })
     }
@@ -55,12 +70,28 @@ export async function PUT(
     const name = body?.nome ?? body?.name ?? 'Sem nome'
     const data = { ...body, id } as Record<string, unknown>
 
-    const rows = (await sql`
+    let rows = (await sql`
       UPDATE characters
       SET name = ${name}, data = ${JSON.stringify(data)}, updated_at = now()
       WHERE id = ${id} AND user_id = ${auth.userId}
       RETURNING id, user_id, name, data, created_at, updated_at
     `) as Array<{ id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }>
+    if (rows.length === 0) {
+      const gmRows = (await sql`
+        SELECT 1 FROM game_table_members gtm
+        JOIN game_tables gt ON gt.id = gtm.table_id
+        WHERE gtm.character_id = ${id} AND gt.gm_user_id = ${auth.userId}
+        LIMIT 1
+      `) as Array<{ '?column?': number }>
+      if (gmRows.length > 0) {
+        rows = (await sql`
+          UPDATE characters
+          SET name = ${name}, data = ${JSON.stringify(data)}, updated_at = now()
+          WHERE id = ${id}
+          RETURNING id, user_id, name, data, created_at, updated_at
+        `) as Array<{ id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }>
+      }
+    }
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Ficha não encontrada' }, { status: 404 })
     }

@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserCharacters, deleteCharacter } from '@/lib/storage/characterStorage'
+import { getUserTables } from '@/lib/storage/tablesApiService'
 import { CharacterWithMetadata } from '@/types/auth'
+import type { GameTable } from '@/types/tables'
 import CharacterCard from '@/components/ui/CharacterCard'
 import Button from '@/components/ui/Button'
-import { UserPlus, FileText, LogOut } from 'lucide-react'
+import { UserPlus, FileText, LogOut, Users, Plus, LogIn } from 'lucide-react'
 import Header from './Header'
 
 interface CharacterDashboardProps {
@@ -23,8 +26,27 @@ export default function CharacterDashboard({
 }: CharacterDashboardProps) {
   const { user, logout } = useAuth()
   const [characters, setCharacters] = useState<CharacterWithMetadata[]>([])
+  const [tables, setTables] = useState<GameTable[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [tablesLoading, setTablesLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const loadTables = useCallback(async () => {
+    try {
+      const list = await getUserTables()
+      setTables(list)
+    } catch {
+      setTables([])
+    } finally {
+      setTablesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      loadTables()
+    }
+  }, [user, loadTables])
 
   // Carregar fichas do usuário
   useEffect(() => {
@@ -119,6 +141,79 @@ export default function CharacterDashboard({
             </div>
           </div>
         </motion.div>
+
+        {/* Suas mesas */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900/90">
+              Suas mesas
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/mesas/criar">
+                <Button variant="secondary" leftIcon={Plus} size="md">
+                  Criar mesa
+                </Button>
+              </Link>
+              <Link href="/mesas/entrar">
+                <Button variant="ghost" leftIcon={LogIn} size="md">
+                  Entrar em uma mesa
+                </Button>
+              </Link>
+            </div>
+          </div>
+          {tablesLoading ? (
+            <p className="text-sm text-slate-500">Carregando mesas...</p>
+          ) : tables.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              Você não está em nenhuma mesa. Crie uma ou peça o link/código ao GM.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tables.map((t) => {
+                const nextSession = t.nextSessionAt
+                  ? new Date(t.nextSessionAt).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : null
+                return (
+                  <Link key={t.id} href={`/mesas/${t.id}`}>
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      className="p-4 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 hover:border-ecoar-teal-300 dark:hover:border-ecoar-teal/40 transition-colors cursor-pointer"
+                    >
+                      {t.coverImageUrl ? (
+                        <img
+                          src={t.coverImageUrl}
+                          alt=""
+                          className="w-full h-24 object-cover rounded-md mb-2"
+                        />
+                      ) : (
+                        <div className="w-full h-24 rounded-md bg-slate-100 dark:bg-ecoar-dark-700 flex items-center justify-center mb-2">
+                          <Users className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
+                      <h3 className="font-medium text-slate-900 dark:text-ecoar-light-900/90 truncate">
+                        {t.name}
+                      </h3>
+                      {nextSession && (
+                        <p className="text-xs text-ecoar-teal-600 dark:text-ecoar-teal-400 mt-0.5">
+                          Próxima sessão: {nextSession}
+                        </p>
+                      )}
+                    </motion.div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </motion.section>
 
         {/* Characters Grid */}
         {isLoading ? (
