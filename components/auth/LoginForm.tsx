@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import AuthCard from './AuthCard'
-import { LogIn, Mail, Lock } from 'lucide-react'
+import { LogIn } from 'lucide-react'
+import { AuthError } from '@/types/auth'
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void
@@ -21,6 +22,30 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(initialMessage || null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  const isEmailNotVerified = error === AuthError.EMAIL_NOT_VERIFIED
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) return
+    setResendLoading(true)
+    setResendMessage(null)
+    try {
+      const base = typeof window !== 'undefined' ? window.location.origin : ''
+      const res = await fetch(`${base}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await res.json()
+      setResendMessage(data.message || (data.success ? 'Email reenviado. Verifique sua caixa de entrada.' : data.error || 'Erro ao reenviar.'))
+    } catch {
+      setResendMessage('Erro ao reenviar. Tente novamente.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (initialMessage) setInfoMessage(initialMessage)
@@ -83,9 +108,23 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400"
+            className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 space-y-2"
           >
-            {error}
+            <p>{error}</p>
+            {isEmailNotVerified && (
+              <div className="pt-1">
+                <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/70 text-xs mb-1">Não recebeu o email? Verifique o spam ou reenvie o link de verificação.</p>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="text-ecoar-teal-600 dark:text-ecoar-teal-400 font-medium hover:underline text-xs"
+                >
+                  {resendLoading ? 'Enviando...' : 'Reenviar email de verificação'}
+                </button>
+                {resendMessage && <p className="text-xs mt-1 text-ecoar-dark-600 dark:text-ecoar-light-900/70">{resendMessage}</p>}
+              </div>
+            )}
           </motion.div>
         )}
 

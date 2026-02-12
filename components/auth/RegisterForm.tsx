@@ -15,7 +15,8 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) {
   const { register, isLoading } = useAuth()
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,17 +28,20 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
   const validateField = (field: string, value: string): string | null => {
     switch (field) {
-      case 'fullName':
-        if (!value.trim()) return 'Nome completo é obrigatório'
-        if (value.trim().length < 2) return 'Nome completo deve ter no mínimo 2 caracteres'
-        if (value.trim().length > 100) return 'Nome completo deve ter no máximo 100 caracteres'
+      case 'firstName':
+        if (!value.trim()) return 'Nome é obrigatório'
+        if (value.trim().length > 50) return 'Nome deve ter no máximo 50 caracteres'
+        return null
+      case 'lastName':
+        if (!value.trim()) return 'Sobrenome é obrigatório'
+        if (value.trim().length > 50) return 'Sobrenome deve ter no máximo 50 caracteres'
         return null
       case 'username':
         if (!value.trim()) return 'Nome de usuário é obrigatório'
-        const usernameTrimmed = value.trim().toLowerCase()
+        const usernameTrimmed = value.trim()
         if (usernameTrimmed.length < 3) return 'Nome de usuário deve ter no mínimo 3 caracteres'
         if (usernameTrimmed.length > 20) return 'Nome de usuário deve ter no máximo 20 caracteres'
-        if (!/^[a-z0-9_-]+$/.test(usernameTrimmed)) return 'Use apenas letras minúsculas, números, _ e -'
+        if (!/^[a-zA-Z0-9_-]+$/.test(usernameTrimmed)) return 'Use apenas letras, números, _ e -'
         if (usernameTrimmed.startsWith('-') || usernameTrimmed.startsWith('_') || usernameTrimmed.endsWith('-') || usernameTrimmed.endsWith('_')) {
           return 'Nome de usuário não pode começar ou terminar com - ou _'
         }
@@ -69,8 +73,10 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
     // Validações de todos os campos
     const errors: Record<string, string> = {}
     
-    const fullNameError = validateField('fullName', fullName)
-    if (fullNameError) errors.fullName = fullNameError
+    const firstNameError = validateField('firstName', firstName)
+    if (firstNameError) errors.firstName = firstNameError
+    const lastNameError = validateField('lastName', lastName)
+    if (lastNameError) errors.lastName = lastNameError
     
     const usernameError = validateField('username', username)
     if (usernameError) errors.username = usernameError
@@ -90,11 +96,12 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
       return
     }
 
+    const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
     const result = await register(
       email.trim(),
       password,
-      fullName.trim(),
-      username.trim().toLowerCase()
+      fullName,
+      username.trim()
     )
 
     if (result.success) {
@@ -186,22 +193,40 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Input
           type="text"
-          label="Nome Completo"
-          placeholder="Seu nome completo"
-          value={fullName}
+          label="Nome"
+          placeholder="Seu nome"
+          value={firstName}
           onChange={(e) => {
-            setFullName(e.target.value)
-            if (fieldErrors.fullName) {
+            setFirstName(e.target.value)
+            if (fieldErrors.firstName) {
               setFieldErrors(prev => {
                 const newErrors = { ...prev }
-                delete newErrors.fullName
+                delete newErrors.firstName
                 return newErrors
               })
             }
           }}
           disabled={isLoading || success}
-          error={fieldErrors.fullName}
-          helperText="Seu nome completo para identificação"
+          error={fieldErrors.firstName}
+        />
+
+        <Input
+          type="text"
+          label="Sobrenome"
+          placeholder="Seu sobrenome"
+          value={lastName}
+          onChange={(e) => {
+            setLastName(e.target.value)
+            if (fieldErrors.lastName) {
+              setFieldErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors.lastName
+                return newErrors
+              })
+            }
+          }}
+          disabled={isLoading || success}
+          error={fieldErrors.lastName}
         />
 
         <Input
@@ -210,9 +235,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
           placeholder="nome_usuario"
           value={username}
           onChange={(e) => {
-            // Converter para minúsculas automaticamente
-            const value = e.target.value.toLowerCase()
-            setUsername(value)
+            setUsername(e.target.value)
             if (fieldErrors.username) {
               setFieldErrors(prev => {
                 const newErrors = { ...prev }
@@ -287,7 +310,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
 
         <Button
           type="submit"
-          disabled={isLoading || success || !fullName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
+          disabled={isLoading || success || !firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
           leftIcon={UserPlus}
           className="w-full"
           size="lg"

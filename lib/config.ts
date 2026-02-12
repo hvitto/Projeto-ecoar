@@ -40,8 +40,8 @@ export const config = {
     // Nome completo: mínimo 2 caracteres, máximo 100, pode conter espaços e acentos
     MIN_FULLNAME_LENGTH: 2,
     MAX_FULLNAME_LENGTH: 100,
-    // Nome de usuário: apenas letras minúsculas, números, underscore e hífen
-    USERNAME_REGEX: /^[a-z0-9_-]+$/,
+    // Nome de usuário: letras (maiúsculas e minúsculas), números, underscore e hífen
+    USERNAME_REGEX: /^[a-zA-Z0-9_-]+$/,
     MIN_USERNAME_LENGTH: 3,
     MAX_USERNAME_LENGTH: 20,
   },

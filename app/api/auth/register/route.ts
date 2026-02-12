@@ -31,7 +31,7 @@ function validateFullName(fullName: string): string | null {
 }
 
 function validateUsername(username: string): string | null {
-  const t = username.trim().toLowerCase()
+  const t = username.trim()
   if (!t) return AuthError.USERNAME_REQUIRED
   if (t.length < MIN_USERNAME || t.length > MAX_USERNAME) return AuthError.INVALID_USERNAME
   if (!USERNAME_REGEX.test(t)) return AuthError.INVALID_USERNAME
@@ -65,13 +65,13 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = String(email).toLowerCase()
-    const normalizedUsername = String(username).trim().toLowerCase()
+    const usernameTrimmed = String(username).trim()
 
     const byEmail = (await sql`SELECT id FROM users WHERE email = ${normalizedEmail} LIMIT 1`) as Array<{ id: string }>
     if (byEmail.length > 0) {
       return NextResponse.json({ success: false, error: AuthError.EMAIL_ALREADY_EXISTS }, { status: 409 })
     }
-    const byUsername = (await sql`SELECT id FROM users WHERE username = ${normalizedUsername} LIMIT 1`) as Array<{ id: string }>
+    const byUsername = (await sql`SELECT id FROM users WHERE LOWER(username) = LOWER(${usernameTrimmed}) LIMIT 1`) as Array<{ id: string }>
     if (byUsername.length > 0) {
       return NextResponse.json({ success: false, error: AuthError.USERNAME_ALREADY_EXISTS }, { status: 409 })
     }
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(String(password))
     const rows = (await sql`
       INSERT INTO users (email, full_name, username, password_hash, auth_provider)
-      VALUES (${normalizedEmail}, ${String(fullName).trim()}, ${normalizedUsername}, ${passwordHash}, 'email')
+      VALUES (${normalizedEmail}, ${String(fullName).trim()}, ${usernameTrimmed}, ${passwordHash}, 'email')
       RETURNING id, email, full_name, username, created_at
     `) as Array<{ id: string; email: string; full_name: string; username: string; created_at: string }>
     const row = rows[0]
