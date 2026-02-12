@@ -177,7 +177,7 @@ export default function MesaPage() {
           </button>
         </div>
         <CharacterCreationWizard
-          initialData={selectedCharacter?.data}
+          initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
           onComplete={handleWizardComplete}
         />
       </div>
