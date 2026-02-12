@@ -19,11 +19,14 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                const theme = localStorage.getItem('ecoar-theme') || 
+                var theme = localStorage.getItem('ecoar-theme') || 
                   (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.setAttribute('data-theme', theme);
-                document.documentElement.classList.toggle('dark', theme === 'dark');
-                document.body.setAttribute('data-theme', theme);
+                var root = document.documentElement;
+                if (root) {
+                  root.setAttribute('data-theme', theme);
+                  root.classList.toggle('dark', theme === 'dark');
+                }
+                if (document.body) document.body.setAttribute('data-theme', theme);
               })();
             `,
           }}
