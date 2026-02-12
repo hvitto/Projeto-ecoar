@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Origens permitidas para CORS (frontend em domínio diferente da API)
+const DEFAULT_ORIGINS = 'https://ecoar.dev,https://www.ecoar.dev'
 const ALLOWED_ORIGINS = (
-  process.env.CORS_ORIGIN || 'https://ecoar.dev'
+  process.env.CORS_ORIGIN || DEFAULT_ORIGINS
 )
   .split(',')
   .map((o) => o.trim())
