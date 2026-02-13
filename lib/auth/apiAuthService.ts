@@ -61,6 +61,22 @@ export const apiAuthService = {
     return { success: false, error: data.error || 'Erro ao fazer login' }
   },
 
+  async loginDemo(): Promise<AuthResult> {
+    const response = await request(config.API.ENDPOINTS.DEMO, {
+      method: 'POST',
+      token: null,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Erro ao entrar com conta de teste' }
+    }
+    if (data.success && data.user && data.token) {
+      saveSession(data.token, data.user)
+      return { success: true, user: data.user, token: data.token }
+    }
+    return { success: false, error: data.error || 'Erro ao entrar com conta de teste' }
+  },
+
   async register(email: string, password: string, fullName: string, username: string): Promise<AuthResult> {
     const response = await request(config.API.ENDPOINTS.REGISTER, {
       method: 'POST',

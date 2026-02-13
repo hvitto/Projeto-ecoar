@@ -18,7 +18,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessage, onMessageShown }: LoginFormProps) {
-  const { login, isLoading } = useAuth()
+  const { login, loginDemo, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +69,16 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
       }
     } else {
       setError(result.error || 'Erro ao fazer login')
+    }
+  }
+
+  const handleDemoLogin = async () => {
+    setError(null)
+    const result = await loginDemo()
+    if (result.success && onSuccess) {
+      onSuccess()
+    } else {
+      setError(result.error || 'Erro ao entrar com conta de teste.')
     }
   }
 
@@ -188,6 +198,20 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
           </svg>
           Entrar com Google
         </motion.a>
+
+        <motion.div className="pt-2 border-t border-ecoar-dark-200 dark:border-ecoar-light-900/20" variants={staggerItem}>
+          <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/55 mb-2 text-center">Para testes:</p>
+          <Button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            variant="secondary"
+            size="lg"
+            className="w-full min-h-[44px] rounded-lg"
+          >
+            {isLoading ? 'Entrando...' : 'Entrar com conta de teste'}
+          </Button>
+        </motion.div>
       </motion.form>
     </AuthCard>
   )

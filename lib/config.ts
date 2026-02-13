@@ -26,6 +26,7 @@ export const config = {
     },
     ENDPOINTS: {
       LOGIN: '/auth/login',
+      DEMO: '/auth/demo',
       REGISTER: '/auth/register',
       LOGOUT: '/auth/logout',
       CURRENT_USER: '/auth/me',
@@ -46,6 +47,12 @@ export const config = {
     USERNAME_REGEX: /^[a-zA-Z0-9_-]+$/,
     MIN_USERNAME_LENGTH: 3,
     MAX_USERNAME_LENGTH: 20,
+  },
+
+  // Conta de teste para quem vai testar (apenas ambiente de testes; em produção pode omitir ou esconder no front)
+  DEMO_ACCOUNT: {
+    email: 'demo@ecoar.test',
+    password: 'demo123',
   },
 }
 
