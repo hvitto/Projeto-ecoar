@@ -61,9 +61,16 @@ interface CharacterSheetProps {
   canEdit?: boolean
   onBackToDashboard?: () => void
   onOpenEvolution?: () => void
+  onCharacterSaved?: (saved: any) => void
 }
 
-export default function CharacterSheet({ initialData, canEdit, onBackToDashboard, onOpenEvolution }: CharacterSheetProps) {
+export default function CharacterSheet({
+  initialData,
+  canEdit,
+  onBackToDashboard,
+  onOpenEvolution,
+  onCharacterSaved,
+}: CharacterSheetProps) {
   const [characterData, setCharacterData] = useState({
     // Basic Info
     pontosEvolucao: { atual: 0, max: 0 },
@@ -131,7 +138,12 @@ export default function CharacterSheet({ initialData, canEdit, onBackToDashboard
   const userTriggeredLimitsRef = useRef(false)
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('singularidades')
-  const [peToAdd, setPeToAdd] = useState<number>(0)
+  const [peToAdd, setPeToAdd] = useState<string>('')
+
+  const peToAddNumber = useMemo(() => {
+    const n = parseInt(peToAdd, 10)
+    return Number.isFinite(n) ? n : 0
+  }, [peToAdd])
 
   useEffect(() => {
     initialDataRef.current = initialData
@@ -809,6 +821,7 @@ export default function CharacterSheet({ initialData, canEdit, onBackToDashboard
       initialDataRef.current = saved.data
       editBackupRef.current = null
       setIsEditing(false)
+      onCharacterSaved?.(saved)
     } catch (e) {
       console.error('Erro ao salvar ficha:', e)
       alert('Erro ao salvar ficha. Tente novamente.')
@@ -824,6 +837,7 @@ export default function CharacterSheet({ initialData, canEdit, onBackToDashboard
       const payload = buildLimitsPayload()
       const saved = await saveCharacter(user.id, payload as any)
       initialDataRef.current = saved.data
+      onCharacterSaved?.(saved)
     } catch (e) {
       console.error('Erro ao salvar limites:', e)
     }
@@ -1000,23 +1014,31 @@ export default function CharacterSheet({ initialData, canEdit, onBackToDashboard
                       min="0"
                       value={peToAdd}
                       disabled={!isEditing}
-                      onChange={(e) => setPeToAdd(parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        if (raw === '') {
+                          setPeToAdd('')
+                          return
+                        }
+                        // Mantém controle como string para não “travar” em 0 durante digitação.
+                        setPeToAdd(raw)
+                      }}
                       placeholder="PE recebidos"
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <button
                       type="button"
-                      disabled={!isEditing || peToAdd <= 0}
+                      disabled={!isEditing || peToAddNumber <= 0}
                       onClick={() => {
-                        if (peToAdd <= 0) return
+                        if (peToAddNumber <= 0) return
                         setCharacterData(prev => ({
                           ...prev,
                           pontosEvolucao: {
-                            atual: Math.max(0, prev.pontosEvolucao.atual + peToAdd),
-                            max: Math.max(0, prev.pontosEvolucao.max + peToAdd),
+                            atual: Math.max(0, prev.pontosEvolucao.atual + peToAddNumber),
+                            max: Math.max(0, prev.pontosEvolucao.max + peToAddNumber),
                           },
                         }))
-                        setPeToAdd(0)
+                        setPeToAdd('')
                       }}
                       className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 disabled:opacity-50 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20"
                     >

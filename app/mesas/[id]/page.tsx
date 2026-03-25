@@ -201,6 +201,10 @@ export default function MesaPage() {
           initialData={selectedCharacter.data}
           canEdit={canEdit}
           onOpenEvolution={() => setViewMode('evolution')}
+          onCharacterSaved={(saved) => {
+            setSelectedCharacter(saved)
+            load()
+          }}
           onBackToDashboard={handleBackFromSheet}
         />
       </div>

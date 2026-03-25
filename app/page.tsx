@@ -203,6 +203,9 @@ function AppContent() {
               initialData={selectedCharacter.data}
                 canEdit={true}
                 onOpenEvolution={() => setViewMode('evolution')}
+                onCharacterSaved={(saved) => {
+                  setSelectedCharacter(saved)
+                }}
               onBackToDashboard={handleGoToDashboard}
             />
           </motion.div>

@@ -636,7 +636,7 @@ export default function CharacterEvolutionScreen({
                     className={`w-full text-left p-3 rounded-lg border transition-all ${
                       isActive
                         ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-sm'
-                        : 'border-slate-200 bg-slate-50 hover:border-ecoar-teal/30'
+                        : 'border-slate-200 bg-slate-50 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-700 hover:border-ecoar-teal/30'
                     }`}
                   >
                     <div className="font-semibold text-slate-900 dark:text-ecoar-light-900 text-sm">
@@ -678,7 +678,7 @@ export default function CharacterEvolutionScreen({
                       className={`w-full text-left p-3 rounded-lg border transition-all ${
                         selectedSkillId === s.id
                           ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-sm'
-                          : 'border-slate-200 bg-slate-50 hover:border-ecoar-teal/30'
+                        : 'border-slate-200 bg-slate-50 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-700 hover:border-ecoar-teal/30'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
