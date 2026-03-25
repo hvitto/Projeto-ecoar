@@ -9,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<AuthResult>
-  loginDemo: () => Promise<AuthResult>
+  loginDemo: (accountId?: string) => Promise<AuthResult>
   register: (email: string, password: string, fullName: string, username: string) => Promise<AuthResult>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -69,9 +69,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
-  const loginDemo = useCallback(async (): Promise<AuthResult> => {
+  const loginDemo = useCallback(async (accountId?: string): Promise<AuthResult> => {
     try {
-      const result = await authService.loginDemo()
+      const result = await authService.loginDemo(accountId)
       if (result.success && result.user) {
         setUser(result.user)
       }

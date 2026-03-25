@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motionVariants'
 import {
   User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
   TrendingUp, Sword, BookOpen, Package, FileText, Target,
-  Waves, Wind, Edit
+  Waves, Wind, Edit, ExternalLink
 } from 'lucide-react'
 import {
   getAttributeModifier,
@@ -25,8 +26,17 @@ import { getEcoarSingularityById } from '@/data/ecoarSingularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
+import type { CatalogEntry, CatalogOwnedItem } from '@/types/equipment'
+import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
+import {
+  catalogDisplayLine,
+  formatCerosDisplay,
+  newCatalogInstanceId,
+  parseCostLabelToCeros,
+} from '@/lib/equipmentCost'
 import Header from './Header'
 import { useAuth } from '@/contexts/AuthContext'
+import { useEquipmentCatalog } from '@/contexts/EquipmentCatalogContext'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 
 const ATTRIBUTE_STATE_KEYS = [
@@ -119,6 +129,10 @@ export default function CharacterSheet({
     
     // Equipment & Notes
     equipamentos: '',
+    saldoMoedas: 0,
+    itensCatalogo: [] as CatalogOwnedItem[],
+    equipamentosLivresText: '',
+    armasLivresText: '',
     espacos: '',
     anotacoes: '',
 
@@ -130,6 +144,7 @@ export default function CharacterSheet({
   })
 
   const { user } = useAuth()
+  const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const editBackupRef = useRef<typeof characterData | null>(null)
@@ -138,6 +153,7 @@ export default function CharacterSheet({
   const userTriggeredLimitsRef = useRef(false)
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('singularidades')
+  const [equipmentPickerOpen, setEquipmentPickerOpen] = useState(false)
   const [peToAdd, setPeToAdd] = useState<string>('')
 
   const peToAddNumber = useMemo(() => {
@@ -253,7 +269,26 @@ export default function CharacterSheet({
           })
         }
         
-        if (initialData.equipamentos || initialData.armas) {
+        const catInit = initialData.itensCatalogo
+        if (Array.isArray(catInit) && catInit.length > 0) {
+          updated.itensCatalogo = catInit as CatalogOwnedItem[]
+          const sm = initialData.saldoMoedas
+          updated.saldoMoedas =
+            typeof sm === 'number' && Number.isFinite(sm) ? sm : parseCostLabelToCeros(String(initialData.moeda ?? '')) ?? 0
+          updated.equipamentosLivresText = Array.isArray(initialData.equipamentosLivres)
+            ? initialData.equipamentosLivres.join('\n')
+            : ''
+          updated.armasLivresText = Array.isArray(initialData.armasLivres)
+            ? initialData.armasLivres.join('\n')
+            : ''
+          updated.equipamentos = ''
+        } else if (initialData.equipamentos || initialData.armas) {
+          updated.itensCatalogo = []
+          updated.equipamentosLivresText = ''
+          updated.armasLivresText = ''
+          const sm = initialData.saldoMoedas
+          updated.saldoMoedas =
+            typeof sm === 'number' && Number.isFinite(sm) ? sm : parseCostLabelToCeros(String(initialData.moeda ?? '')) ?? 0
           const equipList = [
             ...(initialData.equipamentos || []),
             ...(initialData.armas || []),
@@ -456,6 +491,50 @@ export default function CharacterSheet({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleEquipmentCatalogPick = useCallback((entry: CatalogEntry, custoCeros: number) => {
+    setCharacterData((prev) => {
+      let livresEq = prev.equipamentosLivresText
+      let livresAr = prev.armasLivresText
+      let equipLegacy = prev.equipamentos
+      if (prev.itensCatalogo.length === 0 && String(equipLegacy).trim() && !livresEq.trim() && !livresAr.trim()) {
+        livresEq = String(equipLegacy)
+        equipLegacy = ''
+      }
+      const displayLine = catalogDisplayLine(entry, custoCeros)
+      return {
+        ...prev,
+        equipamentos: equipLegacy,
+        equipamentosLivresText: livresEq,
+        armasLivresText: livresAr,
+        itensCatalogo: [
+          ...prev.itensCatalogo,
+          {
+            instanceId: newCatalogInstanceId(),
+            catalogId: entry.id,
+            kind: entry.kind,
+            nome: entry.name,
+            custoCeros,
+            displayLine,
+          },
+        ],
+        saldoMoedas: Math.max(0, prev.saldoMoedas - custoCeros),
+      }
+    })
+  }, [])
+
+  const removeSheetCatalogItem = useCallback((instanceId: string) => {
+    setCharacterData((prev) => {
+      const item = prev.itensCatalogo.find((i) => i.instanceId === instanceId)
+      const next = prev.itensCatalogo.filter((i) => i.instanceId !== instanceId)
+      const refund = item?.custoCeros ?? 0
+      return {
+        ...prev,
+        itensCatalogo: next,
+        saldoMoedas: prev.saldoMoedas + refund,
+      }
+    })
   }, [])
 
   const updateField = (path: string, value: any) => {
@@ -699,6 +778,77 @@ export default function CharacterSheet({
   const buildFullPayload = useCallback(() => {
     const base = initialDataRef.current ?? {}
 
+    const attributesPayload = {
+      carisma: characterData.carisma.nivel,
+      finesse: characterData.finesse.nivel,
+      forca: characterData.forca.nivel,
+      inteligencia: characterData.inteligencia.nivel,
+      percepcao: characterData.percepcao.nivel,
+      vitalidade: characterData.vitalidade.nivel,
+      vontade: characterData.vontade.nivel,
+    }
+
+    const eqLivresLines = characterData.equipamentosLivresText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    const arLivresLines = characterData.armasLivresText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    const useStructuredEquipment =
+      characterData.itensCatalogo.length > 0 || eqLivresLines.length > 0 || arLivresLines.length > 0
+
+    const commonPayload = {
+      ...base,
+      nivelAlma,
+      nivelPoder,
+      nivelTrilha,
+      nome: characterData.nome,
+      raca: characterData.raca,
+      localizacao: characterData.localizacao,
+      trilha: characterData.trilha,
+      pontosEvolucao: characterData.pontosEvolucao,
+      tamanho: characterData.tamanho,
+      peso: characterData.peso,
+      attributes: attributesPayload,
+      corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
+      mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
+      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
+      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
+      deslocamento: {
+        terrestre: parseMeters(characterData.terrestre),
+        aquatico: parseMeters(characterData.aquatico),
+        aereo: parseMeters(characterData.aereo),
+      },
+      sentidos: {
+        visao: parseMeters(characterData.visao),
+        audicao: parseMeters(characterData.audicao),
+        olfato: parseMeters(characterData.olfato),
+      },
+      backstory: characterData.anotacoes,
+      singularidades: characterData.singularidades,
+      singularidadesEcoar: characterData.singularidadesEcoar,
+      singularidadesMarciais: characterData.singularidadesMarciais,
+      singularidadesRaciais: characterData.singularidadesRaciais,
+      saldoMoedas: characterData.saldoMoedas,
+      moeda: formatCerosDisplay(characterData.saldoMoedas),
+    }
+
+    if (useStructuredEquipment) {
+      const cat = characterData.itensCatalogo
+      const catEq = cat.filter((i) => i.kind !== 'weapon').map((i) => i.displayLine)
+      const catAr = cat.filter((i) => i.kind === 'weapon').map((i) => i.displayLine)
+      return {
+        ...commonPayload,
+        equipamentos: [...catEq, ...eqLivresLines],
+        armas: [...catAr, ...arLivresLines],
+        itensCatalogo: cat,
+        equipamentosLivres: eqLivresLines,
+        armasLivres: arLivresLines,
+      }
+    }
+
     const allLines = String(characterData.equipamentos ?? '')
       .split('\n')
       .map((l) => l.trim())
@@ -720,59 +870,17 @@ export default function CharacterSheet({
       equipamentosPayload = []
       armasPayload = allLines
     } else {
-      // Fallback: se o backend não tinha split, salvamos tudo como equipamentos
       equipamentosPayload = allLines
       armasPayload = []
     }
 
-    const attributesPayload = {
-      carisma: characterData.carisma.nivel,
-      finesse: characterData.finesse.nivel,
-      forca: characterData.forca.nivel,
-      inteligencia: characterData.inteligencia.nivel,
-      percepcao: characterData.percepcao.nivel,
-      vitalidade: characterData.vitalidade.nivel,
-      vontade: characterData.vontade.nivel,
-    }
-
     return {
-      ...base,
-      // Keep computed levels in sync when PE is edited
-      nivelAlma,
-      nivelPoder,
-      nivelTrilha,
-      nome: characterData.nome,
-      raca: characterData.raca,
-      localizacao: characterData.localizacao,
-      trilha: characterData.trilha,
-      pontosEvolucao: characterData.pontosEvolucao,
-      tamanho: characterData.tamanho,
-      peso: characterData.peso,
-      attributes: attributesPayload,
-      // Limits
-      corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
-      mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
-      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
-      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
-      // Movement/Senses
-      deslocamento: {
-        terrestre: parseMeters(characterData.terrestre),
-        aquatico: parseMeters(characterData.aquatico),
-        aereo: parseMeters(characterData.aereo),
-      },
-      sentidos: {
-        visao: parseMeters(characterData.visao),
-        audicao: parseMeters(characterData.audicao),
-        olfato: parseMeters(characterData.olfato),
-      },
-      // Notes
-      backstory: characterData.anotacoes,
-      // Equipment split
+      ...commonPayload,
       equipamentos: equipamentosPayload,
       armas: armasPayload,
-      // Singularities
-      singularidades: characterData.singularidades,
-      singularidadesEcoar: characterData.singularidadesEcoar,
+      itensCatalogo: [],
+      equipamentosLivres: [],
+      armasLivres: [],
     }
   }, [
     characterData,
@@ -1640,20 +1748,145 @@ export default function CharacterSheet({
 
               {activeSidebarTab === 'equipamentos' && (
                 <div className="mt-4 space-y-3">
-                  <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
-                    <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Sistema de Equipamentos em desenvolvimento</div>
-                    <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-1">
-                      Ainda não finalizamos o sistema de equipamentos.
-                    </div>
-                  </div>
+                  {(() => {
+                    const sheetUsesStructuredEquip =
+                      characterData.itensCatalogo.length > 0 ||
+                      characterData.equipamentosLivresText.trim() !== '' ||
+                      characterData.armasLivresText.trim() !== ''
 
-                  <textarea
-                    value={characterData.equipamentos}
-                    disabled={!isEditing}
-                    onChange={(e) => updateField('equipamentos', e.target.value)}
-                    placeholder="Liste seus equipamentos..."
-                    className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
+                    return (
+                      <>
+                        <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
+                          <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Saldo (ceros)</div>
+                          <input
+                            type="number"
+                            min={0}
+                            disabled={!isEditing}
+                            value={characterData.saldoMoedas}
+                            onChange={(e) => {
+                              const n = parseInt(e.target.value, 10)
+                              updateField('saldoMoedas', Number.isFinite(n) ? Math.max(0, n) : 0)
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm text-ecoar-dark-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                          />
+                          <p className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
+                            Exibido também como {formatCerosDisplay(characterData.saldoMoedas)}
+                          </p>
+                          {isEditing && (
+                            <button
+                              type="button"
+                              onClick={() => setEquipmentPickerOpen(true)}
+                              className="w-full mt-1 px-3 py-2 rounded-lg text-xs font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30"
+                            >
+                              Abrir catálogo (compra)
+                            </button>
+                          )}
+                          <Link
+                            href="/referencia/aquisicao-equipamentos"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs inline-flex items-center gap-1 text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                            Referência completa (nova aba)
+                          </Link>
+                        </div>
+
+                        {sheetUsesStructuredEquip ? (
+                          <>
+                            {characterData.itensCatalogo.length > 0 && (
+                              <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
+                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Do catálogo</div>
+                                <ul className="space-y-1.5 text-xs">
+                                  {characterData.itensCatalogo.map((item) => (
+                                    <li
+                                      key={item.instanceId}
+                                      className="flex items-start justify-between gap-2 py-1.5 px-2 rounded-md bg-white dark:bg-ecoar-dark-800/50 border border-slate-100 dark:border-ecoar-light-900/10"
+                                    >
+                                      <span className="text-slate-800 dark:text-ecoar-light-900/85 break-words">{item.displayLine}</span>
+                                      {isEditing && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removeSheetCatalogItem(item.instanceId)}
+                                          className="shrink-0 text-ecoar-magenta text-[11px] hover:underline"
+                                        >
+                                          Remover
+                                        </button>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
+                                Outros equipamentos (uma linha por item)
+                              </div>
+                              <textarea
+                                value={characterData.equipamentosLivresText}
+                                disabled={!isEditing}
+                                onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
+                                placeholder="Itens fora do catálogo…"
+                                className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
+                                Outras armas (uma linha por item)
+                              </div>
+                              <textarea
+                                value={characterData.armasLivresText}
+                                disabled={!isEditing}
+                                onChange={(e) => updateField('armasLivresText', e.target.value)}
+                                placeholder="Armas fora do catálogo…"
+                                className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <textarea
+                            value={characterData.equipamentos}
+                            disabled={!isEditing}
+                            onChange={(e) => updateField('equipamentos', e.target.value)}
+                            placeholder="Liste seus equipamentos..."
+                            className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
+                          />
+                        )}
+
+                        {equipmentPickerOpen && (
+                          <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
+                            <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
+                              <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+                                  Catálogo de aquisição
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setEquipmentPickerOpen(false)}
+                                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
+                                >
+                                  Fechar
+                                </button>
+                              </div>
+                              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
+                                <EquipmentCatalogBrowser
+                                  mode="picker"
+                                  urlSync={false}
+                                  saldoDisponivel={characterData.saldoMoedas}
+                                  onPickItem={handleEquipmentCatalogPick}
+                                  showCostMultiplierTables={false}
+                                  weaponCatalog={weapons}
+                                  armorCatalog={armor}
+                                  utilityCatalog={utilities}
+                                  costMultiplierTables={multiplierTables}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </motion.div>

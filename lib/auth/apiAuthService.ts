@@ -20,6 +20,11 @@ function getStoredToken(): string | null {
   }
 }
 
+/** JWT atual (cliente) para chamadas `fetch` com `Authorization: Bearer`. */
+export function getAccessToken(): string | null {
+  return getStoredToken()
+}
+
 function saveSession(token: string, user: User): void {
   if (typeof window === 'undefined') return
   const session = {
@@ -61,10 +66,11 @@ export const apiAuthService = {
     return { success: false, error: data.error || 'Erro ao fazer login' }
   },
 
-  async loginDemo(): Promise<AuthResult> {
+  async loginDemo(accountId?: string): Promise<AuthResult> {
     const response = await request(config.API.ENDPOINTS.DEMO, {
       method: 'POST',
       token: null,
+      body: accountId ? JSON.stringify({ accountId }) : JSON.stringify({}),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {

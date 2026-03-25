@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import AuthCard from './AuthCard'
 import { LogIn } from 'lucide-react'
 import { AuthError } from '@/types/auth'
+import { DEMO_ACCOUNTS } from '@/lib/config'
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void
@@ -72,9 +73,9 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
     }
   }
 
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = async (accountId: string) => {
     setError(null)
-    const result = await loginDemo()
+    const result = await loginDemo(accountId)
     if (result.success && onSuccess) {
       onSuccess()
     } else {
@@ -200,17 +201,24 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
         </motion.a>
 
         <motion.div className="pt-2 border-t border-ecoar-dark-200 dark:border-ecoar-light-900/20" variants={staggerItem}>
-          <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/55 mb-2 text-center">Para testes:</p>
-          <Button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            variant="secondary"
-            size="lg"
-            className="w-full min-h-[44px] rounded-lg"
-          >
-            {isLoading ? 'Entrando...' : 'Entrar com conta de teste'}
-          </Button>
+          <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/55 mb-2 text-center">
+            Contas de teste (senha comum: <span className="font-mono">demo123</span> se entrar por email):
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <Button
+                key={acc.id}
+                type="button"
+                onClick={() => void handleDemoLogin(acc.id)}
+                disabled={isLoading}
+                variant="secondary"
+                size="sm"
+                className="w-full min-h-[40px] rounded-lg text-xs justify-center"
+              >
+                {isLoading ? 'Entrando...' : acc.label}
+              </Button>
+            ))}
+          </div>
         </motion.div>
       </motion.form>
     </AuthCard>

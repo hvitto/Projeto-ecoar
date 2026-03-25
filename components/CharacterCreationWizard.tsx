@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
 import { fadeInUp, motionTransition } from '@/lib/motionVariants'
@@ -9,7 +10,7 @@ import {
   Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
   CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
   Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X
+  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
 } from 'lucide-react'
 import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/components/ui'
 import SingularityCard from '@/components/ui/SingularityCard'
@@ -61,6 +62,10 @@ import {
   CacadaPower,
   CacadaEnhancement,
 } from '@/data/pathSingularities'
+import type { CatalogEntry, CatalogOwnedItem } from '@/types/equipment'
+import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
+import { useEquipmentCatalog } from '@/contexts/EquipmentCatalogContext'
+import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
 
 interface CharacterCreationData {
   // Níveis do personagem
@@ -147,6 +152,13 @@ interface CharacterCreationData {
   // Step 14: Equipment
   equipamentos: string[]
   armas: string[]
+  /** Itens comprados pelo catálogo (saldo debitado). */
+  itensCatalogo?: CatalogOwnedItem[]
+  saldoMoedas?: number
+  /** Linhas livres quando há itens de catálogo (round-trip na edição). */
+  equipamentosLivres?: string[]
+  armasLivres?: string[]
+  moeda?: string
 }
 
 interface CharacterCreationWizardProps {
@@ -197,6 +209,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [personalidade, setPersonalidade] = useState('')
   const [equipamentos, setEquipamentos] = useState<string[]>([])
   const [armas, setArmas] = useState<string[]>([])
+  const [itensCatalogo, setItensCatalogo] = useState<CatalogOwnedItem[]>([])
   const [raceBonuses, setRaceBonuses] = useState<Record<string, number>>({})
   const [martialSchoolBonuses, setMartialSchoolBonuses] = useState<Record<string, number>>({})
   const hasInitialized = useRef(false)
@@ -271,12 +284,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     if (initialData.tracoNegativo) setTracoNegativo(initialData.tracoNegativo)
     if (initialData.personalidade) setPersonalidade(initialData.personalidade)
 
-    // Initialize equipment
-    if (initialData.equipamentos) {
-      setEquipamentos(initialData.equipamentos)
-    }
-    if (initialData.armas) {
-      setArmas(initialData.armas)
+    // Initialize equipment (catálogo + linhas livres ou legado só com arrays)
+    const cat = initialData.itensCatalogo
+    if (Array.isArray(cat) && cat.length > 0) {
+      setItensCatalogo(cat as CatalogOwnedItem[])
+      setEquipamentos(Array.isArray(initialData.equipamentosLivres) ? initialData.equipamentosLivres : [])
+      setArmas(Array.isArray(initialData.armasLivres) ? initialData.armasLivres : [])
+    } else {
+      setItensCatalogo([])
+      if (initialData.equipamentos) setEquipamentos(initialData.equipamentos)
+      if (initialData.armas) setArmas(initialData.armas)
     }
 
     // Skip introduction screen when editing
@@ -433,6 +450,33 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     setAttributePoints(Math.max(0, 12 - totalBasePoints))
   }, [attributes, raceBonuses, martialSchoolBonuses])
 
+  const equipmentOrcamentoCeros = useMemo(
+    () =>
+      (nivelAlmaInicial > 1 ? (getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0) * 50 : 0) +
+      pontosCriacao.disponiveis * 100,
+    [nivelAlmaInicial, pontosCriacao.disponiveis]
+  )
+
+  const equipmentGastoCeros = useMemo(() => sumCatalogItemsCeros(itensCatalogo), [itensCatalogo])
+
+  const equipmentSaldoRestante = equipmentOrcamentoCeros - equipmentGastoCeros
+
+  const mergedEquipamentosLista = useMemo(
+    () => [
+      ...itensCatalogo.filter((i) => i.kind !== 'weapon').map((i) => i.displayLine),
+      ...equipamentos,
+    ],
+    [itensCatalogo, equipamentos]
+  )
+
+  const mergedArmasLista = useMemo(
+    () => [
+      ...itensCatalogo.filter((i) => i.kind === 'weapon').map((i) => i.displayLine),
+      ...armas,
+    ],
+    [itensCatalogo, armas]
+  )
+
   const canProceed = useMemo(() => {
     switch (currentStep) {
       case 0:
@@ -449,13 +493,13 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
       case 5:
         return true // Gastando PC - pode avançar (validação feita internamente nas tabs)
       case 6:
-        return true // Equipamentos
+        return equipmentSaldoRestante >= 0 // Orçamento de aquisição não pode ficar negativo
       case 7:
         return nome.trim() !== '' // Finalização - precisa de nome
       default:
         return false
     }
-  }, [currentStep, selectedRaca, attributes, attributePoints, skillPoints, nome])
+  }, [currentStep, selectedRaca, attributes, attributePoints, skillPoints, nome, equipmentSaldoRestante])
 
   const handleNext = useCallback(() => {
     if (canProceed && currentStep < 7) {
@@ -482,6 +526,10 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
       const nivelPoder = soulLevel?.nivelPoder ?? 3
       const nivelTrilha = getPathLevelFromSoulLevel(nivelAlmaInicial)
       // Keep tamanho and peso as strings (they can be numeric strings for modifiers or text for custom values)
+      const catEquipLines = itensCatalogo.filter((i) => i.kind !== 'weapon').map((i) => i.displayLine)
+      const catArmaLines = itensCatalogo.filter((i) => i.kind === 'weapon').map((i) => i.displayLine)
+      const saldoMoedas = Math.max(0, equipmentOrcamentoCeros - sumCatalogItemsCeros(itensCatalogo))
+
       onComplete({
         nivelAlma: nivelAlmaInicial,
         nivelPoder,
@@ -514,11 +562,45 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
         tracoPositivo,
         tracoNegativo,
         personalidade,
-        equipamentos,
-        armas,
+        equipamentos: [...catEquipLines, ...equipamentos],
+        armas: [...catArmaLines, ...armas],
+        itensCatalogo,
+        saldoMoedas,
+        equipamentosLivres: equipamentos,
+        armasLivres: armas,
+        moeda: formatCerosDisplay(saldoMoedas),
       })
     }
-  }, [canProceed, onComplete, nivelAlmaInicial, selectedRaca, selectedEscolaMarcial, selectedLocalizacao, attributes, skills, aptitudes, tamanho, peso, deslocamento, sentidos, selectedTrilha, singularidades, selectedEcoar, singularidadesEcoar, singularidadesRaciais, pontosCriacao, nome, backstory, tracoPositivo, tracoNegativo, personalidade, equipamentos, armas])
+  }, [
+    canProceed,
+    onComplete,
+    nivelAlmaInicial,
+    selectedRaca,
+    selectedEscolaMarcial,
+    selectedLocalizacao,
+    attributes,
+    skills,
+    aptitudes,
+    tamanho,
+    peso,
+    deslocamento,
+    sentidos,
+    selectedTrilha,
+    singularidades,
+    selectedEcoar,
+    singularidadesEcoar,
+    singularidadesRaciais,
+    pontosCriacao,
+    nome,
+    backstory,
+    tracoPositivo,
+    tracoNegativo,
+    personalidade,
+    equipamentos,
+    armas,
+    itensCatalogo,
+    equipmentOrcamentoCeros,
+  ])
 
   const updateAttribute = (attr: string, newTotalValue: number) => {
     const attrKey = attr as keyof typeof attributes
@@ -1130,16 +1212,20 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
 
                 {/* Step 6: Equipamentos */}
                 {currentStep === 6 && (
-                  <EquipmentStep
-                    equipamentos={equipamentos}
-                    armas={armas}
-                    onEquipamentosChange={setEquipamentos}
-                    onArmasChange={setArmas}
-                    dinheiroExtra={
-                      (nivelAlmaInicial > 1 ? (getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0) * 50 : 0) +
-                      (pontosCriacao.disponiveis * 100) // Cada PC não utilizado = 100 moedas
-                    }
-                  />
+                  <>
+                    {equipmentSaldoRestante < 0 && (
+                      <div className="mb-4 p-4 rounded-lg border-2 border-ecoar-magenta/40 bg-ecoar-magenta/10 text-sm text-slate-800 dark:text-ecoar-light-900/90">
+                        <strong>Orçamento insuficiente.</strong> Remova itens do catálogo ou volte para ajustar Pontos de Criação não
+                        gastos — o saldo ficou negativo em {formatCerosDisplay(Math.abs(equipmentSaldoRestante))}.
+                      </div>
+                    )}
+                    <EquipmentStep
+                      itensCatalogo={itensCatalogo}
+                      onItensCatalogoChange={setItensCatalogo}
+                      orcamentoCeros={equipmentOrcamentoCeros}
+                      saldoRestanteCeros={equipmentSaldoRestante}
+                    />
+                  </>
                 )}
 
                 {/* Step 7: Finalização */}
@@ -1416,32 +1502,32 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                 )}
 
                 {/* Equipamentos */}
-                {(equipamentos.length > 0 || armas.length > 0) && (
+                {(mergedEquipamentosLista.length > 0 || mergedArmasLista.length > 0) && (
                   <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
                     <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
                       <Package className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
                       Equipamentos
                     </div>
                     <div className="space-y-1">
-                      {equipamentos.length > 0 && (
+                      {mergedEquipamentosLista.length > 0 && (
                         <div>
                           <div className="text-slate-600 dark:text-ecoar-light-900/60 text-[10px] mb-1">Equipamentos:</div>
-                          {equipamentos.slice(0, 3).map((item, idx) => (
+                          {mergedEquipamentosLista.slice(0, 3).map((item, idx) => (
                             <div key={idx} className="p-1.5 bg-slate-50 dark:bg-ecoar-light-900/10 rounded border border-slate-200 dark:border-ecoar-light-900/20 text-xs mb-1">
                               <span className="text-slate-700 dark:text-ecoar-light-900/80">{item}</span>
                             </div>
                           ))}
-                          {equipamentos.length > 3 && (
+                          {mergedEquipamentosLista.length > 3 && (
                             <div className="text-slate-400 dark:text-ecoar-light-900/40 text-[10px] text-center pt-1">
-                              +{equipamentos.length - 3} mais
+                              +{mergedEquipamentosLista.length - 3} mais
                             </div>
                           )}
                         </div>
                       )}
-                      {armas.length > 0 && (
+                      {mergedArmasLista.length > 0 && (
                         <div className="mt-2">
                           <div className="text-slate-600 dark:text-ecoar-light-900/60 text-[10px] mb-1">Armas:</div>
-                          {armas.slice(0, 3).map((item, idx) => (
+                          {mergedArmasLista.slice(0, 3).map((item, idx) => (
                             <SummaryItem
                               key={idx}
                               label={item}
@@ -1449,9 +1535,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                               className="text-xs mb-1"
                             />
                           ))}
-                          {armas.length > 3 && (
+                          {mergedArmasLista.length > 3 && (
                             <div className="text-slate-400 dark:text-ecoar-light-900/40 text-[10px] text-center pt-1">
-                              +{armas.length - 3} mais
+                              +{mergedArmasLista.length - 3} mais
                             </div>
                           )}
                         </div>
@@ -3731,41 +3817,36 @@ function AttributesStep({
 }
 
 function EquipmentStep({
-  equipamentos,
-  armas,
-  onEquipamentosChange,
-  onArmasChange,
-  dinheiroExtra = 0,
+  itensCatalogo,
+  onItensCatalogoChange,
+  orcamentoCeros,
+  saldoRestanteCeros,
 }: {
-  equipamentos: string[]
-  armas: string[]
-  onEquipamentosChange: (items: string[]) => void
-  onArmasChange: (items: string[]) => void
-  dinheiroExtra?: number
+  itensCatalogo: CatalogOwnedItem[]
+  onItensCatalogoChange: (items: CatalogOwnedItem[]) => void
+  orcamentoCeros: number
+  saldoRestanteCeros: number
 }) {
-  const [newEquipamento, setNewEquipamento] = useState('')
-  const [newArma, setNewArma] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
 
-  const addEquipamento = () => {
-    if (newEquipamento.trim()) {
-      onEquipamentosChange([...equipamentos, newEquipamento.trim()])
-      setNewEquipamento('')
-    }
+  const handlePickCatalog = (entry: CatalogEntry, custoCeros: number) => {
+    const displayLine = catalogDisplayLine(entry, custoCeros)
+    onItensCatalogoChange([
+      ...itensCatalogo,
+      {
+        instanceId: newCatalogInstanceId(),
+        catalogId: entry.id,
+        kind: entry.kind,
+        nome: entry.name,
+        custoCeros,
+        displayLine,
+      },
+    ])
   }
 
-  const removeEquipamento = (index: number) => {
-    onEquipamentosChange(equipamentos.filter((_, i) => i !== index))
-  }
-
-  const addArma = () => {
-    if (newArma.trim()) {
-      onArmasChange([...armas, newArma.trim()])
-      setNewArma('')
-    }
-  }
-
-  const removeArma = (index: number) => {
-    onArmasChange(armas.filter((_, i) => i !== index))
+  const removeCatalogItem = (instanceId: string) => {
+    onItensCatalogoChange(itensCatalogo.filter((i) => i.instanceId !== instanceId))
   }
 
   return (
@@ -3776,119 +3857,104 @@ function EquipmentStep({
           <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
             <Package className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-0.5">
               Equipamentos & Armas
             </h3>
-            <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">Adicione seus equipamentos e armas</p>
-            {dinheiroExtra > 0 && (
-              <div className="mt-3 inline-block p-3 bg-ecoar-teal/10 border border-ecoar-teal/30 rounded-lg">
+            <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
+              Escolha itens no catálogo; o custo é descontado do orçamento. Na ficha você pode anotar itens extras à mão, se precisar.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="inline-flex p-3 bg-ecoar-teal/10 border border-ecoar-teal/30 rounded-lg">
                 <p className="text-xs text-slate-900 dark:text-ecoar-light-900">
-                  <span className="font-semibold text-ecoar-teal">Dinheiro Extra:</span> ȼ{dinheiroExtra}
+                  <span className="font-semibold text-ecoar-teal">Orçamento:</span>{' '}
+                  <span className="tabular-nums">{formatCerosDisplay(orcamentoCeros)}</span>
+                  <span className="mx-2 text-slate-400">·</span>
+                  <span className="font-semibold text-ecoar-teal">Saldo:</span>{' '}
+                  <span className={`tabular-nums ${saldoRestanteCeros < 0 ? 'text-ecoar-magenta' : ''}`}>
+                    {formatCerosDisplay(Math.max(0, saldoRestanteCeros))}
+                  </span>
                 </p>
               </div>
-            )}
+              <motion.button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-ecoar-teal to-ecoar-magenta text-slate-900 dark:text-ecoar-light-900 border border-ecoar-teal/30 shadow-md"
+              >
+                Abrir catálogo
+              </motion.button>
+              <Link
+                href="/referencia/aquisicao-equipamentos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline inline-flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3 shrink-0" />
+                Referência completa (nova aba)
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Equipment Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Sword className="w-5 h-5 text-ecoar-teal" />
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">Equipamentos</h4>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newEquipamento}
-              onChange={(e) => setNewEquipamento(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addEquipamento()}
-              placeholder="Adicionar equipamento..."
-              className="flex-1 px-4 py-2 bg-slate-50 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 rounded-lg text-slate-900 dark:text-ecoar-light-900 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-ecoar-teal focus:border-ecoar-teal"
-            />
-            <motion.button
-              onClick={addEquipamento}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 text-slate-900 dark:text-ecoar-light-900 rounded-lg font-semibold transition-all shadow-lg shadow-ecoar-teal/20 border border-ecoar-teal/30"
-            >
-              +
-            </motion.button>
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-            {equipamentos.length === 0 ? (
-              <div className="text-slate-900 dark:text-ecoar-light-900/40 text-center py-8 text-sm">Nenhum equipamento adicionado</div>
-            ) : (
-              equipamentos.map((item, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30 transition-all"
+      <div className="p-4 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/80 dark:bg-ecoar-dark-800/40">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 mb-2">Itens escolhidos</h4>
+        {itensCatalogo.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-ecoar-light-900/50 text-center py-6">
+            Nenhum item ainda. Use &quot;Abrir catálogo&quot; para adicionar equipamentos e armas.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {itensCatalogo.map((item) => (
+              <li
+                key={item.instanceId}
+                className="flex items-center justify-between gap-2 text-sm text-slate-800 dark:text-ecoar-light-900/90 py-2 px-3 rounded-md bg-white dark:bg-ecoar-dark-800/60 border border-slate-200 dark:border-ecoar-light-900/15"
+              >
+                <span className="min-w-0 break-words">{item.displayLine}</span>
+                <button
+                  type="button"
+                  onClick={() => removeCatalogItem(item.instanceId)}
+                  className="shrink-0 text-ecoar-magenta hover:underline text-xs"
                 >
-                  <span className="text-slate-900 dark:text-ecoar-light-900 text-sm">{item}</span>
-                  <button
-                    onClick={() => removeEquipamento(index)}
-                    className="text-slate-500 dark:text-ecoar-light-900/60 hover:text-ecoar-magenta px-2 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Weapons Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Sword className="w-5 h-5 text-ecoar-magenta" />
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">Armas</h4>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newArma}
-              onChange={(e) => setNewArma(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addArma()}
-              placeholder="Adicionar arma..."
-              className="flex-1 px-4 py-2 bg-slate-50 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 rounded-lg text-slate-900 dark:text-ecoar-light-900 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-ecoar-magenta focus:border-ecoar-magenta"
-            />
-            <motion.button
-              onClick={addArma}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 text-slate-900 dark:text-ecoar-light-900 rounded-lg font-semibold transition-all shadow-lg shadow-ecoar-magenta/20 border border-ecoar-magenta/30"
-            >
-              +
-            </motion.button>
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-            {armas.length === 0 ? (
-              <div className="text-slate-900 dark:text-ecoar-light-900/40 text-center py-8 text-sm">Nenhuma arma adicionada</div>
-            ) : (
-              armas.map((item, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-magenta/30 transition-all"
-                >
-                  <span className="text-slate-900 dark:text-ecoar-light-900 text-sm">{item}</span>
-                  <button
-                    onClick={() => removeArma(index)}
-                    className="text-slate-500 dark:text-ecoar-light-900/60 hover:text-ecoar-magenta px-2 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </div>
+                  Remover
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      {pickerOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
+          <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
+              <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">Catálogo de aquisição</span>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
+              <EquipmentCatalogBrowser
+                mode="picker"
+                urlSync={false}
+                saldoDisponivel={saldoRestanteCeros}
+                onPickItem={handlePickCatalog}
+                showCostMultiplierTables={false}
+                weaponCatalog={weapons}
+                armorCatalog={armor}
+                utilityCatalog={utilities}
+                costMultiplierTables={multiplierTables}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

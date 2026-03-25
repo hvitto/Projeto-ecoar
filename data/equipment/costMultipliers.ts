@@ -1,0 +1,66 @@
+import type { CostMultiplierRow, CostMultiplierTable } from '@/types/equipment'
+
+/** Tabelas de multiplicador de custo por estilo (Reclusa, Vapor-Alquímico, etc.). Conferir PDF v0.6.3a em caso de dúvida. */
+export const equipmentCostMultiplierTables: CostMultiplierTable[] = [
+  {
+    id: 'weapons',
+    title: 'Armas — multiplicadores de custo por grupo',
+    rows: [
+      { group: 'Escudos', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas de briga', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Armas de contusão', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Armas de haste', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Machados', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Lâminas', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Lâminas de duelista', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Arcos', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Arremessáveis', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Armas arcanas', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas de fé', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas artísticas', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Bestas', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas a vapor', reclusa: '×2', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas de fogo', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas especiais', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Armas gravitacionais', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Artilharia clássica', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Canhões e morteiros', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Lançadores', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Aríetes', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Urnas', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Granadas (tipo urna/runas)', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Runas', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armas municiadas (geral)', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Explosivos / minas', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+    ],
+  },
+  {
+    id: 'clothing',
+    title: 'Vestuário — multiplicadores de custo por grupo',
+    rows: [
+      { group: 'Armaduras Reclusas', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armaduras de Vapor-Alquímico', reclusa: '×2', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armaduras Darenferrum', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Armaduras Imaculadas', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Capacetes Reclusos', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Capacetes Darenferrum', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Capacetes Imaculados', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Acessórios Universais', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Acessórios Reclusos', reclusa: '×1', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Acessórios de Vapor-Alquímico', reclusa: '×2', vaporAlquimico: '×1', darenferrum: '×2', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Acessórios Darenferrum', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×1', imaculada: '×2', paginas: 'p. X' },
+      { group: 'Acessórios Imaculados', reclusa: '×2', vaporAlquimico: '×2', darenferrum: '×2', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Equipamentos médicos', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Ferramentas universais', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+      { group: 'Consumíveis', reclusa: '×1', vaporAlquimico: '×1', darenferrum: '×1', imaculada: '×1', paginas: 'p. X' },
+    ],
+  },
+]
+
+export const equipmentStyleLabels: Record<Exclude<keyof CostMultiplierRow, 'group'>, string> = {
+  reclusa: 'Reclusa',
+  vaporAlquimico: 'Vapor-Alquímico',
+  darenferrum: 'Darenferrum',
+  imaculada: 'Imaculada',
+  paginas: 'Páginas',
+}
