@@ -20,6 +20,7 @@ import { ArrowLeft, Copy, UserPlus, FileText, Eye, Pencil } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import CharacterSheet from '@/components/CharacterSheet'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
+import CharacterEvolutionScreen from '@/components/CharacterEvolutionScreen'
 
 const POLL_INTERVAL_MS = 8000
 
@@ -33,7 +34,7 @@ export default function MesaPage() {
   const [tableCharacters, setTableCharacters] = useState<TableCharacterItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'sheet' | 'wizard' | 'pickCharacter'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'sheet' | 'wizard' | 'pickCharacter' | 'evolution'>('list')
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithMetadata | null>(null)
   const [myCharacters, setMyCharacters] = useState<CharacterWithMetadata[]>([])
   const [copySuccess, setCopySuccess] = useState(false)
@@ -193,15 +194,30 @@ export default function MesaPage() {
   }
 
   if (viewMode === 'sheet' && selectedCharacter) {
+    const canEdit = tableCharacters.find((i) => i.character.id === selectedCharacter.id)?.canEdit ?? false
     return (
       <div className="h-full min-h-0 flex flex-col overflow-hidden">
         <CharacterSheet
           initialData={selectedCharacter.data}
-          onEdit={() => {
-            const item = tableCharacters.find((i) => i.character.id === selectedCharacter.id)
-            if (item?.canEdit) setViewMode('wizard')
-          }}
+          canEdit={canEdit}
+          onOpenEvolution={() => setViewMode('evolution')}
           onBackToDashboard={handleBackFromSheet}
+        />
+      </div>
+    )
+  }
+
+  if (viewMode === 'evolution' && selectedCharacter) {
+    return (
+      <div className="h-full min-h-0 flex flex-col overflow-hidden">
+        <CharacterEvolutionScreen
+          initialCharacterData={selectedCharacter.data}
+          onCancel={() => setViewMode('sheet')}
+          onSaved={(saved) => {
+            setSelectedCharacter(saved)
+            setViewMode('sheet')
+            load()
+          }}
         />
       </div>
     )

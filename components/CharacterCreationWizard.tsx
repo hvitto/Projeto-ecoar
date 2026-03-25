@@ -26,7 +26,7 @@ import SummaryItem from '@/components/ui/SummaryItem'
 import MartialSchoolCard from '@/components/ui/MartialSchoolCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { races, getAllGenus, getRacesByGenus, getRaceById, Race, RaceImageConfig } from '@/data/races'
+import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
 import { paths, getPathById, Path } from '@/data/paths'
 import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
 import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
@@ -56,14 +56,23 @@ import {
   cacadaEnhancements,
   getCacadaEnhancementsByPowerId,
   getCacadaEnhancementById,
+  getPathLevelFromSoulLevel,
   Bruxaria,
   CacadaPower,
   CacadaEnhancement,
 } from '@/data/pathSingularities'
 
 interface CharacterCreationData {
+  // Níveis do personagem
+  nivelAlma?: number
+  nivelPoder?: number
+  nivelTrilha?: number
+
+  // Pontos de Evolução (lado antes de '/' = não utilizados; lado após '/' = acumulados)
+  // Nesta aplicação, a ficha permite apenas adicionar PE, então iniciamos os dois lados iguais ao total inicial.
+  pontosEvolucao?: { atual: number; max: number }
+
   // Step 1: Race
-  genus?: string
   raca?: string
   
   // Step 2: Martial School (Classe de combate)
@@ -113,6 +122,10 @@ interface CharacterCreationData {
   // Step 11: Ecoar
   ecoar?: string
   singularidadesEcoar?: string[]
+
+  // Step 11 (complemento): singularidades marciais e raciais
+  singularidadesMarciais?: string[]
+  singularidadesRaciais?: string[]
   
   // Step 12: Creation Points
   pontosCriacao: {
@@ -148,7 +161,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [currentStep, setCurrentStep] = useState(0)
   const [maxStepVisited, setMaxStepVisited] = useState(0)
   const [pcSubStep, setPCSubStep] = useState<'singularidades' | 'traços' | 'escola-marcial'>('singularidades') // 0 = introdução, depois 1-8
-  const [selectedGenus, setSelectedGenus] = useState<string>('')
   const [selectedRaca, setSelectedRaca] = useState<string>('')
   const [selectedEscolaMarcial, setSelectedEscolaMarcial] = useState<string>('')
   const [selectedLocalizacao, setSelectedLocalizacao] = useState<string>('')
@@ -183,9 +195,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [tracoPositivo, setTracoPositivo] = useState('')
   const [tracoNegativo, setTracoNegativo] = useState('')
   const [personalidade, setPersonalidade] = useState('')
-  const [ideais, setIdeais] = useState('')
-  const [vinculos, setVinculos] = useState('')
-  const [defeitos, setDefeitos] = useState('')
   const [equipamentos, setEquipamentos] = useState<string[]>([])
   const [armas, setArmas] = useState<string[]>([])
   const [raceBonuses, setRaceBonuses] = useState<Record<string, number>>({})
@@ -198,12 +207,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     if (!initialData || hasInitialized.current) return
 
     // Initialize basic selections first (these trigger other effects)
-    if (initialData.genus) setSelectedGenus(initialData.genus)
     if (initialData.raca) setSelectedRaca(initialData.raca)
     if (initialData.escolaMarcial) setSelectedEscolaMarcial(initialData.escolaMarcial)
     if (initialData.localizacao) setSelectedLocalizacao(initialData.localizacao)
     if (initialData.trilha) setSelectedTrilha(initialData.trilha)
     if (initialData.ecoar) setSelectedEcoar(initialData.ecoar)
+
+    if (initialData.nivelAlma !== undefined && initialData.nivelAlma !== null) {
+      const v = typeof initialData.nivelAlma === 'string' ? parseInt(initialData.nivelAlma) : initialData.nivelAlma
+      if (Number.isFinite(v)) setNivelAlmaInicial(v)
+    }
 
     // Initialize attributes (these already include race/martial school bonuses)
     if (initialData.attributes) {
@@ -257,9 +270,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     if (initialData.tracoPositivo) setTracoPositivo(initialData.tracoPositivo)
     if (initialData.tracoNegativo) setTracoNegativo(initialData.tracoNegativo)
     if (initialData.personalidade) setPersonalidade(initialData.personalidade)
-    if (initialData.ideais) setIdeais(initialData.ideais)
-    if (initialData.vinculos) setVinculos(initialData.vinculos)
-    if (initialData.defeitos) setDefeitos(initialData.defeitos)
 
     // Initialize equipment
     if (initialData.equipamentos) {
@@ -276,9 +286,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     hasInitialized.current = true
   }, [initialData])
 
-  const availableRaces = useMemo(() => 
-    selectedGenus ? getRacesByGenus(selectedGenus) : []
-  , [selectedGenus])
+  const availableRaces = useMemo(() => races, [])
   
   const selectedRaceData = useMemo(() => 
     selectedRaca ? getRaceById(selectedRaca) : null
@@ -428,7 +436,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const canProceed = useMemo(() => {
     switch (currentStep) {
       case 0:
-        return selectedGenus && selectedRaca // Raça
+        return selectedRaca // Raça
       case 1:
         // Atributos: todos devem ser >= 0 e pontos de atributo devem estar zerados
         return Object.values(attributes).every((a: number) => a >= 0 && a <= 3) && attributePoints === 0
@@ -441,18 +449,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
       case 5:
         return true // Gastando PC - pode avançar (validação feita internamente nas tabs)
       case 6:
-        return true // Evolução - sempre pode avançar (mesmo que nível seja 1, mostra aviso)
-      case 7:
         return true // Equipamentos
-      case 8:
+      case 7:
         return nome.trim() !== '' // Finalização - precisa de nome
       default:
         return false
     }
-  }, [currentStep, selectedGenus, selectedRaca, attributes, attributePoints, skillPoints, nivelAlmaInicial, nome])
+  }, [currentStep, selectedRaca, attributes, attributePoints, skillPoints, nome])
 
   const handleNext = useCallback(() => {
-    if (canProceed && currentStep < 8) { // totalSteps é sempre 8
+    if (canProceed && currentStep < 7) {
       const nextStep = currentStep + 1
       setCurrentStep(nextStep)
       // Atualiza maxStepVisited se necessário
@@ -471,9 +477,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
 
   const handleFinish = useCallback(() => {
     if (canProceed) {
+      const soulLevel = getSoulLevelByNivel(nivelAlmaInicial)
+      const pontosEvolucao = soulLevel?.pontosEvolucao ?? 0
+      const nivelPoder = soulLevel?.nivelPoder ?? 3
+      const nivelTrilha = getPathLevelFromSoulLevel(nivelAlmaInicial)
       // Keep tamanho and peso as strings (they can be numeric strings for modifiers or text for custom values)
       onComplete({
-        genus: selectedGenus,
+        nivelAlma: nivelAlmaInicial,
+        nivelPoder,
+        nivelTrilha,
+        pontosEvolucao: { atual: pontosEvolucao, max: pontosEvolucao },
         raca: selectedRaca,
         escolaMarcial: selectedEscolaMarcial,
         localizacao: selectedLocalizacao,
@@ -488,20 +501,24 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
         singularidades,
         ecoar: selectedEcoar,
         singularidadesEcoar,
+        singularidadesMarciais: selectedEscolaMarcial
+          ? singularidades.filter((s) => {
+              const school = getMartialSchoolDataById(selectedEscolaMarcial)
+              return school?.singularities.some((sing) => sing.id === s)
+            })
+          : [],
+        singularidadesRaciais,
         pontosCriacao,
         nome,
         backstory,
         tracoPositivo,
         tracoNegativo,
         personalidade,
-        ideais,
-        vinculos,
-        defeitos,
         equipamentos,
         armas,
       })
     }
-  }, [canProceed, onComplete, selectedGenus, selectedRaca, selectedEscolaMarcial, selectedLocalizacao, attributes, skills, aptitudes, tamanho, peso, deslocamento, sentidos, selectedTrilha, singularidades, selectedEcoar, singularidadesEcoar, pontosCriacao, nome, backstory, tracoPositivo, tracoNegativo, personalidade, ideais, vinculos, defeitos, equipamentos, armas])
+  }, [canProceed, onComplete, nivelAlmaInicial, selectedRaca, selectedEscolaMarcial, selectedLocalizacao, attributes, skills, aptitudes, tamanho, peso, deslocamento, sentidos, selectedTrilha, singularidades, selectedEcoar, singularidadesEcoar, singularidadesRaciais, pontosCriacao, nome, backstory, tracoPositivo, tracoNegativo, personalidade, equipamentos, armas])
 
   const updateAttribute = (attr: string, newTotalValue: number) => {
     const attrKey = attr as keyof typeof attributes
@@ -647,19 +664,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   }
 
   const stepIcons = [
-    Users, Zap, BookOpen, Award, Calculator, Sparkles, Gem, Package, User
+    Users, Zap, BookOpen, Award, Calculator, Sparkles, Package, User
   ]
 
   const stepTitles = [
-    'Raça', 'Atributos', 'Habilidades', 'Aptidões', 'Pontos de Criação',
-    'Gastando PC', 'Evolução', 'Equipamentos', 'Finalização'
+    'Raça', 'Atributos', 'Habilidades', 'Aptidões', 'Obtendo PC',
+    'Gastando PC', 'Equipamentos', 'Finalização'
   ]
 
-  // Total of steps: Evolução só aparece se nível > 1
-  // Steps: 0-4 (básicos), 5 (Gastando PC - com tabs), 6 (Evolução - condicional), 7 (Equipamentos), 8 (Finalização)
-  // O último passo sempre é o índice 8 (Finalização), independentemente de o passo 6 ser renderizado
-  // A lógica de pular o passo 6 é tratada em handleNext/handleBack, não no totalSteps
-  const totalSteps = stepTitles.length - 1  // Sempre 8 (índice do último passo)
+  // Steps: 0-4 (básicos), 5 (Gastando PC - com tabs), 6 (Equipamentos), 7 (Finalização)
+  const totalSteps = stepTitles.length - 1
 
   // Tela de Introdução: Header + conteúdo largo; CTA e Footer ficam abaixo, é preciso rolar para alcançar
   if (showIntroduction) {
@@ -748,12 +762,12 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   <motion.div 
                     className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal dark:to-ecoar-magenta"
                     initial={{ width: 0 }}
-                    animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                    animate={{ width: `${((currentStep + 1) / (totalSteps + 1)) * 100}%` }}
                     transition={motionTransition.smooth}
                   />
                 </div>
                 <p className="text-[11px] text-ecoar-dark-500 dark:text-ecoar-light-900/40 mt-1.5 text-center">
-                  {currentStep} de {totalSteps} etapas
+                  {currentStep + 1} de {totalSteps + 1} etapas
                 </p>
               </div>
 
@@ -809,7 +823,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] font-medium">
-                            Etapa {stepNum}
+                            Etapa {stepNum + 1}
                           </div>
                           <div className={`text-xs font-medium truncate ${
                             isActive ? 'text-ecoar-dark-900 dark:text-ecoar-light-900/90' : 'text-ecoar-dark-600 dark:text-ecoar-light-900/60'
@@ -959,14 +973,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     />
                   ) : (
                     <RaceSelectionStep
-                      selectedGenus={selectedGenus}
                       selectedRaca={selectedRaca}
-                      onGenusSelect={setSelectedGenus}
                       onRacaSelect={(raca) => {
                         setSelectedRaca(raca)
-                        if (selectedGenus) {
-                          setSelectedRaca(raca)
-                        }
                       }}
                       availableRaces={availableRaces}
                     />
@@ -1070,8 +1079,8 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   />
                 )}
 
-                {/* Step 6: Evolução */}
-                {currentStep === 6 && (
+                {/* Etapa 6: Evolução removida do fluxo (mantido apenas como placeholder) */}
+                {false && (
                   nivelAlmaInicial > 1 ? (
                     <EvolutionStep
                       nivelAlmaInicial={nivelAlmaInicial}
@@ -1119,8 +1128,8 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   )
                 )}
 
-                {/* Step 7: Equipamentos */}
-                {currentStep === 7 && (
+                {/* Step 6: Equipamentos */}
+                {currentStep === 6 && (
                   <EquipmentStep
                     equipamentos={equipamentos}
                     armas={armas}
@@ -1133,25 +1142,19 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   />
                 )}
 
-                {/* Step 8: Finalização */}
-                {currentStep === 8 && (
+                {/* Step 7: Finalização */}
+                {currentStep === 7 && (
                   <BackgroundStep
                     nome={nome}
                     backstory={backstory}
                     tracoPositivo={tracoPositivo}
                     tracoNegativo={tracoNegativo}
                     personalidade={personalidade}
-                    ideais={ideais}
-                    vinculos={vinculos}
-                    defeitos={defeitos}
                     onNomeChange={setNome}
                     onBackstoryChange={setBackstory}
                     onTracoPositivoChange={setTracoPositivo}
                     onTracoNegativoChange={setTracoNegativo}
                     onPersonalidadeChange={setPersonalidade}
-                    onIdeaisChange={setIdeais}
-                    onVinculosChange={setVinculos}
-                    onDefeitosChange={setDefeitos}
                   />
                 )}
               </div>
@@ -1486,26 +1489,14 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
 
 // Step Components
 function RaceSelectionStep({
-  selectedGenus,
   selectedRaca,
-  onGenusSelect,
   onRacaSelect,
   availableRaces,
 }: {
-  selectedGenus: string
   selectedRaca: string
-  onGenusSelect: (genus: string) => void
   onRacaSelect: (raca: string) => void
   availableRaces: Race[]
 }) {
-  const genusVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  }
-
   const raceVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -1534,126 +1525,94 @@ function RaceSelectionStep({
             <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-0.5">
               Escolha sua Raça
             </h3>
-            <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">Selecione seu Genus e depois sua Raça específica</p>
+            <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">Selecione sua Raça</p>
           </div>
         </div>
       </div>
 
-      {/* Genus Selection */}
-      <div>
-        <h4 className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-4 flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 bg-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg border border-teal-300 dark:border-ecoar-teal-500/40">
-            <Shield className="w-4 h-4 text-teal-600 dark:text-ecoar-teal-400" />
-          </div>
-          <span>Selecione seu Genus</span>
-        </h4>
-        <motion.div
-          variants={genusVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          {getAllGenus().map((genus) => (
-            <SelectionCard
-              key={genus}
-              title={genus}
-              subtitle={`${getRacesByGenus(genus).length} raça(s)`}
-              isSelected={selectedGenus === genus}
-              onClick={() => {
-                onGenusSelect(genus)
-                onRacaSelect('')
-              }}
-            />
-          ))}
-        </motion.div>
-      </div>
-
       {/* Race Selection */}
       <AnimatePresence mode="wait">
-        {selectedGenus && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h4 className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-4 flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg border border-teal-300 dark:border-ecoar-teal-500/40">
-                <Circle className="w-4 h-4 text-teal-600 dark:text-ecoar-teal-400" />
-              </div>
-              <span>Selecione sua Raça</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {availableRaces.map((race, index) => {
-                const attributeLabelsShort: Record<string, string> = {
-                  carisma: 'Carisma',
-                  finesse: 'Finesse',
-                  forca: 'Força',
-                  inteligencia: 'Inteligência',
-                  percepcao: 'Percepção',
-                  vitalidade: 'Vitalidade',
-                  vontade: 'Vontade',
-                }
-                
-                const getBonusesSummary = (race: Race) => {
-                  if (!race.bonuses) return []
-                  const summary: string[] = []
-                  
-                  // Atributos com formatação clara
-                  if (race.bonuses.attributes) {
-                    Object.entries(race.bonuses.attributes).forEach(([attr, value]) => {
-                      const label = attributeLabelsShort[attr] || attr
-                      const sign = value >= 0 ? '+' : ''
-                      summary.push(`${label} ${sign}${value}`)
-                    })
-                  }
-                  
-                  // Deslocamentos com nomes completos
-                  if (race.bonuses.movement) {
-                    if (race.bonuses.movement.terrestre) summary.push(`Terrestre: ${race.bonuses.movement.terrestre}m`)
-                    if (race.bonuses.movement.aquatico) summary.push(`Aquático: ${race.bonuses.movement.aquatico}m`)
-                    if (race.bonuses.movement.aereo) summary.push(`Aéreo: ${race.bonuses.movement.aereo}m`)
-                  }
-                  
-                  // Sentidos com nomes completos
-                  if (race.bonuses.senses) {
-                    if (race.bonuses.senses.visao) summary.push(`Visão: ${race.bonuses.senses.visao}m`)
-                    if (race.bonuses.senses.audicao) summary.push(`Audição: ${race.bonuses.senses.audicao}m`)
-                    if (race.bonuses.senses.olfato) summary.push(`Olfato: ${race.bonuses.senses.olfato}m`)
-                  }
-                  
-                  // Limites
-                  if (race.bonuses.corpo) {
-                    const sign = race.bonuses.corpo >= 0 ? '+' : ''
-                    summary.push(`Corpo ${sign}${race.bonuses.corpo}`)
-                  }
-                  if (race.bonuses.mente) {
-                    const sign = race.bonuses.mente >= 0 ? '+' : ''
-                    summary.push(`Mente ${sign}${race.bonuses.mente}`)
-                  }
-                  
-                  return summary
-                }
-                
-                const bonuses = getBonusesSummary(race)
-                const isSelected = selectedRaca === race.id
-                
-                return (
-                  <RaceCard
-                    key={race.id}
-                    name={race.name}
-                    genus={race.genus}
-                    description={race.description}
-                    bonuses={bonuses}
-                    isSelected={isSelected}
-                    onClick={() => onRacaSelect(race.id)}
-                    index={index}
-                  />
-                )
-              })}
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h4 className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-4 flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg border border-teal-300 dark:border-ecoar-teal-500/40">
+              <Circle className="w-4 h-4 text-teal-600 dark:text-ecoar-teal-400" />
             </div>
-          </motion.div>
-        )}
+            <span>Selecione sua Raça</span>
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {availableRaces.map((race, index) => {
+              const attributeLabelsShort: Record<string, string> = {
+                carisma: 'Carisma',
+                finesse: 'Finesse',
+                forca: 'Força',
+                inteligencia: 'Inteligência',
+                percepcao: 'Percepção',
+                vitalidade: 'Vitalidade',
+                vontade: 'Vontade',
+              }
+              
+              const getBonusesSummary = (race: Race) => {
+                if (!race.bonuses) return []
+                const summary: string[] = []
+                
+                // Atributos com formatação clara
+                if (race.bonuses.attributes) {
+                  Object.entries(race.bonuses.attributes).forEach(([attr, value]) => {
+                    const label = attributeLabelsShort[attr] || attr
+                    const sign = value >= 0 ? '+' : ''
+                    summary.push(`${label} ${sign}${value}`)
+                  })
+                }
+                
+                // Deslocamentos com nomes completos
+                if (race.bonuses.movement) {
+                  if (race.bonuses.movement.terrestre) summary.push(`Terrestre: ${race.bonuses.movement.terrestre}m`)
+                  if (race.bonuses.movement.aquatico) summary.push(`Aquático: ${race.bonuses.movement.aquatico}m`)
+                  if (race.bonuses.movement.aereo) summary.push(`Aéreo: ${race.bonuses.movement.aereo}m`)
+                }
+                
+                // Sentidos com nomes completos
+                if (race.bonuses.senses) {
+                  if (race.bonuses.senses.visao) summary.push(`Visão: ${race.bonuses.senses.visao}m`)
+                  if (race.bonuses.senses.audicao) summary.push(`Audição: ${race.bonuses.senses.audicao}m`)
+                  if (race.bonuses.senses.olfato) summary.push(`Olfato: ${race.bonuses.senses.olfato}m`)
+                }
+                
+                // Limites
+                if (race.bonuses.corpo) {
+                  const sign = race.bonuses.corpo >= 0 ? '+' : ''
+                  summary.push(`Corpo ${sign}${race.bonuses.corpo}`)
+                }
+                if (race.bonuses.mente) {
+                  const sign = race.bonuses.mente >= 0 ? '+' : ''
+                  summary.push(`Mente ${sign}${race.bonuses.mente}`)
+                }
+                
+                return summary
+              }
+              
+              const bonuses = getBonusesSummary(race)
+              const isSelected = selectedRaca === race.id
+              
+              return (
+                <RaceCard
+                  key={race.id}
+                  name={race.name}
+                  description={race.description}
+                  bonuses={bonuses}
+                  isSelected={isSelected}
+                  onClick={() => onRacaSelect(race.id)}
+                  index={index}
+                />
+              )
+            })}
+          </div>
+        </motion.div>
       </AnimatePresence>
     </div>
   )
@@ -6270,7 +6229,7 @@ function RacialSingularitiesTab({
         </div>
         <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
           <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">
-            Por favor, selecione uma raça na Etapa 0 para ver as singularidades raciais disponíveis.
+          Por favor, selecione uma raça na Etapa 1 para ver as singularidades raciais disponíveis.
           </p>
         </div>
       </div>
@@ -6927,34 +6886,22 @@ function BackgroundStep({
   tracoPositivo,
   tracoNegativo,
   personalidade,
-  ideais,
-  vinculos,
-  defeitos,
   onNomeChange,
   onBackstoryChange,
   onTracoPositivoChange,
   onTracoNegativoChange,
   onPersonalidadeChange,
-  onIdeaisChange,
-  onVinculosChange,
-  onDefeitosChange,
 }: {
   nome: string
   backstory: string
   tracoPositivo: string
   tracoNegativo: string
   personalidade: string
-  ideais: string
-  vinculos: string
-  defeitos: string
   onNomeChange: (value: string) => void
   onBackstoryChange: (value: string) => void
   onTracoPositivoChange: (value: string) => void
   onTracoNegativoChange: (value: string) => void
   onPersonalidadeChange: (value: string) => void
-  onIdeaisChange: (value: string) => void
-  onVinculosChange: (value: string) => void
-  onDefeitosChange: (value: string) => void
 }) {
   return (
     <div className="space-y-5">
@@ -7024,42 +6971,6 @@ function BackgroundStep({
               className="w-full px-4 py-3 bg-gray-900/60 border border-ecoar-dark/50 rounded-lg text-purple-100 placeholder-purple-400/40 focus:outline-none focus:ring-2 focus:ring-purple-600"
             />
           </div>
-        </div>
-
-        {/* Ideais */}
-        <div>
-          <label className="block text-slate-900 dark:text-ecoar-light-900 font-semibold mb-2">Ideais</label>
-          <textarea
-            value={ideais}
-            onChange={(e) => onIdeaisChange(e.target.value)}
-            placeholder="O que seu personagem valoriza..."
-            rows={2}
-            className="w-full px-4 py-3 bg-gray-900/60 border border-ecoar-dark/50 rounded-lg text-purple-100 placeholder-purple-400/40 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none"
-          />
-        </div>
-
-        {/* Vinculos */}
-        <div>
-          <label className="block text-slate-900 dark:text-ecoar-light-900 font-semibold mb-2">Vínculos</label>
-          <textarea
-            value={vinculos}
-            onChange={(e) => onVinculosChange(e.target.value)}
-            placeholder="Pessoas ou lugares importantes para seu personagem..."
-            rows={2}
-            className="w-full px-4 py-3 bg-gray-900/60 border border-ecoar-dark/50 rounded-lg text-purple-100 placeholder-purple-400/40 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none"
-          />
-        </div>
-
-        {/* Defeitos */}
-        <div>
-          <label className="block text-slate-900 dark:text-ecoar-light-900 font-semibold mb-2">Defeitos</label>
-          <textarea
-            value={defeitos}
-            onChange={(e) => onDefeitosChange(e.target.value)}
-            placeholder="Fraquezas ou defeitos do personagem..."
-            rows={2}
-            className="w-full px-4 py-3 bg-gray-900/60 border border-ecoar-dark/50 rounded-lg text-purple-100 placeholder-purple-400/40 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none"
-          />
         </div>
       </div>
     </div>
@@ -7154,8 +7065,6 @@ function FinalReviewVisualizer({
             <div className="space-y-3 text-sm">
               {data.backstory && <div><span className="text-slate-500 dark:text-ecoar-light-900/60">História:</span> <span className="text-slate-900 dark:text-ecoar-light-900">{data.backstory}</span></div>}
               {data.personalidade && <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Personalidade:</span> <span className="text-slate-900 dark:text-ecoar-light-900">{data.personalidade}</span></div>}
-              {data.ideais && <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Ideais:</span> <span className="text-slate-900 dark:text-ecoar-light-900">{data.ideais}</span></div>}
-              {data.vinculos && <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Vínculos:</span> <span className="text-slate-900 dark:text-ecoar-light-900">{data.vinculos}</span></div>}
             </div>
           </div>
         )}
@@ -7207,7 +7116,6 @@ function FinalReviewStep({
           {selectedRace ? (
             <div>
               <div className="text-slate-900 dark:text-ecoar-light-900 text-xl font-semibold">{selectedRace.name}</div>
-              <div className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">{selectedRace.genus}</div>
             </div>
           ) : (
             <div className="text-slate-900 dark:text-ecoar-light-900/40">Não selecionado</div>

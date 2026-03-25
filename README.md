@@ -69,7 +69,7 @@ npm start
 The character sheet includes:
 
 - **Níveis**: de Alma, de Poder, de Trilha
-- **Informações**: Nome, Genus, Moeda, Raça, Pontos de Evolução
+- **Informações**: Nome, Moeda, Raça, Pontos de Evolução
 - **Traços de Personalidade**: Positivo e Negativo
 - **Deslocamentos**: Terrestre, Aquático, Aéreo
 - **Limites**: Corpo, Mente, Fôlego, Mana

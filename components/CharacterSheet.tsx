@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motionVariants'
 import {
@@ -15,10 +15,19 @@ import {
   calculateCommonTests,
   formatModifier,
 } from '@/lib/calculations'
-import { races, getAllGenus, getRacesByGenus, getRaceById } from '@/data/races'
+import { races, getRaceById } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
 import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
+import SingularityCard from '@/components/ui/SingularityCard'
+import { getCreationSingularityById } from '@/data/creationSingularities'
+import { getSingularityById } from '@/data/singularities'
+import { getEcoarSingularityById } from '@/data/ecoarSingularities'
+import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
+import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
+import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import Header from './Header'
+import { useAuth } from '@/contexts/AuthContext'
+import { saveCharacter } from '@/lib/storage/characterStorage'
 
 const ATTRIBUTE_STATE_KEYS = [
   'carisma',
@@ -49,22 +58,17 @@ const isAttributeStateKey = (key: string): key is AttributeStateKey => {
 
 interface CharacterSheetProps {
   initialData?: any
-  onEdit?: () => void
+  canEdit?: boolean
   onBackToDashboard?: () => void
+  onOpenEvolution?: () => void
 }
 
-export default function CharacterSheet({ initialData, onEdit, onBackToDashboard }: CharacterSheetProps) {
+export default function CharacterSheet({ initialData, canEdit, onBackToDashboard, onOpenEvolution }: CharacterSheetProps) {
   const [characterData, setCharacterData] = useState({
-    // Levels
-    nivelAlma: 1,
-    nivelPoder: 3,
-    nivelTrilha: 1,
-    
     // Basic Info
     pontosEvolucao: { atual: 0, max: 0 },
     nome: '',
     localizacao: '',
-    genus: '',
     moeda: '',
     raca: '',
     trilha: '',
@@ -110,7 +114,28 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
     equipamentos: '',
     espacos: '',
     anotacoes: '',
+
+    // Singularities (IDs selected in the wizard)
+    singularidades: [] as string[],
+    singularidadesEcoar: [] as string[],
+    singularidadesMarciais: [] as string[],
+    singularidadesRaciais: [] as string[],
   })
+
+  const { user } = useAuth()
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const editBackupRef = useRef<typeof characterData | null>(null)
+  const initialDataRef = useRef<any>(initialData)
+  const limitsAutoSaveTimeoutRef = useRef<number | null>(null)
+  const userTriggeredLimitsRef = useRef(false)
+
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('singularidades')
+  const [peToAdd, setPeToAdd] = useState<number>(0)
+
+  useEffect(() => {
+    initialDataRef.current = initialData
+  }, [initialData])
 
   // Apply initial data from wizard
   useEffect(() => {
@@ -119,10 +144,91 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
         const updated = { ...prev }
         
         if (initialData.nome) updated.nome = initialData.nome
-        if (initialData.genus) updated.genus = initialData.genus
         if (initialData.raca) updated.raca = initialData.raca
         if (initialData.localizacao) updated.localizacao = initialData.localizacao
         if (initialData.trilha) updated.trilha = initialData.trilha
+
+        const toMeterString = (v: any): string => {
+          if (v === undefined || v === null) return ''
+          if (typeof v === 'string') {
+            const s = v.trim()
+            if (!s) return ''
+            return s.endsWith('m') ? s : `${s}m`
+          }
+          const n = typeof v === 'number' ? v : parseFloat(String(v))
+          return Number.isFinite(n) ? `${n}m` : ''
+        }
+
+        // Backstory (wizard key) -> anotacoes (sheet UI)
+        if (typeof initialData.backstory === 'string') updated.anotacoes = initialData.backstory
+
+        // Limits (atual/max) so the sheet can render the persisted values
+        if (initialData.corpo && typeof initialData.corpo === 'object') {
+          const atualRaw = (initialData.corpo as any).atual
+          const maxRaw = (initialData.corpo as any).max
+          const atual = typeof atualRaw === 'string' ? parseInt(atualRaw) : atualRaw
+          const max = typeof maxRaw === 'string' ? parseInt(maxRaw) : maxRaw
+          if (Number.isFinite(atual)) updated.corpo.atual = atual
+          if (Number.isFinite(max)) updated.corpo.max = max
+        }
+        if (initialData.mente && typeof initialData.mente === 'object') {
+          const atualRaw = (initialData.mente as any).atual
+          const maxRaw = (initialData.mente as any).max
+          const atual = typeof atualRaw === 'string' ? parseInt(atualRaw) : atualRaw
+          const max = typeof maxRaw === 'string' ? parseInt(maxRaw) : maxRaw
+          if (Number.isFinite(atual)) updated.mente.atual = atual
+          if (Number.isFinite(max)) updated.mente.max = max
+        }
+        if (initialData.folego && typeof initialData.folego === 'object') {
+          const atualRaw = (initialData.folego as any).atual
+          const maxRaw = (initialData.folego as any).max
+          const atual = typeof atualRaw === 'string' ? parseInt(atualRaw) : atualRaw
+          const max = typeof maxRaw === 'string' ? parseInt(maxRaw) : maxRaw
+          if (Number.isFinite(atual)) updated.folego.atual = atual
+          if (Number.isFinite(max)) updated.folego.max = max
+        }
+        if (initialData.mana && typeof initialData.mana === 'object') {
+          const atualRaw = (initialData.mana as any).atual
+          const maxRaw = (initialData.mana as any).max
+          const atual = typeof atualRaw === 'string' ? parseInt(atualRaw) : atualRaw
+          const max = typeof maxRaw === 'string' ? parseInt(maxRaw) : maxRaw
+          if (Number.isFinite(atual)) updated.mana.atual = atual
+          if (Number.isFinite(max)) updated.mana.max = max
+        }
+
+        // Deslocamento/Sentidos (wizard keys) -> strings na UI
+        if (initialData.deslocamento && typeof initialData.deslocamento === 'object') {
+          const d = initialData.deslocamento as any
+          if (d.terrestre !== undefined) updated.terrestre = toMeterString(d.terrestre)
+          if (d.aquatico !== undefined) updated.aquatico = toMeterString(d.aquatico)
+          if (d.aereo !== undefined) updated.aereo = toMeterString(d.aereo)
+        }
+        if (initialData.sentidos && typeof initialData.sentidos === 'object') {
+          const s = initialData.sentidos as any
+          if (s.visao !== undefined) updated.visao = toMeterString(s.visao)
+          if (s.audicao !== undefined) updated.audicao = toMeterString(s.audicao)
+          if (s.olfato !== undefined) updated.olfato = toMeterString(s.olfato)
+        }
+
+        // Inicializa Pontos de Evolução se vier no initialData (ex.: ao editar ficha)
+        if (initialData.pontosEvolucao && typeof initialData.pontosEvolucao === 'object') {
+          const peAtualRaw = (initialData.pontosEvolucao as any).atual
+          const peMaxRaw = (initialData.pontosEvolucao as any).max
+          const peAtual =
+            typeof peAtualRaw === 'string' ? parseInt(peAtualRaw) : peAtualRaw
+          const peMax =
+            typeof peMaxRaw === 'string' ? parseInt(peMaxRaw) : peMaxRaw
+          const atualSafe = Number.isFinite(peAtual) ? Math.max(0, peAtual) : updated.pontosEvolucao.atual
+          const maxSafe = Number.isFinite(peMax) ? Math.max(0, peMax) : updated.pontosEvolucao.max
+          updated.pontosEvolucao = { atual: atualSafe, max: maxSafe }
+        } else if (initialData.nivelAlma !== undefined && initialData.nivelAlma !== null) {
+          // Fallback: fichas antigas podem não ter `pontosEvolucao`.
+          const v = typeof initialData.nivelAlma === 'string' ? parseInt(initialData.nivelAlma) : initialData.nivelAlma
+          const nivelAlma = Number.isFinite(v) ? v : 1
+          const sl = getSoulLevelByNivel(nivelAlma)
+          const pontos = sl?.pontosEvolucao ?? 0
+          updated.pontosEvolucao = { atual: pontos, max: pontos }
+        }
         
         if (initialData.attributes) {
           Object.entries(initialData.attributes).forEach(([key, value]) => {
@@ -141,6 +247,20 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
             ...(initialData.armas || []),
           ]
           updated.equipamentos = equipList.join('\n')
+        }
+
+        // Singularities selected in the wizard
+        if (initialData.singularidades) {
+          updated.singularidades = initialData.singularidades
+        }
+        if (initialData.singularidadesEcoar) {
+          updated.singularidadesEcoar = initialData.singularidadesEcoar
+        }
+        if (initialData.singularidadesMarciais) {
+          updated.singularidadesMarciais = initialData.singularidadesMarciais
+        }
+        if (initialData.singularidadesRaciais) {
+          updated.singularidadesRaciais = initialData.singularidadesRaciais
         }
         
         // Initialize size and weight from initialData (convert string to number if needed)
@@ -167,33 +287,67 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
             const race = getRaceById(raceId)
             if (!race || !race.bonuses) return
 
+              const hasDeslocamento = initialData.deslocamento && typeof initialData.deslocamento === 'object'
+              const hasSentidos = initialData.sentidos && typeof initialData.sentidos === 'object'
+              const hasAttributes = initialData.attributes && typeof initialData.attributes === 'object'
+
+              const shouldApplyCorpo =
+                !initialData.corpo || typeof initialData.corpo !== 'object' || (initialData.corpo as any).atual === undefined
+              const shouldApplyMente =
+                !initialData.mente || typeof initialData.mente !== 'object' || (initialData.mente as any).atual === undefined
+              const shouldApplyFolego =
+                !initialData.folego || typeof initialData.folego !== 'object' || (initialData.folego as any).atual === undefined
+              const shouldApplyMana =
+                !initialData.mana || typeof initialData.mana !== 'object' || (initialData.mana as any).atual === undefined
+
             // Apply size and weight modifiers if not already set from initialData
-            if (race.bonuses.sizeModifier !== undefined && !initialData.tamanho) {
+              if (race.bonuses.sizeModifier !== undefined && (initialData.tamanho === undefined || initialData.tamanho === null)) {
               setCharacterData(prev => ({ ...prev, tamanho: race.bonuses!.sizeModifier! }))
             }
-            if (race.bonuses.weightModifier !== undefined && !initialData.peso) {
+              if (race.bonuses.weightModifier !== undefined && (initialData.peso === undefined || initialData.peso === null)) {
               setCharacterData(prev => ({ ...prev, peso: race.bonuses!.weightModifier! }))
             }
 
             if (race.bonuses.movement) {
+                const d = (initialData.deslocamento ?? {}) as any
               setCharacterData(prev => ({
                 ...prev,
-                terrestre: race.bonuses!.movement!.terrestre ? `${race.bonuses!.movement!.terrestre}m` : prev.terrestre,
-                aquatico: race.bonuses!.movement!.aquatico ? `${race.bonuses!.movement!.aquatico}m` : prev.aquatico,
-                aereo: race.bonuses!.movement!.aereo ? `${race.bonuses!.movement!.aereo}m` : prev.aereo,
+                  terrestre:
+                    !hasDeslocamento || d.terrestre === undefined || d.terrestre === null
+                      ? race.bonuses!.movement!.terrestre ? `${race.bonuses!.movement!.terrestre}m` : prev.terrestre
+                      : prev.terrestre,
+                  aquatico:
+                    !hasDeslocamento || d.aquatico === undefined || d.aquatico === null
+                      ? race.bonuses!.movement!.aquatico ? `${race.bonuses!.movement!.aquatico}m` : prev.aquatico
+                      : prev.aquatico,
+                  aereo:
+                    !hasDeslocamento || d.aereo === undefined || d.aereo === null
+                      ? race.bonuses!.movement!.aereo ? `${race.bonuses!.movement!.aereo}m` : prev.aereo
+                      : prev.aereo,
               }))
             }
 
             if (race.bonuses.senses) {
+                const s = (initialData.sentidos ?? {}) as any
               setCharacterData(prev => ({
                 ...prev,
-                visao: race.bonuses!.senses!.visao ? `${race.bonuses!.senses!.visao}m` : prev.visao,
-                audicao: race.bonuses!.senses!.audicao ? `${race.bonuses!.senses!.audicao}m` : prev.audicao,
-                olfato: race.bonuses!.senses!.olfato ? `${race.bonuses!.senses!.olfato}m` : prev.olfato,
+                  visao:
+                    !hasSentidos || s.visao === undefined || s.visao === null
+                      ? race.bonuses!.senses!.visao ? `${race.bonuses!.senses!.visao}m` : prev.visao
+                      : prev.visao,
+                  audicao:
+                    !hasSentidos || s.audicao === undefined || s.audicao === null
+                      ? race.bonuses!.senses!.audicao ? `${race.bonuses!.senses!.audicao}m` : prev.audicao
+                      : prev.audicao,
+                  olfato:
+                    !hasSentidos || s.olfato === undefined || s.olfato === null
+                      ? race.bonuses!.senses!.olfato ? `${race.bonuses!.senses!.olfato}m` : prev.olfato
+                      : prev.olfato,
               }))
             }
 
-            if (race.bonuses.attributes) {
+              // Avoid double-applying race bonuses when attributes were already persisted
+              if (race.bonuses.attributes && !hasAttributes) {
               Object.entries(race.bonuses.attributes).forEach(([attr, bonus]) => {
                 const attrMap: Record<string, string> = {
                   forca: 'forca',
@@ -254,6 +408,37 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                 }
               })
             }
+
+              // Apply race limit bonuses if the persisted sheet doesn't include them yet
+              if (race.bonuses.corpo && shouldApplyCorpo) {
+                setCharacterData(prev => ({
+                  ...prev,
+                  corpo: {
+                    ...prev.corpo,
+                    atual: prev.corpo.atual + race.bonuses!.corpo!,
+                  },
+                }))
+              }
+
+              if (race.bonuses.mente && shouldApplyMente) {
+                setCharacterData(prev => ({
+                  ...prev,
+                  mente: {
+                    ...prev.mente,
+                    atual: prev.mente.atual + race.bonuses!.mente!,
+                  },
+                }))
+              }
+
+              if (race.bonuses.folego && shouldApplyFolego) {
+                updateField('folego.max', race.bonuses!.folego)
+                updateField('folego.atual', race.bonuses!.folego)
+              }
+
+              if (race.bonuses.mana && shouldApplyMana) {
+                updateField('mana.max', race.bonuses!.mana)
+                updateField('mana.atual', race.bonuses!.mana)
+              }
           }
         }, 100)
       }
@@ -454,6 +639,229 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
     characterData.peso
   ])
 
+  // Níveis automáticos a partir dos Pontos de Evolução acumulados (lado após '/')
+  const soulLevel = useMemo(
+    () => getSoulLevelByPontosEvolucao(characterData.pontosEvolucao.max),
+    [characterData.pontosEvolucao.max]
+  )
+  const nivelAlma = soulLevel.nivel
+  const nivelPoder = soulLevel.nivelPoder
+  const nivelTrilha = getPathLevelFromSoulLevel(nivelAlma)
+
+  const deepClone = useCallback((obj: any) => JSON.parse(JSON.stringify(obj)), [])
+
+  const parseMeters = useCallback((v: any): number => {
+    if (v === undefined || v === null) return 0
+    if (typeof v === 'number') return v
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase().replace(/m$/i, '')
+      const n = parseFloat(s)
+      return Number.isFinite(n) ? n : 0
+    }
+    const n = parseFloat(String(v))
+    return Number.isFinite(n) ? n : 0
+  }, [])
+
+  const coerceLimitShape = useCallback((prev: any, atual: number, max: number) => {
+    if (prev && typeof prev === 'object') {
+      return {
+        ...prev,
+        atual,
+        max,
+      }
+    }
+    return { atual, max }
+  }, [])
+
+  const buildLimitsPayload = useCallback(() => {
+    const base = initialDataRef.current ?? {}
+    return {
+      ...base,
+      corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
+      mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
+      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
+      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
+    }
+  }, [characterData, coerceLimitShape, derivedValues.corpoMax, derivedValues.menteMax])
+
+  const buildFullPayload = useCallback(() => {
+    const base = initialDataRef.current ?? {}
+
+    const allLines = String(characterData.equipamentos ?? '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+
+    const baseEquip = Array.isArray(base.equipamentos) ? base.equipamentos : []
+    const baseArmas = Array.isArray(base.armas) ? base.armas : []
+
+    let equipamentosPayload: string[] = []
+    let armasPayload: string[] = []
+
+    if (baseEquip.length > 0 && baseArmas.length > 0) {
+      equipamentosPayload = allLines.slice(0, baseEquip.length)
+      armasPayload = allLines.slice(baseEquip.length)
+    } else if (baseEquip.length > 0) {
+      equipamentosPayload = allLines
+      armasPayload = []
+    } else if (baseArmas.length > 0) {
+      equipamentosPayload = []
+      armasPayload = allLines
+    } else {
+      // Fallback: se o backend não tinha split, salvamos tudo como equipamentos
+      equipamentosPayload = allLines
+      armasPayload = []
+    }
+
+    const attributesPayload = {
+      carisma: characterData.carisma.nivel,
+      finesse: characterData.finesse.nivel,
+      forca: characterData.forca.nivel,
+      inteligencia: characterData.inteligencia.nivel,
+      percepcao: characterData.percepcao.nivel,
+      vitalidade: characterData.vitalidade.nivel,
+      vontade: characterData.vontade.nivel,
+    }
+
+    return {
+      ...base,
+      // Keep computed levels in sync when PE is edited
+      nivelAlma,
+      nivelPoder,
+      nivelTrilha,
+      nome: characterData.nome,
+      raca: characterData.raca,
+      localizacao: characterData.localizacao,
+      trilha: characterData.trilha,
+      pontosEvolucao: characterData.pontosEvolucao,
+      tamanho: characterData.tamanho,
+      peso: characterData.peso,
+      attributes: attributesPayload,
+      // Limits
+      corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
+      mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
+      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
+      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
+      // Movement/Senses
+      deslocamento: {
+        terrestre: parseMeters(characterData.terrestre),
+        aquatico: parseMeters(characterData.aquatico),
+        aereo: parseMeters(characterData.aereo),
+      },
+      sentidos: {
+        visao: parseMeters(characterData.visao),
+        audicao: parseMeters(characterData.audicao),
+        olfato: parseMeters(characterData.olfato),
+      },
+      // Notes
+      backstory: characterData.anotacoes,
+      // Equipment split
+      equipamentos: equipamentosPayload,
+      armas: armasPayload,
+      // Singularities
+      singularidades: characterData.singularidades,
+      singularidadesEcoar: characterData.singularidadesEcoar,
+    }
+  }, [
+    characterData,
+    coerceLimitShape,
+    derivedValues.corpoMax,
+    derivedValues.menteMax,
+    nivelAlma,
+    nivelPoder,
+    nivelTrilha,
+    parseMeters,
+  ])
+
+  const handleStartEdit = useCallback(() => {
+    if (!canEdit) return
+    editBackupRef.current = deepClone(characterData)
+    userTriggeredLimitsRef.current = false
+    setIsEditing(true)
+
+    if (limitsAutoSaveTimeoutRef.current) {
+      clearTimeout(limitsAutoSaveTimeoutRef.current)
+      limitsAutoSaveTimeoutRef.current = null
+    }
+  }, [canEdit, characterData, deepClone])
+
+  const handleCancelEdit = useCallback(() => {
+    if (editBackupRef.current) {
+      setCharacterData(deepClone(editBackupRef.current))
+    }
+    setIsEditing(false)
+    setIsSaving(false)
+
+    if (limitsAutoSaveTimeoutRef.current) {
+      clearTimeout(limitsAutoSaveTimeoutRef.current)
+      limitsAutoSaveTimeoutRef.current = null
+    }
+    userTriggeredLimitsRef.current = false
+  }, [deepClone])
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!user) return
+    if (!initialDataRef.current?.id) return
+    setIsSaving(true)
+    try {
+      const payload = buildFullPayload()
+      const saved = await saveCharacter(user.id, payload as any)
+      initialDataRef.current = saved.data
+      editBackupRef.current = null
+      setIsEditing(false)
+    } catch (e) {
+      console.error('Erro ao salvar ficha:', e)
+      alert('Erro ao salvar ficha. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }, [buildFullPayload, user])
+
+  const handleAutoSaveLimits = useCallback(async () => {
+    if (!user) return
+    if (!initialDataRef.current?.id) return
+    try {
+      const payload = buildLimitsPayload()
+      const saved = await saveCharacter(user.id, payload as any)
+      initialDataRef.current = saved.data
+    } catch (e) {
+      console.error('Erro ao salvar limites:', e)
+    }
+  }, [buildLimitsPayload, user])
+
+  useEffect(() => {
+    if (isEditing) {
+      if (limitsAutoSaveTimeoutRef.current) {
+        clearTimeout(limitsAutoSaveTimeoutRef.current)
+        limitsAutoSaveTimeoutRef.current = null
+      }
+    }
+  }, [isEditing])
+
+  useEffect(() => {
+    if (isEditing) return
+    if (!userTriggeredLimitsRef.current) return
+    userTriggeredLimitsRef.current = false
+
+    if (limitsAutoSaveTimeoutRef.current) {
+      clearTimeout(limitsAutoSaveTimeoutRef.current)
+      limitsAutoSaveTimeoutRef.current = null
+    }
+
+    limitsAutoSaveTimeoutRef.current = window.setTimeout(() => {
+      handleAutoSaveLimits()
+    }, 600)
+  }, [
+    isEditing,
+    characterData.corpo.atual,
+    characterData.mente.atual,
+    characterData.folego.atual,
+    characterData.mana.atual,
+    derivedValues.corpoMax,
+    derivedValues.menteMax,
+    handleAutoSaveLimits,
+  ])
+
   const attributes = [
     { key: 'carisma', label: 'Carisma', icon: Sparkles },
     { key: 'finesse', label: 'Finesse', icon: Zap },
@@ -467,7 +875,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
       <div className="flex-shrink-0">
-        <Header onNewCharacter={onEdit} onGoToDashboard={onBackToDashboard} />
+        <Header onGoToDashboard={onBackToDashboard} />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className="py-6 px-3 sm:px-4 md:px-6">
@@ -509,6 +917,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                           min="0"
                           max="8"
                           value={nivel}
+                          disabled={!isEditing}
                           onChange={(e) => {
                             const val = parseInt(e.target.value) || 0
                             updateField(`${attr.key}.nivel`, val)
@@ -542,27 +951,27 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                   <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Alma</span>
                   <input
                     type="number"
-                    value={characterData.nivelAlma}
-                    onChange={(e) => updateField('nivelAlma', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                    value={nivelAlma}
+                    disabled
+                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Poder</span>
                   <input
                     type="number"
-                    value={characterData.nivelPoder}
-                    onChange={(e) => updateField('nivelPoder', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                    value={nivelPoder}
+                    disabled
+                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Trilha</span>
                   <input
                     type="number"
-                    value={characterData.nivelTrilha}
-                    onChange={(e) => updateField('nivelTrilha', parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                    value={nivelTrilha}
+                    disabled
+                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
                 <div className="pt-3 border-t border-slate-200 dark:border-ecoar-light-900/10">
@@ -573,17 +982,61 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.atual}
-                      onChange={(e) => updateField('pontosEvolucao.atual', parseInt(e.target.value) || 0)}
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                      disabled
+                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                     />
                     <span className="text-slate-500 dark:text-ecoar-light-900/60">/</span>
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.max}
-                      onChange={(e) => updateField('pontosEvolucao.max', parseInt(e.target.value) || 0)}
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                      disabled
+                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                     />
                   </div>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={peToAdd}
+                      disabled={!isEditing}
+                      onChange={(e) => setPeToAdd(parseInt(e.target.value) || 0)}
+                      placeholder="PE recebidos"
+                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-teal-400 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <button
+                      type="button"
+                      disabled={!isEditing || peToAdd <= 0}
+                      onClick={() => {
+                        if (peToAdd <= 0) return
+                        setCharacterData(prev => ({
+                          ...prev,
+                          pontosEvolucao: {
+                            atual: Math.max(0, prev.pontosEvolucao.atual + peToAdd),
+                            max: Math.max(0, prev.pontosEvolucao.max + peToAdd),
+                          },
+                        }))
+                        setPeToAdd(0)
+                      }}
+                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 disabled:opacity-50 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+
+                  {canEdit && !isEditing && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={characterData.pontosEvolucao.atual <= 0}
+                        onClick={() => onOpenEvolution?.()}
+                        className="flex-1 px-3 py-1.5 bg-ecoar-magenta/15 dark:bg-ecoar-magenta-600/15 hover:bg-ecoar-magenta/20 dark:hover:bg-ecoar-magenta-600/20 disabled:opacity-50 text-ecoar-magenta/90 dark:text-ecoar-magenta-300/90 rounded-lg transition-all duration-200 border border-ecoar-magenta/20 dark:border-ecoar-magenta-500/20"
+                        title="Abrir tela para gastar Pontos de Evolução"
+                      >
+                        Evoluir
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -619,7 +1072,10 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                         <input
                           type="number"
                           value={current.atual}
-                          onChange={(e) => updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            if (!isEditing) userTriggeredLimitsRef.current = true
+                            updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)
+                          }}
                           className="w-12 text-center text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                         />
                         <span className="text-slate-500 dark:text-ecoar-light-900/60">/</span>
@@ -649,12 +1105,14 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                   type="text"
                   value={characterData.nome}
                   onChange={(e) => updateField('nome', e.target.value)}
+                  disabled={!isEditing}
                   className="flex-1 min-w-0 text-2xl font-semibold bg-transparent border-none text-slate-900 dark:text-ecoar-light-900/90 placeholder-slate-400 dark:placeholder-ecoar-light-900/50 focus:outline-none break-words"
                   placeholder="Nome do Personagem"
                 />
-                {onEdit && (
+                {canEdit && !isEditing && (
                   <button
-                    onClick={onEdit}
+                    type="button"
+                    onClick={handleStartEdit}
                     className="ml-4 px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 shadow-sm"
                     title="Editar personagem"
                   >
@@ -662,45 +1120,46 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                     <span className="text-sm font-medium">Editar</span>
                   </button>
                 )}
+                {canEdit && isEditing && (
+                  <div className="ml-4 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 shadow-sm disabled:opacity-60"
+                      title="Salvar alterações"
+                    >
+                      <span className="text-sm font-medium">Salvar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                      className="px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-ecoar-light-900/70 rounded-lg transition-all duration-200 flex items-center gap-2 border border-slate-200/70 dark:border-slate-700/40 shadow-sm disabled:opacity-60"
+                      title="Cancelar"
+                    >
+                      <span className="text-sm font-medium">Cancelar</span>
+                    </button>
+                  </div>
+                )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-5">
-                <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                    Genus
-                  </label>
-                  <select
-                    value={characterData.genus}
-                    onChange={(e) => {
-                      updateField('genus', e.target.value)
-                      updateField('raca', '')
-                      applyRaceBonuses('')
-                    }}
-                    className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
-                  >
-                    <option value="">Selecione um Genus</option>
-                    {getAllGenus().map((genus) => (
-                      <option key={genus} value={genus}>
-                        {genus}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="grid grid-cols-1 gap-4 mb-5">
                 <div className="min-w-0">
                   <label className="block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
                     Raça
                   </label>
                   <select
                     value={characterData.raca}
+                    disabled={!isEditing}
                     onChange={(e) => {
                       updateField('raca', e.target.value)
                       applyRaceBonuses(e.target.value)
                     }}
                     className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all disabled:opacity-50 shadow-sm"
-                    disabled={!characterData.genus}
                   >
                     <option value="">Selecione uma Raça</option>
-                    {characterData.genus && getRacesByGenus(characterData.genus).map((race) => (
+                    {races.map((race) => (
                       <option key={race.id} value={race.id}>
                         {race.name}
                       </option>
@@ -716,6 +1175,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                   </label>
                   <select
                     value={characterData.localizacao}
+                    disabled={!isEditing}
                     onChange={(e) => updateField('localizacao', e.target.value)}
                     className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
@@ -740,6 +1200,7 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                   </label>
                   <select
                     value={characterData.trilha}
+                    disabled={!isEditing}
                     onChange={(e) => updateField('trilha', e.target.value)}
                     className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
                   >
@@ -914,9 +1375,10 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                         <input
                           type="text"
                           value={characterData[move.key as keyof typeof characterData] as string}
+                          disabled={!isEditing}
                           onChange={(e) => updateField(move.key, e.target.value)}
                           placeholder="0m"
-                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
+                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                     )
@@ -946,9 +1408,10 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
                         <input
                           type="text"
                           value={characterData[sense.key as keyof typeof characterData] as string}
+                          disabled={!isEditing}
                           onChange={(e) => updateField(sense.key, e.target.value)}
                           placeholder="0m"
-                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
+                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                     )
@@ -960,22 +1423,217 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
 
           {/* Sidebar Direita - Informações Secundárias */}
           <aside className="lg:col-span-3 space-y-5 min-w-0">
-            {/* Equipamentos */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-            className="bg-white/50 dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="bg-white/50 dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Equipamentos
-              </h3>
-              <textarea
-                value={characterData.equipamentos}
-                onChange={(e) => updateField('equipamentos', e.target.value)}
-                placeholder="Liste seus equipamentos..."
-                className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words"
-              />
+              <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
+                <button
+                  type="button"
+                  onClick={() => setActiveSidebarTab('singularidades')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeSidebarTab === 'singularidades'
+                      ? 'text-ecoar-teal border-b-2 border-ecoar-teal'
+                      : 'text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-700 dark:hover:text-ecoar-light-900/80'
+                  }`}
+                >
+                  Singularidades
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSidebarTab('equipamentos')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeSidebarTab === 'equipamentos'
+                      ? 'text-ecoar-teal border-b-2 border-ecoar-teal'
+                      : 'text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-700 dark:hover:text-ecoar-light-900/80'
+                  }`}
+                >
+                  Equipamentos
+                </button>
+              </div>
+
+              {activeSidebarTab === 'singularidades' && (
+                <div className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {(() => {
+                    const hasCreation = characterData.singularidades.length > 0
+                    const hasEcoar = characterData.singularidadesEcoar.length > 0
+                    const hasMartial = characterData.singularidadesMarciais.length > 0
+
+                    const hasAny = hasCreation || hasEcoar || hasMartial
+                    if (!hasAny) {
+                      return (
+                        <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                          Nenhuma singularidade selecionada.
+                        </div>
+                      )
+                    }
+
+                    const resolveNameById = (id: string) => {
+                      return (
+                        getCreationSingularityById(id)?.name ||
+                        getEcoarSingularityById(id)?.name ||
+                        getMartialSchoolSingularityById(id)?.name ||
+                        getSingularityById(id)?.name ||
+                        id
+                      )
+                    }
+
+                    const getSimpleRequirementText = (req: any): string | undefined => {
+                      if (!req) return undefined
+                      const parts: string[] = []
+                      if (req.previous) parts.push(`Requer: ${resolveNameById(req.previous)}`)
+                      if (typeof req.nivelAlma === 'number' && !Number.isNaN(req.nivelAlma)) {
+                        parts.push(`Nível de Alma ${req.nivelAlma}+`)
+                      }
+                      return parts.length ? parts.join(', ') : undefined
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        {hasCreation && (
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                              Criação
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                              {characterData.singularidades.map((id) => {
+                                const sing = getCreationSingularityById(id) || getSingularityById(id)
+                                if (!sing) {
+                                  return (
+                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                                      Singularidade não encontrada: {id}
+                                    </div>
+                                  )
+                                }
+
+                                const restrictionsText =
+                                  sing.requirements && sing.requirements.length > 0
+                                    ? `Não pode possuir: ${sing.requirements
+                                      .map((reqId) => resolveNameById(reqId))
+                                      .join(', ')}`
+                                    : undefined
+
+                                return (
+                                  <SingularityCard
+                                    key={id}
+                                    name={sing.name}
+                                    description={sing.description}
+                                    cost={sing.cost}
+                                    isSelected={true}
+                                    canAfford={true}
+                                    canSelect={false}
+                                    onClick={() => {}}
+                                    variant="teal"
+                                    requirementsText={restrictionsText}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {hasEcoar && (
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                              Ecoar
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                              {characterData.singularidadesEcoar.map((id) => {
+                                const sing = getEcoarSingularityById(id)
+                                if (!sing) {
+                                  return (
+                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                                      Singularidade não encontrada: {id}
+                                    </div>
+                                  )
+                                }
+
+                                return (
+                                  <SingularityCard
+                                    key={id}
+                                    name={sing.name}
+                                    description={sing.description}
+                                    cost={sing.cost}
+                                    costLabel="PC"
+                                    secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
+                                    effects={sing.effects || undefined}
+                                    isSelected={true}
+                                    canAfford={true}
+                                    canSelect={false}
+                                    onClick={() => {}}
+                                    variant="teal"
+                                    requirementsText={getSimpleRequirementText(sing.requirements)}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {hasMartial && (
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                              Marciais
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                              {characterData.singularidadesMarciais.map((id) => {
+                                const sing = getMartialSchoolSingularityById(id)
+                                if (!sing) {
+                                  return (
+                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                                      Singularidade não encontrada: {id}
+                                    </div>
+                                  )
+                                }
+
+                                return (
+                                  <SingularityCard
+                                    key={id}
+                                    name={sing.name}
+                                    description={sing.description}
+                                    cost={sing.cost * 10}
+                                    costLabel="PC"
+                                    secondaryCost={`${sing.cost} PE`}
+                                    level={sing.level}
+                                    effects={sing.effects || undefined}
+                                    isSelected={true}
+                                    canAfford={true}
+                                    canSelect={false}
+                                    onClick={() => {}}
+                                    variant="teal"
+                                    requirementsText={getSimpleRequirementText(sing.requirements)}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {activeSidebarTab === 'equipamentos' && (
+                <div className="mt-4 space-y-3">
+                  <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
+                    <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Sistema de Equipamentos em desenvolvimento</div>
+                    <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-1">
+                      Ainda não finalizamos o sistema de equipamentos.
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={characterData.equipamentos}
+                    disabled={!isEditing}
+                    onChange={(e) => updateField('equipamentos', e.target.value)}
+                    placeholder="Liste seus equipamentos..."
+                    className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )}
             </motion.div>
 
             {/* Anotações */}
@@ -990,9 +1648,10 @@ export default function CharacterSheet({ initialData, onEdit, onBackToDashboard 
               </h3>
               <textarea
                 value={characterData.anotacoes}
+                disabled={!isEditing}
                 onChange={(e) => updateField('anotacoes', e.target.value)}
                 placeholder="Anotações gerais..."
-                className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words"
+                className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </motion.div>
           </aside>

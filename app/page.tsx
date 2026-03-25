@@ -8,6 +8,7 @@ import { config } from '@/lib/config'
 import { AppProvider } from '@/contexts/AppContext'
 import CharacterSheet from '@/components/CharacterSheet'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
+import CharacterEvolutionScreen from '@/components/CharacterEvolutionScreen'
 import CharacterDashboard from '@/components/CharacterDashboard'
 import LoginForm from '@/components/auth/LoginForm'
 import RegisterForm from '@/components/auth/RegisterForm'
@@ -15,7 +16,7 @@ import { saveCharacter } from '@/lib/storage/characterStorage'
 import { CharacterWithMetadata } from '@/types/auth'
 import { pageTransition } from '@/lib/motionVariants'
 
-type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet'
+type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet' | 'evolution'
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
 
@@ -200,10 +201,31 @@ function AppContent() {
             >
               <CharacterSheet
               initialData={selectedCharacter.data}
-              onEdit={() => handleEditCharacter(selectedCharacter)}
+                canEdit={true}
+                onOpenEvolution={() => setViewMode('evolution')}
               onBackToDashboard={handleGoToDashboard}
             />
           </motion.div>
+          )}
+
+          {viewMode === 'evolution' && selectedCharacter && (
+            <motion.div
+              key="evolution"
+              variants={pageTransition}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              <CharacterEvolutionScreen
+                initialCharacterData={selectedCharacter.data}
+                onCancel={() => setViewMode('sheet')}
+                onSaved={(saved) => {
+                  setSelectedCharacter(saved)
+                  setViewMode('sheet')
+                }}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

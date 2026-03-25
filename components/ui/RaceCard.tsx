@@ -7,7 +7,6 @@ import Image from 'next/image'
 
 interface RaceCardProps {
   name: string
-  genus: string
   description: string
   bonuses: string[]
   isSelected: boolean
@@ -18,7 +17,6 @@ interface RaceCardProps {
 
 export default function RaceCard({
   name,
-  genus,
   description,
   bonuses,
   isSelected,
@@ -63,7 +61,6 @@ export default function RaceCard({
           }`}>
             {name}
           </h4>
-          <span className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60">{genus}</span>
         </div>
       </div>
 

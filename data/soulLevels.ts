@@ -48,6 +48,21 @@ export function getSoulLevelByNivel(nivel: number): SoulLevel | undefined {
   return soulLevels.find(sl => sl.nivel === nivel)
 }
 
+// Converte Pontos de Evolução acumulados (lado após '/') em Nível de Alma.
+// Se o personagem tiver menos pontos que o primeiro nível "evoluído", retorna nível 1.
+export function getSoulLevelByPontosEvolucao(pontosEvolucao: number): SoulLevel {
+  const safe = Number.isFinite(pontosEvolucao) ? pontosEvolucao : 0
+  const clamped = Math.max(0, safe)
+
+  // soulLevels está em ordem crescente por "pontosEvolucao"; então percorremos e mantemos o maior nível alcançado.
+  let current: SoulLevel = soulLevels[0]
+  for (const sl of soulLevels) {
+    if (clamped >= sl.pontosEvolucao) current = sl
+    else break
+  }
+  return current
+}
+
 export function getSoulLevelsByEstagio(estagio: string): SoulLevel[] {
   return soulLevels.filter(sl => sl.estagio === estagio)
 }
