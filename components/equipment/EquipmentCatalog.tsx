@@ -102,8 +102,15 @@ export default function EquipmentCatalog() {
   const onAdminEditItem = (entry: CatalogEntry) => {
     if (!canAdminUseEditor) return
     const row = adminData!.items.find((r) => r.id === entry.id)
-    if (!row) return
-    setEditingRow(row)
+    setEditingRow(
+      row ?? {
+        id: entry.id,
+        kind: entry.kind,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+        payload: entry,
+      }
+    )
   }
   return (
     <div className="min-h-0 flex-1 flex flex-col bg-slate-50/80 dark:bg-ecoar-dark-900/50">
