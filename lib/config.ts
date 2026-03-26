@@ -62,6 +62,14 @@ export const DEMO_ACCOUNTS = [
     username: 'demo_j3',
     label: 'Jogador 3',
   },
+  {
+    id: 'jogador4',
+    email: 'demo-jogador4@ecoar.test',
+    password: 'demo123',
+    fullName: 'Jogador Quatro',
+    username: 'demo_j4',
+    label: 'Jogador 4',
+  },
 ] as const
 
 export type DemoAccountId = (typeof DEMO_ACCOUNTS)[number]['id']
