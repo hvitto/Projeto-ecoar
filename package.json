@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:catalog": "tsx scripts/seed-equipment-catalog.ts"
+    "seed:catalog": "tsx scripts/seed-equipment-catalog.ts",
+    "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -28,6 +29,8 @@
     "@types/react-dom": "^18.2.0",
     "@types/three": "^0.170.0",
     "autoprefixer": "^10.4.16",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.1.6",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "tsx": "^4.21.0",

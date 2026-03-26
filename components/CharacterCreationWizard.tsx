@@ -36,12 +36,9 @@ import { singularities, getSingularitiesByCategory, getSingularityById, Singular
 import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
 import { getAllMartialSchools, getMartialSchoolDataById, MartialSchoolData, MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
 import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import { ecoarTypes as ecoaTypes, getEcoarById, Ecoar } from '@/data/ecoar'
-import { 
-  getEcoarSingularitiesByEcoarId, 
-  getEcoarSingularityById, 
-  EcoarSingularity 
-} from '@/data/ecoarSingularities'
+import type { Ecoar } from '@/data/ecoar'
+import type { EcoarSingularity } from '@/data/ecoarSingularities'
+import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
 import { getAttributeModifier, getSkillDice } from '@/lib/calculations'
@@ -213,6 +210,16 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [raceBonuses, setRaceBonuses] = useState<Record<string, number>>({})
   const [martialSchoolBonuses, setMartialSchoolBonuses] = useState<Record<string, number>>({})
   const hasInitialized = useRef(false)
+
+  const handleCreationPointsSpentChange = useCallback((gastos: number) => {
+    setPontosCriacao((prev) => {
+      const disponiveis = prev.obtidos - gastos
+      if (prev.gastos === gastos && prev.disponiveis === disponiveis) {
+        return prev
+      }
+      return { ...prev, gastos, disponiveis }
+    })
+  }, [])
 
   // Initialize states from initialData when editing an existing character
   // This should only run once when the component mounts with initialData
@@ -1075,7 +1082,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
               martialSchoolBonuses={martialSchoolBonuses}
               classBonuses={{}}
               onRandomize={randomizeAttributes}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    onPointsChange={handleCreationPointsSpentChange}
                     isEvolutionStep={false}
                   />
                 )}
@@ -1088,7 +1095,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     pontosCriacao={pontosCriacao}
                     onSkillsChange={setSkills}
                     onSkillPointsChange={setSkillPoints}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    onPointsChange={handleCreationPointsSpentChange}
                     isEvolutionStep={false}
                   />
                 )}
@@ -1099,7 +1106,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     aptitudes={aptitudes}
                     pontosCriacao={pontosCriacao}
                     onAptitudesChange={setAptitudes}
-                    onPointsChange={(gastos) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    onPointsChange={handleCreationPointsSpentChange}
                     aptitudePoints={aptitudePoints}
                     onAptitudePointsChange={setAptitudePoints}
                     isEvolutionStep={false}
@@ -1153,7 +1160,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     onAttributesChange={(attrs: Record<string, number>) => setAttributes(attrs as typeof attributes)}
                     onSkillsChange={setSkills}
                     onAptitudesChange={setAptitudes}
-                    onPointsChange={(gastos: number) => setPontosCriacao(prev => ({ ...prev, gastos, disponiveis: prev.obtidos - gastos }))}
+                    onPointsChange={handleCreationPointsSpentChange}
                     pontosCriacao={pontosCriacao}
                     nivelAlma={nivelAlmaInicial}
                     activeSubStep={pcSubStep}
@@ -5541,6 +5548,7 @@ function SingularitiesSpendingStep({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
+  const { getEcoarSingularityById } = useEcoarCatalogData()
   const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
   const [selectedBruxarias, setSelectedBruxarias] = useState<string[]>([])
   const [selectedCacadaPowers, setSelectedCacadaPowers] = useState<string[]>([])
@@ -5829,6 +5837,7 @@ function EcoarSingularitiesList({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
+  const { getEcoarSingularitiesByEcoarId, getEcoarSingularityById } = useEcoarCatalogData()
   const ecoarSingularitiesList = selectedEcoar ? getEcoarSingularitiesByEcoarId(selectedEcoar) : []
   
   // O cálculo do custo total é feito pelo componente pai (SingularitiesSpendingStep)
@@ -6360,6 +6369,7 @@ function EcoarSelection({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
+  const { ecoarTypes: ecoaTypes } = useEcoarCatalogData()
   return (
     <div className="space-y-6">
       <div>
@@ -6696,6 +6706,7 @@ function EcoarStep({
   onEcoarSelect: (id: string) => void
   onSingularidadesChange: (singularidades: string[]) => void
 }) {
+  const { ecoarTypes: ecoaTypes } = useEcoarCatalogData()
   return (
     <div className="space-y-5">
       <div className="text-center mb-6">
@@ -7049,6 +7060,7 @@ function FinalReviewVisualizer({
 }: {
   data: Partial<CharacterCreationData>
 }) {
+  const { getEcoarById } = useEcoarCatalogData()
   const selectedRace = data.raca ? getRaceById(data.raca) : null
   const selectedMartialSchool = data.escolaMarcial ? getMartialSchoolById(data.escolaMarcial) : null
   const selectedPath = data.trilha ? getPathById(data.trilha) : null

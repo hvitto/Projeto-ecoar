@@ -7,6 +7,7 @@ export interface EcoarSingularity {
   name: string
   description: string
   cost: number // Pontos de Criação ou Pontos de Evolução
+  activationType?: 'passiva' | 'condicional' | 'complexa' | 'ativa'
   requirements?: {
     previous?: string // ID da singularidade anterior necessária
     nivelAlma?: number // Nível de Alma mínimo
@@ -14,6 +15,18 @@ export interface EcoarSingularity {
     attributes?: Record<string, number> // Atributos necessários
     skills?: Record<string, number> // Habilidades necessárias
   }
+  requirementEntries?: Array<{
+    type: string
+    key?: string
+    value: string
+    numericValue?: number
+  }>
+  effectEntries?: Array<{
+    type: string
+    title?: string
+    description: string
+    displayOrder: number
+  }>
   effects?: string // Descrição dos efeitos
   bonuses?: {
     attributes?: Record<string, number>

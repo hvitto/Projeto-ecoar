@@ -1,6 +1,6 @@
 // Ecoar types and data from Ecoar RPG
 
-export type EcoarType = 'apodrecido' | 'elisiade' | 'fenix' | 'geist' | 'immortalis' | 'lycantropo' | 'proelita' | 'revenant' | 'triade'
+export type EcoarType = 'apodrecido' | 'elisiade' | 'fenix' | 'geist' | 'immortalis' | 'lycantropo' | 'proelita' | 'revenant' | 'triade' | 'vampiro'
 
 export interface Ecoar {
   id: string
@@ -63,6 +63,12 @@ export const ecoarTypes: Ecoar[] = [
     name: 'Tríade',
     type: 'triade',
     description: 'Eco onde três mentes se fundem em uma, capaz de trocar técnicas conhecidas com facilidade e até mesmo projetar três corpos com mentes e identidades distintas.',
+  },
+  {
+    id: 'vampiro',
+    name: 'Vampiro',
+    type: 'vampiro',
+    description: 'Eco acorrentado pela Sede de sangue, com maldição solar e evolução por pecados e família vampírica.',
   },
 ]
 

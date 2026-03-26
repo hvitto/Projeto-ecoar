@@ -26,10 +26,13 @@ import { locations, getLocationById, getLocationsByNation, getAllNations } from 
 import SingularityCard from '@/components/ui/SingularityCard'
 import { getCreationSingularityById } from '@/data/creationSingularities'
 import { getSingularityById } from '@/data/singularities'
-import { getEcoarSingularityById } from '@/data/ecoarSingularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
+import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
+import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
+import { buildSystemSingularities } from '@/lib/systemSingularities'
+import type { SystemSingularityKind } from '@/lib/systemSingularities'
 import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorCatalogEntry,
@@ -40,6 +43,7 @@ import {
   type WeaponCatalogEntry,
 } from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
+import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
 import {
   catalogDisplayLine,
   formatCerosDisplay,
@@ -137,6 +141,7 @@ export default function CharacterSheet({
   onOpenEvolution,
   onCharacterSaved,
 }: CharacterSheetProps) {
+  const { getEcoarSingularityById, ecoarSingularities } = useEcoarCatalogData()
   const [characterData, setCharacterData] = useState({
     // Basic Info
     pontosEvolucao: { atual: 0, max: 0 },
@@ -204,7 +209,10 @@ export default function CharacterSheet({
     // Singularities (IDs selected in the wizard)
     singularidades: [] as string[],
     singularidadesEcoar: [] as string[],
+    singularidadesCondicionaisAtivas: [] as string[],
+    singularidadesCondicionaisCriacaoAtivas: [] as string[],
     singularidadesMarciais: [] as string[],
+    singularidadesCondicionaisMarciaisAtivas: [] as string[],
     singularidadesRaciais: [] as string[],
   })
 
@@ -222,6 +230,7 @@ export default function CharacterSheet({
   const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('equipamentos')
   const [equipmentSubTab, setEquipmentSubTab] = useState<'inventario' | 'equipados'>('inventario')
   const [equipmentPickerOpen, setEquipmentPickerOpen] = useState(false)
+  const [singularityPickerOpen, setSingularityPickerOpen] = useState(false)
   const [peToAdd, setPeToAdd] = useState<string>('')
 
   const peToAddNumber = useMemo(() => {
@@ -452,8 +461,17 @@ export default function CharacterSheet({
         if (initialData.singularidadesEcoar) {
           updated.singularidadesEcoar = initialData.singularidadesEcoar
         }
+        if (Array.isArray((initialData as any).singularidadesCondicionaisAtivas)) {
+          updated.singularidadesCondicionaisAtivas = (initialData as any).singularidadesCondicionaisAtivas
+        }
+        if (Array.isArray((initialData as any).singularidadesCondicionaisCriacaoAtivas)) {
+          updated.singularidadesCondicionaisCriacaoAtivas = (initialData as any).singularidadesCondicionaisCriacaoAtivas
+        }
         if (initialData.singularidadesMarciais) {
           updated.singularidadesMarciais = initialData.singularidadesMarciais
+        }
+        if (Array.isArray((initialData as any).singularidadesCondicionaisMarciaisAtivas)) {
+          updated.singularidadesCondicionaisMarciaisAtivas = (initialData as any).singularidadesCondicionaisMarciaisAtivas
         }
         if (initialData.singularidadesRaciais) {
           updated.singularidadesRaciais = initialData.singularidadesRaciais
@@ -695,6 +713,146 @@ export default function CharacterSheet({
       }
     })
   }, [])
+
+  const handleToggleSystemSingularity = useCallback(
+    (args: { id: string; kind: SystemSingularityKind; selected: boolean; cost: number }) => {
+      const { id, kind, selected, cost } = args
+
+      setCharacterData((prev) => {
+        // Prevent edits when modal is open but user can't edit.
+        if (!canEditSheet) return prev
+
+        const currentAtuais = prev.pontosEvolucao.atual ?? 0
+        const alreadySelected =
+          kind === 'criacao'
+            ? prev.singularidades.includes(id)
+            : kind === 'ecoar'
+              ? prev.singularidadesEcoar.includes(id)
+              : kind === 'marcial'
+                ? prev.singularidadesMarciais.includes(id)
+                : false
+
+        if (selected && alreadySelected) return prev
+        if (!selected && !alreadySelected) return prev
+
+        const delta = selected ? -cost : cost
+        const nextAtuais = cost > 0 ? currentAtuais + delta : currentAtuais
+
+        if (selected && cost > 0 && currentAtuais < cost) return prev
+        if (!selected && delta < 0) return prev
+
+        if (kind === 'racional') return prev // placeholder desabilitado
+
+        if (selected) {
+          if (kind === 'criacao') {
+            const nextSelected = [...prev.singularidades, id]
+            // Ao selecionar, começamos com condição DESLIGADA; checkbox [X] é um ato separado.
+            const nextCond = prev.singularidadesCondicionaisCriacaoAtivas.filter((it) => it !== id)
+            return {
+              ...prev,
+              pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+              singularidades: nextSelected,
+              singularidadesCondicionaisCriacaoAtivas: nextCond,
+            }
+          }
+
+          if (kind === 'ecoar') {
+            const nextSelected = [...prev.singularidadesEcoar, id]
+            const nextCond = prev.singularidadesCondicionaisAtivas.filter((it) => it !== id)
+            return {
+              ...prev,
+              pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+              singularidadesEcoar: nextSelected,
+              singularidadesCondicionaisAtivas: nextCond,
+            }
+          }
+
+          // marciais
+          const nextSelected = [...prev.singularidadesMarciais, id]
+          const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+            singularidadesMarciais: nextSelected,
+            singularidadesCondicionaisMarciaisAtivas: nextCond,
+          }
+        }
+
+        // Unselect: refund + clear conditional.
+        if (kind === 'criacao') {
+          const nextSelected = prev.singularidades.filter((it) => it !== id)
+          const nextCond = prev.singularidadesCondicionaisCriacaoAtivas.filter((it) => it !== id)
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+            singularidades: nextSelected,
+            singularidadesCondicionaisCriacaoAtivas: nextCond,
+          }
+        }
+
+        if (kind === 'ecoar') {
+          const nextSelected = prev.singularidadesEcoar.filter((it) => it !== id)
+          const nextCond = prev.singularidadesCondicionaisAtivas.filter((it) => it !== id)
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+            singularidadesEcoar: nextSelected,
+            singularidadesCondicionaisAtivas: nextCond,
+          }
+        }
+
+        // marciais
+        const nextSelected = prev.singularidadesMarciais.filter((it) => it !== id)
+        const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+        return {
+          ...prev,
+          pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+          singularidadesMarciais: nextSelected,
+          singularidadesCondicionaisMarciaisAtivas: nextCond,
+        }
+      })
+    },
+    [canEditSheet],
+  )
+
+  const handleToggleConditionalSystemSingularity = useCallback(
+    (args: { id: string; kind: SystemSingularityKind; enabled: boolean }) => {
+      const { id, kind, enabled } = args
+      setCharacterData((prev) => {
+        if (!canEditSheet) return prev
+
+        if (kind === 'criacao') {
+          if (!prev.singularidades.includes(id)) return prev
+          return {
+            ...prev,
+            singularidadesCondicionaisCriacaoAtivas: enabled
+              ? [...prev.singularidadesCondicionaisCriacaoAtivas.filter((it) => it !== id), id]
+              : prev.singularidadesCondicionaisCriacaoAtivas.filter((it) => it !== id),
+          }
+        }
+
+        if (kind === 'ecoar') {
+          if (!prev.singularidadesEcoar.includes(id)) return prev
+          return {
+            ...prev,
+            singularidadesCondicionaisAtivas: enabled
+              ? [...prev.singularidadesCondicionaisAtivas.filter((it) => it !== id), id]
+              : prev.singularidadesCondicionaisAtivas.filter((it) => it !== id),
+          }
+        }
+
+        // marciais
+        if (!prev.singularidadesMarciais.includes(id)) return prev
+        return {
+          ...prev,
+          singularidadesCondicionaisMarciaisAtivas: enabled
+            ? [...prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id), id]
+            : prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id),
+        }
+      })
+    },
+    [canEditSheet],
+  )
 
   const removeSheetCatalogItem = useCallback((instanceId: string) => {
     setCharacterData((prev) => {
@@ -971,6 +1129,39 @@ export default function CharacterSheet({
     }
   }
 
+  const systemSingularities = useMemo(() => buildSystemSingularities(ecoarSingularities), [ecoarSingularities])
+  const systemSingularityById = useMemo(() => {
+    const map = new Map<string, (typeof systemSingularities)[number]>()
+    for (const s of systemSingularities) map.set(s.id, s)
+    return map
+  }, [systemSingularities])
+
+  const singularityBonuses = useMemo(
+    () =>
+      aggregateSimpleBonuses({
+        selectedSingularityIdsByKind: {
+          criacao: characterData.singularidades,
+          ecoar: characterData.singularidadesEcoar,
+          marciais: characterData.singularidadesMarciais,
+        },
+        conditionalEnabledIdsByKind: {
+          criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
+          ecoar: characterData.singularidadesCondicionaisAtivas,
+          marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
+        },
+        getSystemSingularityById: (id) => systemSingularityById.get(id),
+      }),
+    [
+      characterData.singularidades,
+      characterData.singularidadesCondicionaisCriacaoAtivas,
+      characterData.singularidadesEcoar,
+      characterData.singularidadesCondicionaisAtivas,
+      characterData.singularidadesMarciais,
+      characterData.singularidadesCondicionaisMarciaisAtivas,
+      systemSingularityById,
+    ]
+  )
+
   const derivedValues = useMemo(() => {
     const percepcaoLevel = typeof characterData.percepcao.nivel === 'string' 
       ? parseInt(characterData.percepcao.nivel) || 0 
@@ -991,12 +1182,42 @@ export default function CharacterSheet({
     const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
     const sizeWeightPenalty = -(sizeModifier + weightModifier)
 
+    const atencaoBonus = singularityBonuses.skills.atencao ?? 0
+    const raciocinioBonus = singularityBonuses.skills.raciocinio ?? 0
+    const reflexosBonus = singularityBonuses.skills.reflexos ?? 0
+    const composturaBonus = singularityBonuses.skills.compostura ?? 0
+
+    // Apply simple attribute bonuses from selected passivas/condicionais.
+    // This keeps underlying base stats intact while still making the ficha behave consistently.
+    const percepcaoAttrBonus = singularityBonuses.attributes.percepcao ?? 0
+    const vitalidadeAttrBonus = singularityBonuses.attributes.vitalidade ?? 0
+    const vontadeAttrBonus = singularityBonuses.attributes.vontade ?? 0
+    const corpoBonus = singularityBonuses.corpo ?? 0
+    const menteBonus = singularityBonuses.mente ?? 0
+
+    const percepcaoEffective = percepcaoLevel + percepcaoAttrBonus
+    const vitalidadeEffective = vitalidadeLevel + vitalidadeAttrBonus
+    const vontadeEffective = vontadeLevel + vontadeAttrBonus
+
     return {
-      corpoMax: calculateCorpoMax(vitalidadeLevel),
-      menteMax: calculateMenteMax(vontadeLevel),
-      commonTests: calculateCommonTests(percepcaoLevel, vontadeLevel, 0, 0, 0, 0, 0, sizeWeightPenalty),
+      corpoMax: calculateCorpoMax(vitalidadeEffective) + corpoBonus,
+      menteMax: calculateMenteMax(vontadeEffective) + menteBonus,
+      commonTests: calculateCommonTests(
+        percepcaoEffective,
+        vontadeEffective,
+        atencaoBonus,
+        raciocinioBonus,
+        reflexosBonus,
+        composturaBonus,
+        0,
+        sizeWeightPenalty
+      ),
     }
   }, [
+    singularityBonuses.attributes,
+    singularityBonuses.skills,
+    singularityBonuses.corpo,
+    singularityBonuses.mente,
     characterData.percepcao.nivel,
     characterData.vitalidade.nivel,
     characterData.vontade.nivel,
@@ -1103,7 +1324,10 @@ export default function CharacterSheet({
       backstory: characterData.anotacoes,
       singularidades: characterData.singularidades,
       singularidadesEcoar: characterData.singularidadesEcoar,
+      singularidadesCondicionaisAtivas: characterData.singularidadesCondicionaisAtivas,
+      singularidadesCondicionaisCriacaoAtivas: characterData.singularidadesCondicionaisCriacaoAtivas,
       singularidadesMarciais: characterData.singularidadesMarciais,
+      singularidadesCondicionaisMarciaisAtivas: characterData.singularidadesCondicionaisMarciaisAtivas,
       singularidadesRaciais: characterData.singularidadesRaciais,
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
@@ -2530,6 +2754,31 @@ export default function CharacterSheet({
 
               {activeSidebarTab === 'singularidades' && (
                 <div className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
+                  <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => setSingularityPickerOpen(true)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30"
+                      >
+                        Abrir catálogo de singularidades
+                      </button>
+                    )}
+                    <Link
+                      href="/referencia/singularidades"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs inline-flex items-center gap-1 text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      Referência completa (nova aba)
+                    </Link>
+                    {(Object.keys(singularityBonuses.attributes).length > 0 || Object.keys(singularityBonuses.skills).length > 0 || singularityBonuses.corpo !== 0 || singularityBonuses.mente !== 0 || singularityBonuses.folego !== 0 || singularityBonuses.mana !== 0) && (
+                      <p className="text-[11px] text-slate-600 dark:text-ecoar-light-900/65">
+                        Bônus simples ativos aplicados automaticamente na ficha.
+                      </p>
+                    )}
+                  </div>
                   {(() => {
                     const hasCreation = characterData.singularidades.length > 0
                     const hasEcoar = characterData.singularidadesEcoar.length > 0
@@ -3283,6 +3532,58 @@ export default function CharacterSheet({
                                   armorCatalog={armor}
                                   utilityCatalog={utilities}
                                   costMultiplierTables={multiplierTables}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {singularityPickerOpen && (
+                          <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
+                            <div className="mx-auto w-full max-w-5xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
+                              <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+                                  Catálogo de singularidades
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSingularityPickerOpen(false)}
+                                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
+                                >
+                                  Fechar
+                                </button>
+                              </div>
+                              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
+                                <SystemSingularityCatalogBrowser
+                                  mode="picker"
+                                  urlSync={false}
+                                  singularities={systemSingularities}
+                                  selectedIdsByKind={{
+                                    criacao: characterData.singularidades,
+                                    ecoar: characterData.singularidadesEcoar,
+                                    marciais: characterData.singularidadesMarciais,
+                                  }}
+                                  conditionalEnabledIdsByKind={{
+                                    criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
+                                    ecoar: characterData.singularidadesCondicionaisAtivas,
+                                    marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
+                                  }}
+                                  saldoPe={characterData.pontosEvolucao.atual}
+                                  context={{
+                                    nivelAlma,
+                                    attributes: {
+                                      carisma: characterData.carisma.nivel + (singularityBonuses.attributes.carisma ?? 0),
+                                      finesse: characterData.finesse.nivel + (singularityBonuses.attributes.finesse ?? 0),
+                                      forca: characterData.forca.nivel + (singularityBonuses.attributes.forca ?? 0),
+                                      inteligencia: characterData.inteligencia.nivel + (singularityBonuses.attributes.inteligencia ?? 0),
+                                      percepcao: characterData.percepcao.nivel + (singularityBonuses.attributes.percepcao ?? 0),
+                                      vitalidade: characterData.vitalidade.nivel + (singularityBonuses.attributes.vitalidade ?? 0),
+                                      vontade: characterData.vontade.nivel + (singularityBonuses.attributes.vontade ?? 0),
+                                    },
+                                    skills: characterData.skills,
+                                    aptitudes: characterData.aptitudes,
+                                  }}
+                                  onToggleSelect={handleToggleSystemSingularity}
+                                  onToggleConditional={handleToggleConditionalSystemSingularity}
                                 />
                               </div>
                             </div>

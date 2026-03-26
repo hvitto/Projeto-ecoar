@@ -14,11 +14,8 @@ import {
   getCreationSingularitiesByCategory,
   type CreationSingularity,
 } from '@/data/creationSingularities'
-import {
-  getEcoarSingularitiesByEcoarId,
-  getEcoarSingularityById,
-  type EcoarSingularity,
-} from '@/data/ecoarSingularities'
+import type { EcoarSingularity } from '@/data/ecoarSingularities'
+import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import {
   getAllMartialSchools,
   getMartialSchoolDataById,
@@ -76,6 +73,7 @@ export default function CharacterEvolutionScreen({
   onCancel,
   onSaved,
 }: CharacterEvolutionScreenProps) {
+  const { getEcoarSingularitiesByEcoarId, getEcoarSingularityById } = useEcoarCatalogData()
   const { user } = useAuth()
 
   const initialPontosEvolucao = initialCharacterData?.pontosEvolucao ?? { atual: 0, max: 0 }
