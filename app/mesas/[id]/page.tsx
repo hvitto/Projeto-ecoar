@@ -71,10 +71,10 @@ export default function MesaPage() {
   }, [tableId, load])
 
   useEffect(() => {
-    if (!tableId || !table) return
+    if (!tableId || !table || viewMode !== 'list') return
     const interval = setInterval(loadCharacters, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [tableId, table, loadCharacters])
+  }, [tableId, table, viewMode, loadCharacters])
 
   const inviteLink =
     typeof window !== 'undefined'
@@ -142,7 +142,7 @@ export default function MesaPage() {
   const handleBackFromSheet = () => {
     setSelectedCharacter(null)
     setViewMode('list')
-    load()
+    loadCharacters()
   }
 
   const handleBackFromWizard = () => {
@@ -203,7 +203,13 @@ export default function MesaPage() {
           onOpenEvolution={() => setViewMode('evolution')}
           onCharacterSaved={(saved) => {
             setSelectedCharacter(saved)
-            load()
+            setTableCharacters((prev) =>
+              prev.map((item) =>
+                item.character.id === saved.id
+                  ? { ...item, character: saved }
+                  : item
+              )
+            )
           }}
           onBackToDashboard={handleBackFromSheet}
         />

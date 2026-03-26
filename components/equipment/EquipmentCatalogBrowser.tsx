@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 import CostMultiplierTables from '@/components/equipment/CostMultiplierTables'
@@ -87,6 +87,7 @@ export default function EquipmentCatalogBrowser({
 
   const mainTab = urlSync ? parseMainTab(sp.get('tab')) : mainTabInner
   const search = urlSync ? sp.get('q') ?? '' : searchInner
+  const deferredSearch = useDeferredValue(search)
   const weaponSection = urlSync ? parseWeaponSection(sp.get('secao')) : weaponSectionInner
   const vestuarioTab = urlSync ? parseVestuarioTab(sp.get('vestuario')) : vestuarioTabInner
   const utilCategory = urlSync ? sp.get('categoria') : utilCategoryInner
@@ -145,18 +146,18 @@ export default function EquipmentCatalogBrowser({
   }
 
   const filteredWeapons = useMemo(
-    () => filterWeapons(weaponCatalog, search, weaponSection),
-    [weaponCatalog, search, weaponSection]
+    () => filterWeapons(weaponCatalog, deferredSearch, weaponSection),
+    [weaponCatalog, deferredSearch, weaponSection]
   )
 
   const filteredArmor = useMemo(
-    () => filterArmor(armorCatalog, search, vestuarioTab),
-    [armorCatalog, search, vestuarioTab]
+    () => filterArmor(armorCatalog, deferredSearch, vestuarioTab),
+    [armorCatalog, deferredSearch, vestuarioTab]
   )
 
   const filteredUtils = useMemo(
-    () => filterUtilities(utilityCatalog, search, utilCategory),
-    [utilityCatalog, search, utilCategory]
+    () => filterUtilities(utilityCatalog, deferredSearch, utilCategory),
+    [utilityCatalog, deferredSearch, utilCategory]
   )
 
   const utilCategories = useMemo(() => getUtilityCategories(utilityCatalog), [utilityCatalog])
@@ -168,14 +169,14 @@ export default function EquipmentCatalogBrowser({
     return []
   }, [mainTab, showCostMultiplierTables, costMultiplierTables])
 
-  const handlePick = (entry: CatalogEntry) => {
+  const handlePick = useCallback((entry: CatalogEntry) => {
     if (!onPickItem || mode !== 'picker') return
     const custo = parseCostLabelToCeros(entry.costLabel)
     if (custo === null) return
     onPickItem(entry, custo)
-  }
+  }, [mode, onPickItem])
 
-  const renderPickerAction = (entry: CatalogEntry) => {
+  const renderPickerAction = useCallback((entry: CatalogEntry) => {
     if (mode !== 'picker' || !onPickItem) return undefined
     const custo = parseCostLabelToCeros(entry.costLabel)
     const canBuy = custo !== null && custo <= saldoDisponivel
@@ -188,7 +189,46 @@ export default function EquipmentCatalogBrowser({
       disabled,
       onClick: () => handlePick(entry),
     }
-  }
+  }, [handlePick, mode, onPickItem, saldoDisponivel])
+
+  const renderedWeaponCards = useMemo(
+    () =>
+      filteredWeapons.map((w) => (
+        <CatalogItemCard
+          key={w.id}
+          entry={w}
+          pickerAction={renderPickerAction(w)}
+          adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(w) } : undefined}
+        />
+      )),
+    [filteredWeapons, onAdminEditItem, renderPickerAction]
+  )
+
+  const renderedArmorCards = useMemo(
+    () =>
+      filteredArmor.map((a) => (
+        <CatalogItemCard
+          key={a.id}
+          entry={a}
+          pickerAction={renderPickerAction(a)}
+          adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(a) } : undefined}
+        />
+      )),
+    [filteredArmor, onAdminEditItem, renderPickerAction]
+  )
+
+  const renderedUtilityCards = useMemo(
+    () =>
+      filteredUtils.map((u) => (
+        <CatalogItemCard
+          key={u.id}
+          entry={u}
+          pickerAction={renderPickerAction(u)}
+          adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(u) } : undefined}
+        />
+      )),
+    [filteredUtils, onAdminEditItem, renderPickerAction]
+  )
 
   return (
     <div className={className}>
@@ -264,14 +304,7 @@ export default function EquipmentCatalogBrowser({
           </nav>
           <div className="flex-1 min-w-0 space-y-3">
             <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">{filteredWeapons.length} item(ns)</p>
-            {filteredWeapons.map((w) => (
-              <CatalogItemCard
-                key={w.id}
-                entry={w}
-                pickerAction={renderPickerAction(w)}
-                adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(w) } : undefined}
-              />
-            ))}
+            {renderedWeaponCards}
             {filteredWeapons.length === 0 && (
               <p className="text-sm text-slate-500 dark:text-ecoar-light-900/50 py-8 text-center">Nenhum resultado.</p>
             )}
@@ -299,14 +332,7 @@ export default function EquipmentCatalogBrowser({
           </nav>
           <div className="flex-1 min-w-0 space-y-3">
             <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">{filteredArmor.length} item(ns)</p>
-            {filteredArmor.map((a) => (
-              <CatalogItemCard
-                key={a.id}
-                entry={a}
-                pickerAction={renderPickerAction(a)}
-                adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(a) } : undefined}
-              />
-            ))}
+            {renderedArmorCards}
             {filteredArmor.length === 0 && (
               <p className="text-sm text-slate-500 dark:text-ecoar-light-900/50 py-8 text-center">Nenhum resultado.</p>
             )}
@@ -345,14 +371,7 @@ export default function EquipmentCatalogBrowser({
           </nav>
           <div className="flex-1 min-w-0 space-y-3">
             <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">{filteredUtils.length} item(ns)</p>
-            {filteredUtils.map((u) => (
-              <CatalogItemCard
-                key={u.id}
-                entry={u}
-                pickerAction={renderPickerAction(u)}
-                adminEditAction={onAdminEditItem ? { onEdit: () => onAdminEditItem(u) } : undefined}
-              />
-            ))}
+            {renderedUtilityCards}
             {filteredUtils.length === 0 && (
               <p className="text-sm text-slate-500 dark:text-ecoar-light-900/50 py-8 text-center">Nenhum resultado.</p>
             )}

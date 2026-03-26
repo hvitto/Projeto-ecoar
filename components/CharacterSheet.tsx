@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { Fragment, useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motionVariants'
@@ -11,11 +11,15 @@ import {
 } from 'lucide-react'
 import {
   getAttributeModifier,
+  getSkillDice,
+  getAptitudeDice,
   calculateCorpoMax,
   calculateMenteMax,
   calculateCommonTests,
   formatModifier,
 } from '@/lib/calculations'
+import { skills as skillsDefinitions } from '@/data/skills'
+import { aptitudes as aptitudesDefinitions } from '@/data/aptitudes'
 import { races, getRaceById } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
 import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
@@ -26,7 +30,7 @@ import { getEcoarSingularityById } from '@/data/ecoarSingularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
-import type { CatalogEntry, CatalogOwnedItem } from '@/types/equipment'
+import type { CatalogEntry, CatalogOwnedItem, WeaponCatalogEntry } from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import {
   catalogDisplayLine,
@@ -66,6 +70,24 @@ const isAttributeStateKey = (key: string): key is AttributeStateKey => {
   }
 }
 
+const normalizeAttackTestText = (input: string): string => {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+const ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL: Record<string, AttributeStateKey> = {
+  carisma: 'carisma',
+  finesse: 'finesse',
+  forca: 'forca',
+  inteligencia: 'inteligencia',
+  percepcao: 'percepcao',
+  vitalidade: 'vitalidade',
+  vontade: 'vontade',
+}
+
 interface CharacterSheetProps {
   initialData?: any
   canEdit?: boolean
@@ -73,6 +95,26 @@ interface CharacterSheetProps {
   onOpenEvolution?: () => void
   onCharacterSaved?: (saved: any) => void
 }
+
+type EquippedWeaponSlotId = 'slot1' | 'slot2'
+
+type EquippedWeaponOverrides = {
+  attackText?: string
+  rangeText?: string
+  damageText?: string
+  extrasText?: string
+}
+
+type EquippedWeaponState = {
+  instanceId: string
+  attackBonus?: number
+  critBonus?: number
+  damageBonus?: number
+  overrides?: EquippedWeaponOverrides
+}
+
+type CharacterSkillState = Record<string, { level: number; specialization?: string }>
+type CharacterAptitudesState = Record<string, number>
 
 export default function CharacterSheet({
   initialData,
@@ -131,6 +173,12 @@ export default function CharacterSheet({
     equipamentos: '',
     saldoMoedas: 0,
     itensCatalogo: [] as CatalogOwnedItem[],
+    equippedWeapons: {
+      slot1: undefined as EquippedWeaponState | undefined,
+      slot2: undefined as EquippedWeaponState | undefined,
+    },
+    skills: {} as CharacterSkillState,
+    aptitudes: {} as CharacterAptitudesState,
     equipamentosLivresText: '',
     armasLivresText: '',
     espacos: '',
@@ -152,7 +200,8 @@ export default function CharacterSheet({
   const limitsAutoSaveTimeoutRef = useRef<number | null>(null)
   const userTriggeredLimitsRef = useRef(false)
 
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('singularidades')
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('equipamentos')
+  const [equipmentSubTab, setEquipmentSubTab] = useState<'inventario' | 'equipados'>('inventario')
   const [equipmentPickerOpen, setEquipmentPickerOpen] = useState(false)
   const [peToAdd, setPeToAdd] = useState<string>('')
 
@@ -160,6 +209,47 @@ export default function CharacterSheet({
     const n = parseInt(peToAdd, 10)
     return Number.isFinite(n) ? n : 0
   }, [peToAdd])
+
+  const weaponCatalogById = useMemo(() => {
+    const map = new Map<string, WeaponCatalogEntry>()
+    ;(weapons ?? []).forEach((w: any) => {
+      if (w?.id) map.set(String(w.id), w as WeaponCatalogEntry)
+    })
+    return map
+  }, [weapons])
+
+  const armorCatalogById = useMemo(() => {
+    const map = new Map<string, CatalogEntry>()
+    ;(armor ?? []).forEach((a: any) => {
+      if (a?.id) map.set(String(a.id), a as CatalogEntry)
+    })
+    return map
+  }, [armor])
+
+  const utilityCatalogById = useMemo(() => {
+    const map = new Map<string, CatalogEntry>()
+    ;(utilities ?? []).forEach((u: any) => {
+      if (u?.id) map.set(String(u.id), u as CatalogEntry)
+    })
+    return map
+  }, [utilities])
+
+  const skillsByNormalizedName = useMemo(() => {
+    const map = new Map<string, (typeof skillsDefinitions)[number]>()
+    skillsDefinitions.forEach((skill) => {
+      map.set(normalizeAttackTestText(skill.name), skill)
+    })
+    return map
+  }, [])
+
+  const aptitudesByNormalizedLabel = useMemo(() => {
+    const map = new Map<string, (typeof aptitudesDefinitions)[number]>()
+    aptitudesDefinitions.forEach((apt) => {
+      map.set(normalizeAttackTestText(apt.name), apt)
+      map.set(normalizeAttackTestText(apt.id), apt)
+    })
+    return map
+  }, [])
 
   useEffect(() => {
     initialDataRef.current = initialData
@@ -268,6 +358,14 @@ export default function CharacterSheet({
             }
           })
         }
+
+        // Initialize combat skills + aptitudes (used for weapon attack calculations)
+        if (initialData.skills && typeof initialData.skills === 'object') {
+          updated.skills = initialData.skills as CharacterSkillState
+        }
+        if (initialData.aptitudes && typeof initialData.aptitudes === 'object') {
+          updated.aptitudes = initialData.aptitudes as CharacterAptitudesState
+        }
         
         const catInit = initialData.itensCatalogo
         if (Array.isArray(catInit) && catInit.length > 0) {
@@ -294,6 +392,19 @@ export default function CharacterSheet({
             ...(initialData.armas || []),
           ]
           updated.equipamentos = equipList.join('\n')
+        }
+
+        // Equipped weapons (new, optional)
+        const eq = (initialData as any).equippedWeapons
+        if (eq && typeof eq === 'object') {
+          const slot1 = (eq as any).slot1
+          const slot2 = (eq as any).slot2
+          updated.equippedWeapons = {
+            slot1: slot1 && typeof slot1 === 'object' && typeof slot1.instanceId === 'string' ? (slot1 as EquippedWeaponState) : undefined,
+            slot2: slot2 && typeof slot2 === 'object' && typeof slot2.instanceId === 'string' ? (slot2 as EquippedWeaponState) : undefined,
+          }
+        } else {
+          updated.equippedWeapons = { slot1: undefined, slot2: undefined }
         }
 
         // Singularities selected in the wizard
@@ -493,6 +604,18 @@ export default function CharacterSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    setCharacterData((prev) => {
+      const ownedIds = new Set(prev.itensCatalogo.map((i) => i.instanceId))
+      const s1 = prev.equippedWeapons?.slot1
+      const s2 = prev.equippedWeapons?.slot2
+      const n1 = s1 && ownedIds.has(s1.instanceId) ? s1 : undefined
+      const n2 = s2 && ownedIds.has(s2.instanceId) ? s2 : undefined
+      if (n1 === s1 && n2 === s2) return prev
+      return { ...prev, equippedWeapons: { slot1: n1, slot2: n2 } }
+    })
+  }, [characterData.itensCatalogo])
+
   const handleEquipmentCatalogPick = useCallback((entry: CatalogEntry, custoCeros: number) => {
     setCharacterData((prev) => {
       let livresEq = prev.equipamentosLivresText
@@ -529,13 +652,69 @@ export default function CharacterSheet({
       const item = prev.itensCatalogo.find((i) => i.instanceId === instanceId)
       const next = prev.itensCatalogo.filter((i) => i.instanceId !== instanceId)
       const refund = item?.custoCeros ?? 0
+      const nextEquipped = {
+        slot1: prev.equippedWeapons?.slot1?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot1,
+        slot2: prev.equippedWeapons?.slot2?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot2,
+      }
       return {
         ...prev,
         itensCatalogo: next,
         saldoMoedas: prev.saldoMoedas + refund,
+        equippedWeapons: nextEquipped,
       }
     })
   }, [])
+
+  const findEquippedSlotForInstance = useCallback(
+    (instanceId: string): EquippedWeaponSlotId | null => {
+      if (characterData.equippedWeapons?.slot1?.instanceId === instanceId) return 'slot1'
+      if (characterData.equippedWeapons?.slot2?.instanceId === instanceId) return 'slot2'
+      return null
+    },
+    [characterData.equippedWeapons],
+  )
+
+  const setEquippedWeaponSlot = useCallback((slot: EquippedWeaponSlotId, next: EquippedWeaponState | undefined) => {
+    setCharacterData((prev) => {
+      const otherSlot: EquippedWeaponSlotId = slot === 'slot1' ? 'slot2' : 'slot1'
+      const other =
+        next && prev.equippedWeapons?.[otherSlot]?.instanceId === next.instanceId ? undefined : prev.equippedWeapons?.[otherSlot]
+      return {
+        ...prev,
+        equippedWeapons: {
+          slot1: slot === 'slot1' ? next : other,
+          slot2: slot === 'slot2' ? next : other,
+        },
+      }
+    })
+  }, [])
+
+  const toggleEquipWeaponInstance = useCallback(
+    (instanceId: string, shouldEquip: boolean) => {
+      if (!instanceId) return
+      if (!shouldEquip) {
+        const slot = findEquippedSlotForInstance(instanceId)
+        if (slot) setEquippedWeaponSlot(slot, undefined)
+        return
+      }
+
+      setCharacterData((prev) => {
+        const alreadySlot1 = prev.equippedWeapons?.slot1?.instanceId === instanceId
+        const alreadySlot2 = prev.equippedWeapons?.slot2?.instanceId === instanceId
+        if (alreadySlot1 || alreadySlot2) return prev
+
+        const existing1 = prev.equippedWeapons?.slot1
+        const existing2 = prev.equippedWeapons?.slot2
+        const nextState: EquippedWeaponState = { instanceId }
+
+        if (!existing1) {
+          return { ...prev, equippedWeapons: { slot1: nextState, slot2: existing2 } }
+        }
+        return { ...prev, equippedWeapons: { slot1: existing1, slot2: nextState } }
+      })
+    },
+    [findEquippedSlotForInstance, setEquippedWeaponSlot],
+  )
 
   const updateField = (path: string, value: any) => {
     const keys = path.split('.')
@@ -833,6 +1012,9 @@ export default function CharacterSheet({
       singularidadesRaciais: characterData.singularidadesRaciais,
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
+      equippedWeapons: characterData.equippedWeapons,
+      skills: characterData.skills,
+      aptitudes: characterData.aptitudes,
     }
 
     if (useStructuredEquipment) {
@@ -994,46 +1176,436 @@ export default function CharacterSheet({
     { key: 'vontade', label: 'Vontade', icon: Shield },
   ]
 
+  const categoryLabels: Record<string, string> = {
+    combate: 'Combate',
+    primarias: 'Primárias',
+    artisticas: 'Artísticas',
+    cientificas: 'Científicas',
+    sociais: 'Sociais',
+    motoras: 'Motoras',
+    gerais: 'Gerais',
+  }
+  const skillCategoryKeys = Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>
+  const [activeSkillCategory, setActiveSkillCategory] = useState<'all' | keyof typeof categoryLabels>('combate')
+
+  const skillsByCategory = useMemo(() => {
+    const map = new Map<string, typeof skillsDefinitions>()
+    ;(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).forEach((cat) => {
+      map.set(cat, skillsDefinitions.filter((s) => s.category === cat))
+    })
+    return map
+  }, [])
+
+  const coerceInt = useCallback((v: any, fallback = 0) => {
+    const n = typeof v === 'number' ? v : parseInt(String(v ?? ''), 10)
+    return Number.isFinite(n) ? n : fallback
+  }, [])
+
+  const parseSpaceNumber = useCallback((spaceText: string | undefined | null): number => {
+    if (!spaceText) return 0
+    const s = String(spaceText).trim()
+    if (!s) return 0
+    const m = s.match(/-?\d+/)
+    if (!m) return 0
+    const n = parseInt(m[0], 10)
+    return Number.isFinite(n) ? Math.max(0, n) : 0
+  }, [])
+
+  const equipmentSpaces = useMemo(() => {
+    const totalRaw = String(characterData.espacos ?? '').trim()
+    let total = 0
+    if (totalRaw.includes('/')) {
+      const parts = totalRaw.split('/').map((p) => p.trim())
+      total = coerceInt(parts[1], 0)
+    } else if (totalRaw) {
+      total = coerceInt(totalRaw, 0)
+    }
+
+    const usedCatalog = characterData.itensCatalogo.reduce((sum, owned) => {
+      if (owned.kind === 'weapon') {
+        const entry = weaponCatalogById.get(owned.catalogId)
+        return sum + parseSpaceNumber(entry?.space)
+      }
+      if (owned.kind === 'armor') {
+        const entry = armorCatalogById.get(String(owned.catalogId))
+        return sum + parseSpaceNumber(entry?.space)
+      }
+      const entry = utilityCatalogById.get(String(owned.catalogId))
+      return sum + parseSpaceNumber(entry?.space)
+    }, 0)
+
+    return { used: usedCatalog, total: Math.max(0, total) }
+  }, [armorCatalogById, characterData.espacos, characterData.itensCatalogo, coerceInt, parseSpaceNumber, utilityCatalogById, weaponCatalogById])
+
+  const activeArmor = useMemo(() => {
+    const ownedArmor = characterData.itensCatalogo.filter((i) => i.kind === 'armor')
+    if (ownedArmor.length === 0) return null
+    const last = ownedArmor[ownedArmor.length - 1]
+    const entry = armorCatalogById.get(String(last.catalogId))
+    if (!entry) return null
+    return entry as any
+  }, [armorCatalogById, characterData.itensCatalogo])
+
+  const parsedResistances = useMemo(() => {
+    const raw = (activeArmor as any)?.resistances
+    const text = raw ? String(raw) : ''
+    const read = (label: string): string | null => {
+      const r = new RegExp(`${label}\\s*[:=]?\\s*(-?\\d+)`, 'i')
+      const m = text.match(r)
+      if (!m) return null
+      return m[1]
+    }
+    return {
+      rawText: text,
+      values: {
+        contundente: read('contundente'),
+        cortante: read('cortante'),
+        perfurante: read('perfurante'),
+        balistico: read('bal[ií]stico'),
+        esmagador: read('esmagador'),
+        explosivo: read('explosivo'),
+        ardente: read('ardente'),
+        congelante: read('congelante'),
+        eletrico: read('el[eé]trico'),
+        corrosivo: read('corrosivo'),
+        magico: read('m[aá]gico'),
+        toxico: read('t[oó]xico'),
+      } as Record<string, string | null>,
+    }
+  }, [activeArmor])
+
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
       <div className="flex-shrink-0">
         <Header onGoToDashboard={onBackToDashboard} />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-        <div className="py-6 px-3 sm:px-4 md:px-6">
-          <div className="max-w-[1600px] mx-auto">
-        {/* Layout em 3 colunas */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          
-          {/* Sidebar Esquerda - Informações Principais */}
-          <aside className="lg:col-span-3 space-y-5 min-w-0">
-            {/* Atributos */}
+        <div className="py-4 px-2 sm:px-3 md:px-4">
+          <div className="max-w-[1920px] mx-auto">
+            {/* Cabeçalho da ficha (estilo “ficha”, com edição inline) */}
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ duration: 0.4 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              transition={{ duration: 0.35 }}
+              className="bg-white dark:bg-ecoar-dark-800/60 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg shadow-sm overflow-hidden mb-4"
             >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Atributos
-              </h3>
-              <div className="space-y-4">
-                {attributes.map((attr) => {
-                  const Icon = attr.icon
-                  const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
-                  const nivel = typeof attrData.nivel === 'string' 
-                    ? parseInt(attrData.nivel) || 0 
-                    : attrData.nivel
-                  const mod = attrData.mod || 0
-                  
-                  return (
-                    <div key={attr.key} className="flex items-center justify-between py-3 border-b border-slate-200 dark:border-ecoar-light-900/10 last:border-0 min-w-0">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
-                        <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium break-words min-w-0">{attr.label}</span>
+              <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-slate-50/60 dark:bg-ecoar-dark-900/30 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                    Ficha de personagem
+                  </div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90 truncate">
+                    {characterData.nome?.trim() ? characterData.nome : 'Sem nome'}
+                  </div>
+                </div>
+
+                {canEdit && !isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleStartEdit}
+                    className="shrink-0 px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20"
+                    title="Editar personagem"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span className="text-sm font-medium">Editar</span>
+                  </button>
+                )}
+                {canEdit && isEditing && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 disabled:opacity-60"
+                      title="Salvar alterações"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                      className="px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-ecoar-light-900/70 rounded-lg transition-all duration-200 border border-slate-200/70 dark:border-slate-700/40 disabled:opacity-60"
+                      title="Cancelar"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 sm:p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-start">
+                  <div className="lg:col-span-3 space-y-3 min-w-0">
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Nome do personagem
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <input
+                        type="text"
+                        value={characterData.nome}
+                        onChange={(e) => updateField('nome', e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="Nome do Personagem"
+                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Imagem do personagem
+                      </div>
+                      <div className="h-[142px] rounded-md border border-dashed border-slate-300 dark:border-ecoar-light-900/25 bg-slate-50/70 dark:bg-ecoar-dark-900/20 flex items-center justify-center text-xs text-slate-500 dark:text-ecoar-light-900/55">
+                        Placeholder
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-4 space-y-3 min-w-0">
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Raça
+                      </div>
+                      <select
+                        value={characterData.raca}
+                        disabled={!isEditing}
+                        onChange={(e) => {
+                          updateField('raca', e.target.value)
+                          applyRaceBonuses(e.target.value)
+                        }}
+                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                      >
+                        <option value="">Selecione uma Raça</option>
+                        {races.map((race) => (
+                          <option key={race.id} value={race.id}>
+                            {race.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                          Mod. peso
+                        </div>
+                        <input
+                          type="number"
+                          value={typeof characterData.peso === 'number' ? characterData.peso : 0}
+                          disabled={!isEditing}
+                          onChange={(e) => updateField('peso', coerceInt(e.target.value, 0))}
+                          className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                          Mod. tamanho
+                        </div>
+                        <input
+                          type="number"
+                          value={typeof characterData.tamanho === 'number' ? characterData.tamanho : 0}
+                          disabled={!isEditing}
+                          onChange={(e) => updateField('tamanho', coerceInt(e.target.value, 0))}
+                          className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Pontos de evolução
+                      </div>
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <input
+                          type="number"
+                          value={characterData.pontosEvolucao.atual}
+                          disabled
+                          className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
+                        />
+                        <div className="col-span-2 text-center text-slate-500 dark:text-ecoar-light-900/60">/</div>
+                        <input
+                          type="number"
+                          value={characterData.pontosEvolucao.max}
+                          disabled
+                          className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={peToAdd}
+                          disabled={!isEditing}
+                          onChange={(e) => {
+                            const raw = e.target.value
+                            if (raw === '') {
+                              setPeToAdd('')
+                              return
+                            }
+                            setPeToAdd(raw)
+                          }}
+                          placeholder="PE recebidos"
+                          className="flex-1 h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                        />
+                        <button
+                          type="button"
+                          disabled={!isEditing || peToAddNumber <= 0}
+                          onClick={() => {
+                            if (peToAddNumber <= 0) return
+                            setCharacterData((prev) => ({
+                              ...prev,
+                              pontosEvolucao: {
+                                atual: Math.max(0, prev.pontosEvolucao.atual + peToAddNumber),
+                                max: Math.max(0, prev.pontosEvolucao.max + peToAddNumber),
+                              },
+                            }))
+                            setPeToAdd('')
+                          }}
+                          className="h-9 px-3 rounded-md text-sm font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30 disabled:opacity-50"
+                        >
+                          Adicionar
+                        </button>
+                        {canEdit && !isEditing && (
+                          <button
+                            type="button"
+                            disabled={characterData.pontosEvolucao.atual <= 0}
+                            onClick={() => onOpenEvolution?.()}
+                            className="h-9 px-3 rounded-md text-sm font-semibold bg-ecoar-magenta/15 text-ecoar-magenta-800 dark:text-ecoar-magenta-300 border border-ecoar-magenta-500/30 disabled:opacity-50"
+                            title="Abrir tela para gastar Pontos de Evolução"
+                          >
+                            Evoluir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-3 space-y-3 min-w-0">
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Níveis
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Alma</div>
+                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
+                            {nivelAlma}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Poder</div>
+                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
+                            {nivelPoder}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Trilha</div>
+                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
+                            {nivelTrilha}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Deslocamentos
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { key: 'terrestre', label: 'Terrestre' },
+                          { key: 'aquatico', label: 'Aquático' },
+                          { key: 'aereo', label: 'Aéreo' },
+                        ].map((move) => (
+                          <div key={move.key}>
+                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">{move.label}</div>
+                            <input
+                              type="text"
+                              value={characterData[move.key as keyof typeof characterData] as string}
+                              disabled={!isEditing}
+                              onChange={(e) => updateField(move.key, e.target.value)}
+                              className="w-full h-9 px-2 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-3 min-w-0">
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Personalidade
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Traço positivo</div>
+                          <input
+                            type="text"
+                            value={characterData.tracoPositivo}
+                            disabled={!isEditing}
+                            onChange={(e) => updateField('tracoPositivo', e.target.value)}
+                            placeholder="—"
+                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Traço negativo</div>
+                          <input
+                            type="text"
+                            value={characterData.tracoNegativo}
+                            disabled={!isEditing}
+                            onChange={(e) => updateField('tracoNegativo', e.target.value)}
+                            placeholder="—"
+                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Moeda (ceros)
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!isEditing}
+                        value={characterData.saldoMoedas}
+                        onChange={(e) => updateField('saldoMoedas', Math.max(0, coerceInt(e.target.value, 0)))}
+                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                      />
+                      <div className="mt-1 text-[11px] text-slate-500 dark:text-ecoar-light-900/60">
+                        {formatCerosDisplay(characterData.saldoMoedas)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+        {/* Layout em 3 colunas */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          
+          {/* Sidebar Esquerda - Informações Principais */}
+          <aside className="lg:col-span-3 min-w-0 flex flex-col gap-3">
+            {/* Atributos mini-cards (desktop) */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.35 }}
+              className="hidden"
+            >
+              <div className="w-[132px] mx-auto space-y-3 pb-2">
+                {attributes.map((attr) => {
+                  const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
+                  const nivel = typeof attrData.nivel === 'string' ? parseInt(attrData.nivel) || 0 : attrData.nivel
+                  const mod = attrData.mod || 0
+                  return (
+                    <div
+                      key={`totem-${attr.key}`}
+                      className="min-h-[96px] overflow-hidden rounded-lg border border-slate-300/80 dark:border-ecoar-light-900/20 bg-gradient-to-b from-slate-50 to-white dark:from-ecoar-dark-700 dark:to-ecoar-dark-800 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] px-2 py-1.5 flex flex-col"
+                    >
+                      <div className="text-[10px] font-bold text-center text-slate-800 dark:text-ecoar-light-900 uppercase truncate">
+                        {attr.label}
+                      </div>
+                      <div className="mt-1.5">
                         <input
                           type="number"
                           min="0"
@@ -1045,9 +1617,183 @@ export default function CharacterSheet({
                             updateField(`${attr.key}.nivel`, val)
                             updateField(`${attr.key}.mod`, getAttributeModifier(val))
                           }}
-                          className="w-12 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                          className="w-full h-8 text-center text-[11px] font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/85 dark:bg-ecoar-dark-700 border border-slate-300/80 dark:border-ecoar-light-900/25 rounded-md focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors disabled:opacity-60"
                         />
-                        <span className="text-sm font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400 w-8 text-right">
+                      </div>
+                      <div className="mt-1.5 rounded-md border border-slate-300/70 dark:border-ecoar-light-900/20 bg-slate-100/70 dark:bg-ecoar-dark-700/50 h-6 flex items-center justify-center">
+                        <span className="text-[11px] font-semibold text-ecoar-teal-700 dark:text-ecoar-teal-300">
+                          Mod {formatModifier(mod)}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+
+            {/* Habilidades abaixo dos atributos (desktop) */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.4 }}
+              className="order-2 bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg shadow-sm overflow-hidden min-w-0"
+            >
+              <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-slate-50/60 dark:bg-ecoar-dark-900/30">
+                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                  Habilidades
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSkillCategory('all')}
+                    className={`px-2 py-1 rounded text-[10px] border ${activeSkillCategory === 'all' ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30' : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20'}`}
+                  >
+                    Todas
+                  </button>
+                  {skillCategoryKeys.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setActiveSkillCategory(cat)}
+                      className={`px-2 py-1 rounded text-[10px] border ${activeSkillCategory === cat ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30' : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20'}`}
+                    >
+                      {categoryLabels[cat]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[11px]">
+                  <thead className="bg-white dark:bg-ecoar-dark-800/40">
+                    <tr className="border-b border-slate-200 dark:border-ecoar-light-900/15">
+                      <th className="text-left px-2 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80">Habilidades</th>
+                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[58px]">Nível</th>
+                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[72px]">Dado</th>
+                      <th className="text-left px-2 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80">Especialidade</th>
+                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[54px]">Bônus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {((activeSkillCategory === 'all' ? skillCategoryKeys : [activeSkillCategory]) as Array<keyof typeof categoryLabels>).map((cat) => {
+                      const list = skillsByCategory.get(cat) ?? []
+                      if (list.length === 0) return null
+                      return (
+                        <Fragment key={cat}>
+                          <tr className="bg-slate-100/70 dark:bg-ecoar-light-900/10">
+                            <td colSpan={5} className="px-2 py-1 text-[10px] font-semibold text-slate-700 dark:text-ecoar-light-900/85 uppercase tracking-wider">
+                              {categoryLabels[cat]}
+                            </td>
+                          </tr>
+                          {list.map((skill) => {
+                            const skillState = characterData.skills?.[skill.id]
+                            const level = coerceInt(skillState?.level, 0)
+                            const dice = getSkillDice(level)
+                            const specId = skillState?.specialization ?? ''
+                            return (
+                              <tr key={skill.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
+                                <td className="px-2 py-1.5 text-slate-900 dark:text-ecoar-light-900/90 whitespace-nowrap">{skill.name}</td>
+                                <td className="px-1.5 py-1.5 text-center">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={8}
+                                    disabled={!isEditing}
+                                    value={level}
+                                    onChange={(e) => {
+                                      const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
+                                      setCharacterData((prev) => ({
+                                        ...prev,
+                                        skills: {
+                                          ...(prev.skills ?? {}),
+                                          [skill.id]: { ...(prev.skills?.[skill.id] ?? {}), level: next },
+                                        },
+                                      }))
+                                    }}
+                                    className="w-[52px] text-center px-1.5 py-0.5 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-[11px] disabled:opacity-60"
+                                  />
+                                </td>
+                                <td className="px-1.5 py-1.5 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/85">{dice}</td>
+                                <td className="px-2 py-1.5">
+                                  <select
+                                    disabled={!isEditing}
+                                    value={specId}
+                                    onChange={(e) => {
+                                      const nextSpec = e.target.value
+                                      setCharacterData((prev) => ({
+                                        ...prev,
+                                        skills: {
+                                          ...(prev.skills ?? {}),
+                                          [skill.id]: {
+                                            ...(prev.skills?.[skill.id] ?? { level: 0 }),
+                                            specialization: nextSpec || undefined,
+                                          },
+                                        },
+                                      }))
+                                    }}
+                                    className="w-full px-1.5 py-0.5 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-[11px] disabled:opacity-60"
+                                  >
+                                    <option value="">—</option>
+                                    {skill.specializations.map((sp) => (
+                                      <option key={sp.id} value={sp.id}>
+                                        {sp.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="px-1.5 py-1.5 text-center text-slate-500 dark:text-ecoar-light-900/55">—</td>
+                              </tr>
+                            )
+                          })}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+
+            {/* Atributos */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.4 }}
+              className="order-1 bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+            >
+              <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-3">
+                Atributos
+              </h3>
+              <div className="space-y-2">
+                {attributes.map((attr) => {
+                  const Icon = attr.icon
+                  const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
+                  const nivel = typeof attrData.nivel === 'string' 
+                    ? parseInt(attrData.nivel) || 0 
+                    : attrData.nivel
+                  const mod = attrData.mod || 0
+                  
+                  return (
+                    <div key={attr.key} className="flex items-center justify-between px-2 py-2 border border-slate-200 dark:border-ecoar-light-900/15 rounded-md bg-slate-50/60 dark:bg-ecoar-dark-900/20 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Icon className="w-3.5 h-3.5 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
+                        <span className="text-xs text-slate-700 dark:text-ecoar-light-900 font-medium truncate">{attr.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <input
+                          type="number"
+                          min="0"
+                          max="8"
+                          value={nivel}
+                          disabled={!isEditing}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0
+                            updateField(`${attr.key}.nivel`, val)
+                            updateField(`${attr.key}.mod`, getAttributeModifier(val))
+                          }}
+                          className="w-10 text-center text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border border-slate-300 dark:border-ecoar-light-900/25 rounded focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
+                        />
+                        <span className="text-xs font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400 w-7 text-right">
                           {formatModifier(mod)}
                         </span>
                       </div>
@@ -1063,7 +1809,7 @@ export default function CharacterSheet({
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Níveis
@@ -1177,7 +1923,7 @@ export default function CharacterSheet({
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Limites
@@ -1218,132 +1964,166 @@ export default function CharacterSheet({
                 })}
               </div>
             </motion.div>
-          </aside>
 
-          {/* Área Central - Conteúdo Principal */}
-          <main className="lg:col-span-6 space-y-5 min-w-0">
-            {/* Header do Personagem */}
+            {/* Aptidão */}
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ duration: 0.4 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-5 min-w-0">
-                <input
-                  type="text"
-                  value={characterData.nome}
-                  onChange={(e) => updateField('nome', e.target.value)}
-                  disabled={!isEditing}
-                  className="flex-1 min-w-0 text-2xl font-semibold bg-transparent border-none text-slate-900 dark:text-ecoar-light-900/90 placeholder-slate-400 dark:placeholder-ecoar-light-900/50 focus:outline-none break-words"
-                  placeholder="Nome do Personagem"
-                />
-                {canEdit && !isEditing && (
-                  <button
-                    type="button"
-                    onClick={handleStartEdit}
-                    className="ml-4 px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 shadow-sm"
-                    title="Editar personagem"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span className="text-sm font-medium">Editar</span>
-                  </button>
-                )}
-                {canEdit && isEditing && (
-                  <div className="ml-4 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveEdit}
-                      disabled={isSaving}
-                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 shadow-sm disabled:opacity-60"
-                      title="Salvar alterações"
-                    >
-                      <span className="text-sm font-medium">Salvar</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                      className="px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-ecoar-light-900/70 rounded-lg transition-all duration-200 flex items-center gap-2 border border-slate-200/70 dark:border-slate-700/40 shadow-sm disabled:opacity-60"
-                      title="Cancelar"
-                    >
-                      <span className="text-sm font-medium">Cancelar</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4 mb-5">
-                <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                    Raça
-                  </label>
-                  <select
-                    value={characterData.raca}
-                    disabled={!isEditing}
-                    onChange={(e) => {
-                      updateField('raca', e.target.value)
-                      applyRaceBonuses(e.target.value)
-                    }}
-                    className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all disabled:opacity-50 shadow-sm"
-                  >
-                    <option value="">Selecione uma Raça</option>
-                    {races.map((race) => (
-                      <option key={race.id} value={race.id}>
-                        {race.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                    Região
-                  </label>
-                  <select
-                    value={characterData.localizacao}
-                    disabled={!isEditing}
-                    onChange={(e) => updateField('localizacao', e.target.value)}
-                    className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
-                  >
-                    <option value="">Selecione</option>
-                    {getAllNations().map((nation) => {
-                      const nationLocations = getLocationsByNation(nation)
+              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
+                Aptidão
+              </h3>
+              <div className="max-h-[65vh] overflow-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-ecoar-light-900/15">
+                      <th className="text-left px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80">
+                        Aptidão
+                      </th>
+                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[70px]">
+                        Nível
+                      </th>
+                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[70px]">
+                        Mod.
+                      </th>
+                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[90px]">
+                        Dado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aptitudesDefinitions.map((apt) => {
+                      const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
+                      const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
+                      const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
                       return (
-                        <optgroup key={nation} label={nation}>
-                          {nationLocations.map((location) => (
-                            <option key={location.id} value={location.id}>
-                              {location.name}{location.region ? ` (${location.region})` : ''}
-                            </option>
-                          ))}
-                        </optgroup>
+                        <tr key={apt.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
+                          <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90">
+                            {apt.name}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input
+                              type="number"
+                              min={0}
+                              max={8}
+                              value={level}
+                              disabled={!isEditing}
+                              onChange={(e) => {
+                                const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
+                                setCharacterData((prev) => ({
+                                  ...prev,
+                                  aptitudes: { ...(prev.aptitudes ?? {}), [apt.id]: next },
+                                }))
+                              }}
+                              className="w-[58px] text-center px-2 py-1 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
+                            {formatModifier(attrMod)}
+                          </td>
+                          <td className="px-2 py-2 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/85">
+                            {getAptitudeDice(level)}
+                          </td>
+                        </tr>
                       )
                     })}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                    Trilha
-                  </label>
-                  <select
-                    value={characterData.trilha}
-                    disabled={!isEditing}
-                    onChange={(e) => updateField('trilha', e.target.value)}
-                    className="w-full max-w-full min-w-0 px-4 py-2.5 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm"
-                  >
-                    <option value="">Selecione</option>
-                    {paths.map((path) => (
-                      <option key={path.id} value={path.id}>
-                        {path.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  </tbody>
+                </table>
               </div>
             </motion.div>
+
+          </aside>
+
+          {/* Área Central - Conteúdo Principal */}
+          <main className="lg:col-span-5 space-y-3 min-w-0">
+            <div className="space-y-3">
+            {/* Linha superior do corpo: Limites + Aptidão (desktop) */}
+            <div className="hidden lg:grid grid-cols-2 gap-3">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.08 }}
+                className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-2.5 shadow-sm overflow-hidden"
+              >
+                <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
+                  Limites
+                </h3>
+                <div className="space-y-1.5">
+                  {[
+                    { key: 'corpo', label: 'Corpo', max: derivedValues.corpoMax },
+                    { key: 'mente', label: 'Mente', max: derivedValues.menteMax },
+                    { key: 'folego', label: 'Fôlego', max: characterData.folego.max },
+                    { key: 'mana', label: 'Mana', max: characterData.mana.max },
+                  ].map((limit) => {
+                    const current = characterData[limit.key as keyof typeof characterData] as { atual: number; max: number }
+                    return (
+                      <div key={limit.key} className="grid grid-cols-12 items-center gap-2 text-xs">
+                        <div className="col-span-5 text-slate-700 dark:text-ecoar-light-900/85">{limit.label}</div>
+                        <input
+                          type="number"
+                          value={current.atual}
+                          disabled={!isEditing}
+                          onChange={(e) => {
+                            if (!isEditing) userTriggeredLimitsRef.current = true
+                            updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)
+                          }}
+                          className="col-span-3 w-full text-center px-1.5 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700"
+                        />
+                        <div className="col-span-1 text-center text-slate-500">/</div>
+                        <div className="col-span-3 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/90">{limit.max}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.1 }}
+                className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-2.5 shadow-sm overflow-hidden"
+              >
+                <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
+                  Aptidão
+                </h3>
+                <div className="space-y-1.5">
+                  {aptitudesDefinitions.map((apt) => {
+                    const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
+                    const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
+                    const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
+                    return (
+                      <div key={apt.id} className="grid grid-cols-12 items-center gap-2 text-xs">
+                        <div className="col-span-4 text-slate-700 dark:text-ecoar-light-900/85 truncate">{apt.name}</div>
+                        <input
+                          type="number"
+                          min={0}
+                          max={8}
+                          value={level}
+                          disabled={!isEditing}
+                          onChange={(e) => {
+                            const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
+                            setCharacterData((prev) => ({
+                              ...prev,
+                              aptitudes: { ...(prev.aptitudes ?? {}), [apt.id]: next },
+                            }))
+                          }}
+                          className="col-span-2 w-full text-center px-1.5 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700"
+                        />
+                        <div className="col-span-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
+                          {formatModifier(attrMod)}
+                        </div>
+                        <div className="col-span-4 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/90">
+                          {getAptitudeDice(level)}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </motion.div>
+            </div>
 
             {/* Testes Comuns */}
             <motion.div
@@ -1351,12 +2131,12 @@ export default function CharacterSheet({
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
             >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2.5">
                 Testes Comuns
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 {(() => {
                   const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
                   const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
@@ -1377,188 +2157,171 @@ export default function CharacterSheet({
                   { key: 'coragem', label: 'Coragem', desc: 'Vontade + Compostura', value: derivedValues.commonTests.coragem },
                   ]
                 })().map((test) => (
-                  <div key={test.key} className="text-center py-4 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-teal-50/50 dark:bg-ecoar-teal-900/30 rounded-lg overflow-hidden min-w-0">
-                    <div className="text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2 break-words px-2">
+                  <div key={test.key} className="text-center py-2.5 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-teal-50/50 dark:bg-ecoar-teal-900/30 rounded-lg overflow-hidden min-w-0">
+                    <div className="text-[10px] font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-1 break-words px-2">
                       {test.label}
                     </div>
-                    <div className="text-lg font-semibold text-ecoar-teal/90 dark:text-ecoar-teal-400/90 mb-0.5">
+                    <div className="text-base font-semibold text-ecoar-teal/90 dark:text-ecoar-teal-400/90 mb-0.5">
                       {formatModifier(test.value)}
                     </div>
-                    <div className="text-xs text-ecoar-dark-700 dark:text-ecoar-light-900/80 break-words px-2">{test.desc}</div>
+                    <div className="text-[10px] text-ecoar-dark-700 dark:text-ecoar-light-900/80 break-words px-2">{test.desc}</div>
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* Bônus de Raça */}
-            {characterData.raca && (() => {
-              const race = getRaceById(characterData.raca)
-              if (!race?.bonuses) return null
-              
-              const sizeModifier = race.bonuses.sizeModifier ?? 0
-              const weightModifier = race.bonuses.weightModifier ?? 0
-              const hasManualBonuses = race.bonuses.attributes && Object.keys(race.bonuses.attributes).length > 0
-              const hasAutoBonuses = sizeModifier !== 0 || weightModifier !== 0
-              
-              if (!hasManualBonuses && !hasAutoBonuses) return null
-              
-              return (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.15 }}
-                  className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-                >
-                  <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                    Bônus de Raça
-                  </h3>
-                  <div className="space-y-3">
-                    {/* Manual attribute bonuses */}
-                    {hasManualBonuses && (
-                      <div>
-                        <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mb-2">Atributos</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(race.bonuses.attributes || {}).map(([attr, value]) => {
-                            const attrNames: Record<string, string> = {
-                              carisma: 'Carisma',
-                              finesse: 'Finesse',
-                              forca: 'Força',
-                              inteligencia: 'Inteligência',
-                              percepcao: 'Percepção',
-                              vitalidade: 'Vitalidade',
-                              vontade: 'Vontade',
-                            }
-                            return (
-                              <span key={attr} className="text-xs px-2 py-1 rounded bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-300 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40">
-                                {attrNames[attr] || attr}: {value > 0 ? '+' : ''}{value}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Automatic bonuses from size and weight */}
-                    {hasAutoBonuses && (
-                      <div>
-                        <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mb-2">Modificadores Físicos</div>
-                        <div className="space-y-2">
-                          {sizeModifier !== 0 && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
-                                Tamanho {sizeModifier}:
-                              </span>
-                              <span className="font-semibold text-ecoar-magenta dark:text-ecoar-magenta-300">
-                                Força {sizeModifier > 0 ? '+' : ''}{sizeModifier}
-                              </span>
-                            </div>
-                          )}
-                          {weightModifier !== 0 && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
-                                Peso {weightModifier}:
-                              </span>
-                              <span className="font-semibold text-ecoar-magenta dark:text-ecoar-magenta-300">
-                                Vitalidade {weightModifier > 0 ? '+' : ''}{weightModifier}
-                              </span>
-                            </div>
-                          )}
-                          {(sizeModifier !== 0 || weightModifier !== 0) && (
-                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200 dark:border-ecoar-light-900/10">
-                              <span className="text-slate-700 dark:text-ecoar-light-900/80">
-                                Penalidade Esquiva:
-                              </span>
-                              <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                {formatModifier(-(sizeModifier + weightModifier))}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+            
+
+            {/* Resistência a dano */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.35 }}
+              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                  Resistência a dano
+                </h3>
+                <div className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60 truncate">
+                  {activeArmor?.name ? `Base: ${activeArmor.name}` : '—'}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs border border-slate-200 dark:border-ecoar-light-900/20">
+                  <tbody>
+                    {[
+                      { left: 'Contundente', key: 'contundente', mid: 'Balístico', midKey: 'balistico', right: 'Corrosivo', rightKey: 'corrosivo' },
+                      { left: 'Cortante', key: 'cortante', mid: 'Esmagador', midKey: 'esmagador', right: 'Mágico', rightKey: 'magico' },
+                      { left: 'Perfurante', key: 'perfurante', mid: 'Explosivo', midKey: 'explosivo', right: 'Tóxico', rightKey: 'toxico' },
+                      { left: 'Ardente', key: 'ardente', mid: 'Congelante', midKey: 'congelante', right: 'Elétrico', rightKey: 'eletrico' },
+                    ].map((row, idx) => (
+                      <tr key={idx} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
+                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
+                          {row.left}
+                        </td>
+                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
+                          {parsedResistances.values[row.key] ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
+                          {row.mid}
+                        </td>
+                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
+                          {parsedResistances.values[row.midKey] ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
+                          {row.right}
+                        </td>
+                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
+                          {parsedResistances.values[row.rightKey] ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
+                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                    Defesa de crítico
                   </div>
-                </motion.div>
-              )
-            })()}
-
-            {/* Deslocamentos e Sentidos */}
-            <div className="grid grid-cols-2 gap-5">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-              >
-                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                  Deslocamentos
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    { key: 'terrestre', label: 'Terrestre', icon: Navigation },
-                    { key: 'aquatico', label: 'Aquático', icon: Waves },
-                    { key: 'aereo', label: 'Aéreo', icon: Wind },
-                  ].map((move) => {
-                    const Icon = move.icon
-                    return (
-                      <div key={move.key} className="flex items-center gap-3 min-w-0">
-                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
-                        <input
-                          type="text"
-                          value={characterData[move.key as keyof typeof characterData] as string}
-                          disabled={!isEditing}
-                          onChange={(e) => updateField(move.key, e.target.value)}
-                          placeholder="0m"
-                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    )
-                  })}
+                  <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
+                    {(activeArmor as any)?.defenseCritico ?? '—'}
+                  </div>
                 </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-                className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-              >
-                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                  Sentidos
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    { key: 'visao', label: 'Visão', icon: Eye },
-                    { key: 'audicao', label: 'Audição', icon: Waves },
-                    { key: 'olfato', label: 'Olfato', icon: Navigation },
-                  ].map((sense) => {
-                    const Icon = sense.icon
-                    return (
-                      <div key={sense.key} className="flex items-center gap-3 min-w-0">
-                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
-                        <input
-                          type="text"
-                          value={characterData[sense.key as keyof typeof characterData] as string}
-                          disabled={!isEditing}
-                          onChange={(e) => updateField(sense.key, e.target.value)}
-                          placeholder="0m"
-                          className="flex-1 min-w-0 w-full max-w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    )
-                  })}
+                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
+                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                    Texto (origem)
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80 break-words">
+                    {parsedResistances.rawText?.trim() ? parsedResistances.rawText : '—'}
+                  </div>
                 </div>
-              </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Armas equipadas em cards centrais (estilo ficha) */}
+            <div className="grid grid-cols-1 gap-3">
+              {(['slot1', 'slot2'] as EquippedWeaponSlotId[]).map((slotId) => {
+                const slotLabel = slotId === 'slot1' ? 'Arma 1' : 'Arma 2'
+                const slotState = characterData.equippedWeapons?.[slotId]
+                const owned = slotState
+                  ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
+                  : undefined
+                const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
+                const properties = entry?.properties ?? []
+
+                const readByPrefix = (prefix: string): string => {
+                  const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
+                  if (!hit) return '—'
+                  const parts = hit.split(':')
+                  return (parts.slice(1).join(':').trim() || hit).replace(/^[+-]\s*/, (m) => m.trim())
+                }
+
+                return (
+                  <motion.div
+                    key={slotId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: slotId === 'slot1' ? 0.38 : 0.42 }}
+                    className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                        {slotLabel}
+                      </h3>
+                      <span className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60">
+                        {entry?.category ?? '—'}
+                      </span>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-3">
+                      {entry?.name ?? 'Não equipada'}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
+                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Ataque</div>
+                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Ataque')}</div>
+                      </div>
+                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
+                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Alcance</div>
+                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Alcance')}</div>
+                      </div>
+                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
+                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Dano</div>
+                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Dano')}</div>
+                      </div>
+                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
+                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Propriedades</div>
+                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">
+                          {properties.length > 0 ? properties.join(' | ') : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
             </div>
           </main>
 
           {/* Sidebar Direita - Informações Secundárias */}
-          <aside className="lg:col-span-3 space-y-5 min-w-0">
+          <aside className="lg:col-span-4 space-y-3 min-w-0">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white/50 dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="bg-white/50 dark:bg-ecoar-dark-800/70 border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+                  Equipamentos carregados
+                </div>
+                <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70">
+                  Espaços: <strong>{equipmentSpaces.used}</strong>/<strong>{equipmentSpaces.total || '—'}</strong>
+                </div>
+              </div>
               <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
                 <button
                   type="button"
@@ -1747,7 +2510,7 @@ export default function CharacterSheet({
               )}
 
               {activeSidebarTab === 'equipamentos' && (
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-3 max-h-[65vh] overflow-y-auto pr-1">
                   {(() => {
                     const sheetUsesStructuredEquip =
                       characterData.itensCatalogo.length > 0 ||
@@ -1757,21 +2520,29 @@ export default function CharacterSheet({
                     return (
                       <>
                         <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                          <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Saldo (ceros)</div>
-                          <input
-                            type="number"
-                            min={0}
-                            disabled={!isEditing}
-                            value={characterData.saldoMoedas}
-                            onChange={(e) => {
-                              const n = parseInt(e.target.value, 10)
-                              updateField('saldoMoedas', Number.isFinite(n) ? Math.max(0, n) : 0)
-                            }}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm text-ecoar-dark-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                          />
-                          <p className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                            Exibido também como {formatCerosDisplay(characterData.saldoMoedas)}
-                          </p>
+                          <div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                                Espaços
+                              </span>
+                              <span className="text-xs text-slate-700 dark:text-ecoar-light-900/80">
+                                <strong>{equipmentSpaces.used}</strong> / <strong>{equipmentSpaces.total || '—'}</strong>
+                              </span>
+                            </div>
+                            <div className="mt-1">
+                              <input
+                                type="text"
+                                value={characterData.espacos}
+                                disabled={!isEditing}
+                                onChange={(e) => updateField('espacos', e.target.value)}
+                                placeholder="ex.: 7 ou 1/7"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-xs text-ecoar-dark-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                              />
+                              <p className="mt-1 text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
+                                O usado é calculado a partir do campo “Espaço” dos itens do catálogo.
+                              </p>
+                            </div>
+                          </div>
                           {isEditing && (
                             <button
                               type="button"
@@ -1792,65 +2563,469 @@ export default function CharacterSheet({
                           </Link>
                         </div>
 
-                        {sheetUsesStructuredEquip ? (
-                          <>
-                            {characterData.itensCatalogo.length > 0 && (
-                              <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Do catálogo</div>
-                                <ul className="space-y-1.5 text-xs">
-                                  {characterData.itensCatalogo.map((item) => (
-                                    <li
-                                      key={item.instanceId}
-                                      className="flex items-start justify-between gap-2 py-1.5 px-2 rounded-md bg-white dark:bg-ecoar-dark-800/50 border border-slate-100 dark:border-ecoar-light-900/10"
-                                    >
-                                      <span className="text-slate-800 dark:text-ecoar-light-900/85 break-words">{item.displayLine}</span>
-                                      {isEditing && (
-                                        <button
-                                          type="button"
-                                          onClick={() => removeSheetCatalogItem(item.instanceId)}
-                                          className="shrink-0 text-ecoar-magenta text-[11px] hover:underline"
-                                        >
-                                          Remover
-                                        </button>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEquipmentSubTab('inventario')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                              equipmentSubTab === 'inventario'
+                                ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30'
+                                : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10'
+                            }`}
+                          >
+                            Inventário
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEquipmentSubTab('equipados')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                              equipmentSubTab === 'equipados'
+                                ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30'
+                                : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10'
+                            }`}
+                          >
+                            Equipados
+                          </button>
+                        </div>
+
+                        {equipmentSubTab === 'inventario' ? (
+                          sheetUsesStructuredEquip ? (
+                            <>
+                              {characterData.itensCatalogo.length > 0 && (
+                                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
+                                  <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Do catálogo</div>
+                                  <ul className="space-y-1.5 text-xs">
+                                    {characterData.itensCatalogo.map((item) => (
+                                      <li
+                                        key={item.instanceId}
+                                        className="flex items-start justify-between gap-2 py-1.5 px-2 rounded-md bg-white dark:bg-ecoar-dark-800/50 border border-slate-100 dark:border-ecoar-light-900/10"
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-slate-800 dark:text-ecoar-light-900/85 break-words">
+                                            {item.displayLine}
+                                          </div>
+                                          {item.kind === 'weapon' && (() => {
+                                            const slot = findEquippedSlotForInstance(item.instanceId)
+                                            return (
+                                              <div className="mt-1 flex items-center gap-2">
+                                                <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={!!slot}
+                                                  disabled={!canEdit}
+                                                  onChange={(e) => {
+                                                    if (!isEditing) handleStartEdit()
+                                                    toggleEquipWeaponInstance(item.instanceId, e.target.checked)
+                                                  }}
+                                                    className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
+                                                  />
+                                                  Equipar
+                                                </label>
+                                                {slot && (
+                                                  <span className="text-[11px] text-ecoar-teal-700 dark:text-ecoar-teal-300">
+                                                    {slot === 'slot1' ? 'Arma 1' : 'Arma 2'}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )
+                                          })()}
+                                        </div>
+                                        {isEditing && (
+                                          <div className="shrink-0 flex flex-col items-end gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => removeSheetCatalogItem(item.instanceId)}
+                                              className="text-ecoar-magenta text-[11px] hover:underline"
+                                            >
+                                              Remover
+                                            </button>
+                                          </div>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
+                                  Outros equipamentos (uma linha por item)
+                                </div>
+                                <textarea
+                                  value={characterData.equipamentosLivresText}
+                                  disabled={!isEditing}
+                                  onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
+                                  placeholder="Itens fora do catálogo…"
+                                  className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
+                                />
                               </div>
-                            )}
-                            <div>
-                              <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
-                                Outros equipamentos (uma linha por item)
+                              <div>
+                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
+                                  Outras armas (uma linha por item)
+                                </div>
+                                <textarea
+                                  value={characterData.armasLivresText}
+                                  disabled={!isEditing}
+                                  onChange={(e) => updateField('armasLivresText', e.target.value)}
+                                  placeholder="Armas fora do catálogo…"
+                                  className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
+                                />
                               </div>
-                              <textarea
-                                value={characterData.equipamentosLivresText}
-                                disabled={!isEditing}
-                                onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
-                                placeholder="Itens fora do catálogo…"
-                                className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
-                              />
-                            </div>
-                            <div>
-                              <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
-                                Outras armas (uma linha por item)
-                              </div>
-                              <textarea
-                                value={characterData.armasLivresText}
-                                disabled={!isEditing}
-                                onChange={(e) => updateField('armasLivresText', e.target.value)}
-                                placeholder="Armas fora do catálogo…"
-                                className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
-                              />
-                            </div>
-                          </>
+                            </>
+                          ) : (
+                            <textarea
+                              value={characterData.equipamentos}
+                              disabled={!isEditing}
+                              onChange={(e) => updateField('equipamentos', e.target.value)}
+                              placeholder="Liste seus equipamentos..."
+                              className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
+                            />
+                          )
                         ) : (
-                          <textarea
-                            value={characterData.equipamentos}
-                            disabled={!isEditing}
-                            onChange={(e) => updateField('equipamentos', e.target.value)}
-                            placeholder="Liste seus equipamentos..."
-                            className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
-                          />
+                          <div className="space-y-3">
+                            <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
+                              <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                                Armas equipadas (1 e 2)
+                              </div>
+                              <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
+                                Layout em estilo ficha (Ataque, Alcance, Dano, Extras e Propriedades).
+                              </div>
+                            </div>
+                            {(['slot1', 'slot2'] as EquippedWeaponSlotId[]).map((slotId) => {
+                              const slotLabel = slotId === 'slot1' ? 'Arma 1' : 'Arma 2'
+                              const slotState = characterData.equippedWeapons?.[slotId]
+                              const owned = slotState
+                                ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
+                                : undefined
+                              const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
+                              const properties = entry?.properties ?? []
+
+                              const readNumber = (prefix: string): number | null => {
+                                const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
+                                if (!hit) return null
+                                const m = hit.match(/(-?\\d+)/)
+                                if (!m) return null
+                                const n = parseInt(m[1], 10)
+                                return Number.isFinite(n) ? n : null
+                              }
+
+                              const readText = (prefix: string): string | null => {
+                                const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
+                                return hit ? hit : null
+                              }
+
+                              const baseCrit = readNumber('Acerto Crítico')
+                              const baseTargets = readNumber('Alvos')
+                              const baseMaxDamage = readNumber('Dano máximo')
+                              const baseReload = readText('Recarga')
+                              const baseCapacity = readText('Capacidade')
+
+                              const attackBonus = slotState?.attackBonus ?? 0
+
+                              const attackAutoText = (() => {
+                                const raw = entry?.attackTest
+                                if (!raw || typeof raw !== 'string') return null
+
+                                // Expected shape: "<Atributo> + <Habilidade> (<Especialização>)"
+                                const normalized = normalizeAttackTestText(raw)
+                                const match = normalized.match(/^(.+?)\s*\+\s*([^(]+?)\s*\(([^)]+)\)\s*$/)
+                                if (!match) return raw
+
+                                const attrNorm = match[1].trim()
+                                const skillNameNorm = match[2].trim()
+                                const specLabelNorm = match[3].trim()
+
+                                const attributeKey = ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL[attrNorm]
+                                if (!attributeKey) return raw
+
+                                const attrModRaw = (characterData as any)?.[attributeKey]?.mod
+                                const attrMod = typeof attrModRaw === 'number' ? attrModRaw : parseInt(String(attrModRaw ?? 0), 10) || 0
+
+                                const skillDef = skillsByNormalizedName.get(skillNameNorm)
+
+                                let diceText: string | null = null
+                                if (skillDef) {
+                                  const specializationId =
+                                    skillDef.specializations.find((sp) => normalizeAttackTestText(sp.name) === specLabelNorm)?.id ??
+                                    skillDef.specializations.find((sp) => normalizeAttackTestText(sp.id) === specLabelNorm)?.id
+
+                                  const skillState = characterData.skills?.[skillDef.id]
+                                  const levelRaw = skillState?.level
+                                  const level = typeof levelRaw === 'number' ? levelRaw : parseInt(String(levelRaw ?? 0), 10) || 0
+
+                                  const specializationMatches = specializationId
+                                    ? !skillState?.specialization || skillState.specialization === specializationId
+                                    : true
+
+                                  if (skillState && specializationMatches) {
+                                    diceText = getSkillDice(level)
+                                  }
+                                }
+
+                                if (!diceText) {
+                                  const aptitudeDef = aptitudesByNormalizedLabel.get(specLabelNorm)
+                                  const aptId = aptitudeDef?.id
+                                  const aptLevelRaw = aptId ? characterData.aptitudes?.[aptId] : 0
+                                  const aptLevel =
+                                    typeof aptLevelRaw === 'number' ? aptLevelRaw : parseInt(String(aptLevelRaw ?? 0), 10) || 0
+                                  diceText = getAptitudeDice(aptLevel)
+                                }
+
+                                if (!diceText) return null
+
+                                return `${diceText} ${attrMod >= 0 ? '+' : '-'} ${Math.abs(attrMod)}`
+                              })()
+
+                              const attackOverrideText = slotState?.overrides?.attackText?.trim()
+                              const attackBase =
+                                attackOverrideText && attackOverrideText.length > 0
+                                  ? attackOverrideText
+                                  : attackAutoText ?? entry?.attackTest ?? '—'
+
+                              const attackText =
+                                attackBase !== '—' && attackBonus !== 0
+                                  ? `${attackBase} ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`
+                                  : attackBase
+
+                              const rangeText = slotState?.overrides?.rangeText ?? entry?.rangeNotes ?? '—'
+                              const damageText = slotState?.overrides?.damageText ?? entry?.damageNotes ?? '—'
+                              const extrasOverride = slotState?.overrides?.extrasText?.trim()
+
+                              const critValue =
+                                baseCrit !== null ? baseCrit + (slotState?.critBonus ?? 0) : null
+                              const maxDamageValue =
+                                baseMaxDamage !== null ? baseMaxDamage + (slotState?.damageBonus ?? 0) : null
+
+                              return (
+                                <div
+                                  key={slotId}
+                                  className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/40 space-y-2"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">
+                                        {slotLabel}
+                                      </div>
+                                      <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 break-words">
+                                        {entry?.name ?? owned?.nome ?? 'Nenhuma arma equipada'}
+                                      </div>
+                                    </div>
+                                    {slotState?.instanceId && (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleEquipWeaponInstance(slotState.instanceId, false)}
+                                        disabled={!isEditing}
+                                        className="shrink-0 px-2 py-1 rounded-md text-[11px] border border-slate-200 dark:border-ecoar-light-900/20 disabled:opacity-60"
+                                      >
+                                        Desequipar
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {!slotState?.instanceId ? (
+                                    <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                                      Equipe uma arma no Inventário para ela aparecer aqui.
+                                    </div>
+                                  ) : !entry ? (
+                                    <div className="text-xs text-ecoar-magenta">
+                                      Não foi possível carregar os dados do catálogo para este item.
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="grid grid-cols-12 gap-2 text-xs">
+                                        <div className="col-span-12">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Ataque
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
+                                            {attackText}
+                                          </div>
+                                          {isEditing && (
+                                            <div className="mt-1 grid grid-cols-12 gap-2">
+                                              <input
+                                                type="number"
+                                                disabled={!isEditing}
+                                                value={slotState.attackBonus ?? 0}
+                                                onChange={(e) => {
+                                                  const n = parseInt(e.target.value, 10)
+                                                  const nextBonus = Number.isFinite(n) ? n : 0
+                                                  setEquippedWeaponSlot(slotId, { ...slotState, attackBonus: nextBonus })
+                                                }}
+                                                className="col-span-4 px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                                                placeholder="Bônus"
+                                              />
+                                              <input
+                                                type="text"
+                                                disabled={!isEditing}
+                                                value={slotState.overrides?.attackText ?? ''}
+                                                onChange={(e) => {
+                                                  const v = e.target.value
+                                                  setEquippedWeaponSlot(slotId, {
+                                                    ...slotState,
+                                                    overrides: { ...(slotState.overrides ?? {}), attackText: v || undefined },
+                                                  })
+                                                }}
+                                                className="col-span-8 px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                                                placeholder="Override do ataque (opcional)"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="col-span-6">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Categoria
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
+                                            {entry.category ?? '—'}
+                                          </div>
+                                        </div>
+                                        <div className="col-span-3">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Durabilidade
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90">{entry.durability ?? '—'}</div>
+                                        </div>
+                                        <div className="col-span-3">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Espaço
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90">{entry.space ?? '—'}</div>
+                                        </div>
+
+                                        <div className="col-span-6">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Alcance
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">{rangeText}</div>
+                                          {isEditing && (
+                                            <input
+                                              type="text"
+                                              disabled={!isEditing}
+                                              value={slotState.overrides?.rangeText ?? ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                setEquippedWeaponSlot(slotId, {
+                                                  ...slotState,
+                                                  overrides: { ...(slotState.overrides ?? {}), rangeText: v || undefined },
+                                                })
+                                              }}
+                                              className="mt-1 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                                              placeholder="Override do alcance (opcional)"
+                                            />
+                                          )}
+                                        </div>
+                                        <div className="col-span-6">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Dano
+                                          </div>
+                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">{damageText}</div>
+                                          {isEditing && (
+                                            <input
+                                              type="text"
+                                              disabled={!isEditing}
+                                              value={slotState.overrides?.damageText ?? ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                setEquippedWeaponSlot(slotId, {
+                                                  ...slotState,
+                                                  overrides: { ...(slotState.overrides ?? {}), damageText: v || undefined },
+                                                })
+                                              }}
+                                              className="mt-1 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                                              placeholder="Override do dano (opcional)"
+                                            />
+                                          )}
+                                        </div>
+
+                                        <div className="col-span-12">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Extras
+                                          </div>
+                                          <div className="grid grid-cols-12 gap-2">
+                                            <div className="col-span-6 sm:col-span-3">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">
+                                                Acerto Crítico
+                                              </div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
+                                                {extrasOverride ? '—' : critValue !== null ? String(critValue) : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="col-span-6 sm:col-span-3">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Alvos</div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
+                                                {extrasOverride ? '—' : baseTargets !== null ? String(baseTargets) : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="col-span-6 sm:col-span-3">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Dano Máximo</div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
+                                                {extrasOverride ? '—' : maxDamageValue !== null ? String(maxDamageValue) : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="col-span-6 sm:col-span-3">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Munição</div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
+                                                {entry.ammoCategory ?? '—'}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="mt-2 grid grid-cols-12 gap-2">
+                                            <div className="col-span-6">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Recarga</div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
+                                                {extrasOverride ? '—' : baseReload ?? entry.reloadNotes ?? '—'}
+                                              </div>
+                                            </div>
+                                            <div className="col-span-6">
+                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Capacidade</div>
+                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
+                                                {extrasOverride ? '—' : baseCapacity ?? (entry.capacity ? `Capacidade: ${entry.capacity}` : '—')}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          {isEditing && (
+                                            <input
+                                              type="text"
+                                              disabled={!isEditing}
+                                              value={slotState.overrides?.extrasText ?? ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                setEquippedWeaponSlot(slotId, {
+                                                  ...slotState,
+                                                  overrides: { ...(slotState.overrides ?? {}), extrasText: v || undefined },
+                                                })
+                                              }}
+                                              className="mt-2 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
+                                              placeholder="Override de extras (opcional, texto livre)"
+                                            />
+                                          )}
+                                        </div>
+
+                                        <div className="col-span-12">
+                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
+                                            Propriedades
+                                          </div>
+                                          <div className="flex flex-wrap gap-1.5 mt-1">
+                                            {(entry.properties ?? []).map((p) => (
+                                              <span
+                                                key={p}
+                                                className="px-2 py-1 rounded-full text-[11px] bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-800 dark:text-ecoar-light-900/80 border border-slate-200 dark:border-ecoar-light-900/15"
+                                              >
+                                                {p}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
+                              Para equipar, volte ao Inventário e marque “Equipar” na arma desejada (modo edição).
+                            </div>
+                          </div>
                         )}
 
                         {equipmentPickerOpen && (
@@ -1896,7 +3071,7 @@ export default function CharacterSheet({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
             >
               <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
                 Anotações
