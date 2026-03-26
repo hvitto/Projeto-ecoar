@@ -6,6 +6,23 @@ import type { ArmorCatalogEntry, UtilityCatalogEntry, WeaponCatalogEntry } from 
 
 type Entry = WeaponCatalogEntry | ArmorCatalogEntry | UtilityCatalogEntry
 
+function armorResistancesSummary(entry: ArmorCatalogEntry): string {
+  return [
+    `Con ${entry.resistances.contundente}`,
+    `Cor ${entry.resistances.cortante}`,
+    `Per ${entry.resistances.perfurante}`,
+    `Bal ${entry.resistances.balistico}`,
+    `Esm ${entry.resistances.esmagador}`,
+    `Exp ${entry.resistances.explosivo}`,
+    `Ard ${entry.resistances.ardente}`,
+    `Conj ${entry.resistances.congelante}`,
+    `Ele ${entry.resistances.eletrico}`,
+    `Corr ${entry.resistances.corrosivo}`,
+    `Mag ${entry.resistances.magico}`,
+    `Tox ${entry.resistances.toxico}`,
+  ].join(' | ')
+}
+
 function Field({ label, value }: { label: string; value?: string }) {
   if (!value) return null
   return (
@@ -135,7 +152,7 @@ export default function CatalogItemCard({
           )}
           {isArmor && (
             <>
-              <Field label="Resistências" value={entry.resistances} />
+              <Field label="Resistências" value={armorResistancesSummary(entry)} />
               <Field label="Defesa de crítico" value={entry.defenseCritico} />
               <Field label="Esquiva" value={entry.esquiva} />
               <Field label="Furtividade" value={entry.furtividade} />

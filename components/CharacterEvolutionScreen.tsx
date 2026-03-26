@@ -65,12 +65,14 @@ type CreationSingularityCategory = CreationSingularity['category']
 
 interface CharacterEvolutionScreenProps {
   initialCharacterData: any
+  isTableGmEditor?: boolean
   onCancel: () => void
   onSaved: (saved: any) => void
 }
 
 export default function CharacterEvolutionScreen({
   initialCharacterData,
+  isTableGmEditor = false,
   onCancel,
   onSaved,
 }: CharacterEvolutionScreenProps) {
@@ -169,6 +171,7 @@ export default function CharacterEvolutionScreen({
   const [draftSingularidadesMarciais, setDraftSingularidadesMarciais] = useState<string[]>(baselineSingularidadesMarciais)
 
   const [selectedSkillCategory, setSelectedSkillCategory] = useState<Skill['category']>('combate')
+  const hasMasterOverride = isTableGmEditor
   const [selectedSkillId, setSelectedSkillId] = useState<string>(() => {
     const first = getSkillsByCategory('combate')[0]
     return first?.id ?? ''
@@ -360,16 +363,16 @@ export default function CharacterEvolutionScreen({
     setDraftSingularidadesCriacao((prev) => {
       const has = prev.includes(id)
       if (has) {
-        if (isBaselineLocked) return prev
+        if (isBaselineLocked && !hasMasterOverride) return prev
         return prev.filter((x) => x !== id)
       }
 
       const sing = creationSingularities.find((s) => s.id === id)
       if (!sing) return prev
 
-      if (sing.requirements?.some((reqId) => prev.includes(reqId))) return prev
+      if (!hasMasterOverride && sing.requirements?.some((reqId) => prev.includes(reqId))) return prev
       const addCost = sing.cost ?? 0
-      if (pontosDisponiveisAtual < addCost) return prev
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
 
       return [...prev, id]
     })
@@ -428,7 +431,7 @@ export default function CharacterEvolutionScreen({
     setDraftSingularidadesEcoar((prev) => {
       const has = prev.includes(id)
       if (has) {
-        if (isBaselineLocked) return prev
+        if (isBaselineLocked && !hasMasterOverride) return prev
         return prev.filter((x) => x !== id)
       }
 
@@ -442,10 +445,10 @@ export default function CharacterEvolutionScreen({
         singularidadesEcoar: prev,
       }
       const { valid } = checkEcoarRequirements(sing, currentTraitsForCheck)
-      if (!valid) return prev
+      if (!hasMasterOverride && !valid) return prev
 
       const addCost = sing.cost ?? 0
-      if (pontosDisponiveisAtual < addCost) return prev
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
       return [...prev, id]
     })
   }
@@ -455,7 +458,7 @@ export default function CharacterEvolutionScreen({
     setDraftSingularidadesMarciais((prev) => {
       const has = prev.includes(id)
       if (has) {
-        if (isBaselineLocked) return prev
+        if (isBaselineLocked && !hasMasterOverride) return prev
         return prev.filter((x) => x !== id)
       }
 
@@ -487,10 +490,10 @@ export default function CharacterEvolutionScreen({
           if ((draftAptitudes as any)[aptId] < minValue) missingReqs.push(`Requer ${aptId}`)
         })
       }
-      if (missingReqs.length > 0) return prev
+      if (!hasMasterOverride && missingReqs.length > 0) return prev
 
       const addCost = sing.cost ?? 0
-      if (pontosDisponiveisAtual < addCost) return prev
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
       return [...prev, id]
     })
   }
@@ -499,7 +502,7 @@ export default function CharacterEvolutionScreen({
   const draftSkillsForReqCheck = draftSkills
   const draftAptitudesForReqCheck = draftAptitudes
 
-  const canSave = pontosDisponiveisAtual >= 0
+  const canSave = hasMasterOverride || pontosDisponiveisAtual >= 0
 
   const handleSave = useCallback(async () => {
     if (!user) return
@@ -509,7 +512,9 @@ export default function CharacterEvolutionScreen({
       ...initialCharacterData,
       pontosEvolucao: {
         ...initialPontosEvolucao,
-        atual: Math.max(0, pontosEvolucaoDisponivelInicial - totalCostPE),
+        atual: hasMasterOverride
+          ? pontosEvolucaoDisponivelInicial
+          : Math.max(0, pontosEvolucaoDisponivelInicial - totalCostPE),
       },
       attributes: { ...draftAttributes },
       skills: shallowCopyRecord(draftSkills),
@@ -523,6 +528,7 @@ export default function CharacterEvolutionScreen({
     onSaved(saved)
   }, [
     canSave,
+    hasMasterOverride,
     user,
     initialCharacterData,
     initialPontosEvolucao,
@@ -575,8 +581,8 @@ export default function CharacterEvolutionScreen({
               const maxBase = poderCapBase
               const maxTotal = maxBase + baseBonus
 
-              const canMinus = currentTotal > baselineTotal
-              const canPlus = currentBase < maxBase && pontosDisponiveisAtual >= 10
+              const canMinus = hasMasterOverride || currentTotal > baselineTotal
+              const canPlus = hasMasterOverride || (currentBase < maxBase && pontosDisponiveisAtual >= 10)
 
               return (
                 <div
@@ -721,8 +727,8 @@ export default function CharacterEvolutionScreen({
 
                     const baselineHasSpec = !!baselineV.specialization
 
-                    const canMinus = v.level > (baselineV.level ?? 0)
-                    const canPlus = v.level + 1 <= 8 && effective + 1 <= maxEffective && pontosDisponiveisAtual >= costPerLevel
+                    const canMinus = hasMasterOverride || v.level > (baselineV.level ?? 0)
+                    const canPlus = hasMasterOverride || (v.level + 1 <= 8 && effective + 1 <= maxEffective && pontosDisponiveisAtual >= costPerLevel)
 
                     return (
                       <div className="space-y-4">
@@ -783,21 +789,21 @@ export default function CharacterEvolutionScreen({
                                 const currentHasSpec = !!v.specialization
 
                                 // Lock: não permitir remover especialização que já existia na baseline.
-                                if (baselineHasSpec && !nextHasSpec) return
+                                if (!hasMasterOverride && baselineHasSpec && !nextHasSpec) return
 
                                 // Lock: não permitir adicionar se estourar o teto efetivo.
                                 const nextEffective = v.level + (nextHasSpec ? 1 : 0)
-                                if (nextEffective > maxEffective) return
+                                if (!hasMasterOverride && nextEffective > maxEffective) return
 
                                 // Afford: adicionar (baseline sem spec -> com spec) custa PE.
-                                if (!baselineHasSpec && !currentHasSpec && nextHasSpec && pontosDisponiveisAtual < costPerLevel) return
+                                if (!hasMasterOverride && !baselineHasSpec && !currentHasSpec && nextHasSpec && pontosDisponiveisAtual < costPerLevel) return
 
                                 updateSkillSpecialization(selectedSkill.id, nextSpec)
                               }}
                               className="w-full px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30"
                             >
                               {/* Só mostra 'nenhuma' se a baseline não tinha especialização */}
-                              {!baselineHasSpec && <option value="">Nenhuma</option>}
+                              {(hasMasterOverride || !baselineHasSpec) && <option value="">Nenhuma</option>}
                               {selectedSkill.specializations.map((spec) => (
                                 <option key={spec.id} value={spec.id}>
                                   {spec.name}
@@ -827,8 +833,8 @@ export default function CharacterEvolutionScreen({
 
               const maxLevel = Math.min(nivelPoder, 8)
 
-              const canMinus = current > baseline
-              const canPlus = current < maxLevel && pontosDisponiveisAtual >= 20
+              const canMinus = hasMasterOverride || current > baseline
+              const canPlus = hasMasterOverride || (current < maxLevel && pontosDisponiveisAtual >= 20)
 
               return (
                 <div
@@ -930,7 +936,7 @@ export default function CharacterEvolutionScreen({
 
                 const addCost = sing.cost ?? 0
                 const canAfford = pontosDisponiveisAtual >= addCost
-                const canSelect = !isSelected && !isBaselineLocked && !hasConflict && canAfford
+                const canSelect = !isSelected && (!isBaselineLocked || hasMasterOverride) && (!hasConflict || hasMasterOverride) && (canAfford || hasMasterOverride)
 
                 return (
                   <SingularityCard
@@ -941,7 +947,7 @@ export default function CharacterEvolutionScreen({
                     costLabel="PE"
                     isSelected={isSelected}
                     canAfford={canAfford}
-                    canSelect={canSelect || (isSelected && !isBaselineLocked)}
+                    canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
                     onClick={() => toggleCreationSingularity(sing.id)}
                     requirementsText={hasConflict ? 'Conflito com singularidade atual' : undefined}
                     variant="teal"
@@ -974,7 +980,7 @@ export default function CharacterEvolutionScreen({
                   const { valid } = checkEcoarRequirements(sing, currentTraitsForCheck)
                   const addCost = sing.cost ?? 0
                   const canAfford = pontosDisponiveisAtual >= addCost
-                  const canSelect = !isSelected && !isBaselineLocked && valid && (addCost === 0 || canAfford)
+                  const canSelect = !isSelected && (!isBaselineLocked || hasMasterOverride) && (valid || hasMasterOverride) && (addCost === 0 || canAfford || hasMasterOverride)
 
                   return (
                     <SingularityCard
@@ -986,7 +992,7 @@ export default function CharacterEvolutionScreen({
                       secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
                       isSelected={isSelected}
                       canAfford={canAfford}
-                      canSelect={canSelect || (isSelected && !isBaselineLocked)}
+                      canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
                       onClick={() => toggleEcoarSingularity(sing.id)}
                       requirementsText={!valid ? 'Requisitos não atendidos' : undefined}
                       variant="teal"
@@ -1037,7 +1043,7 @@ export default function CharacterEvolutionScreen({
                   const valid = missingReqs.length === 0
                   const addCost = sing.cost ?? 0
                   const canAfford = pontosDisponiveisAtual >= addCost
-                  const canSelect = !isSelected && !isBaselineLocked && valid && (addCost === 0 || canAfford)
+                  const canSelect = !isSelected && (!isBaselineLocked || hasMasterOverride) && (valid || hasMasterOverride) && (addCost === 0 || canAfford || hasMasterOverride)
 
                   return (
                     <SingularityCard
@@ -1048,7 +1054,7 @@ export default function CharacterEvolutionScreen({
                       costLabel="PE"
                       isSelected={isSelected}
                       canAfford={canAfford}
-                      canSelect={canSelect || (isSelected && !isBaselineLocked)}
+                      canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
                       onClick={() => toggleMartialSingularity(sing.id)}
                       requirementsText={!valid ? 'Requisitos não atendidos' : undefined}
                       level={sing.level}

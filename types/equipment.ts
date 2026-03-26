@@ -47,21 +47,51 @@ export interface WeaponCatalogEntry {
 
 export type VestuarioTabId = 'armaduras' | 'capacetes' | 'acessorios'
 
+export type ArmorResistanceKey =
+  | 'contundente'
+  | 'cortante'
+  | 'perfurante'
+  | 'balistico'
+  | 'esmagador'
+  | 'explosivo'
+  | 'ardente'
+  | 'congelante'
+  | 'eletrico'
+  | 'corrosivo'
+  | 'magico'
+  | 'toxico'
+
+export type ArmorResistanceValues = Record<ArmorResistanceKey, number>
+
+export const ARMOR_RESISTANCE_KEYS: ArmorResistanceKey[] = [
+  'contundente',
+  'cortante',
+  'perfurante',
+  'balistico',
+  'esmagador',
+  'explosivo',
+  'ardente',
+  'congelante',
+  'eletrico',
+  'corrosivo',
+  'magico',
+  'toxico',
+]
+
 export interface ArmorCatalogEntry {
   id: string
   kind: 'armor'
   name: string
   vestuarioTab: VestuarioTabId
-  category?: string
-  space?: string
-  costLabel?: string
-  /** Texto livre ou linhas de resistência. */
-  resistances?: string
-  defenseCritico?: string
-  esquiva?: string
-  furtividade?: string
-  propriedades?: string[]
-  flavor?: string
+  category: string
+  space: string
+  costLabel: string
+  resistances: ArmorResistanceValues
+  defenseCritico: string
+  esquiva: string
+  furtividade: string
+  propriedades: string[]
+  flavor: string
   detailSections?: EquipmentDetailSection[]
 }
 

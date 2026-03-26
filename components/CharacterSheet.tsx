@@ -30,7 +30,15 @@ import { getEcoarSingularityById } from '@/data/ecoarSingularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
-import type { CatalogEntry, CatalogOwnedItem, WeaponCatalogEntry } from '@/types/equipment'
+import {
+  ARMOR_RESISTANCE_KEYS,
+  type ArmorCatalogEntry,
+  type ArmorResistanceKey,
+  type ArmorResistanceValues,
+  type CatalogEntry,
+  type CatalogOwnedItem,
+  type WeaponCatalogEntry,
+} from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import {
   catalogDisplayLine,
@@ -91,6 +99,7 @@ const ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL: Record<string, AttributeStateKey> = {
 interface CharacterSheetProps {
   initialData?: any
   canEdit?: boolean
+  isTableGmEditor?: boolean
   onBackToDashboard?: () => void
   onOpenEvolution?: () => void
   onCharacterSaved?: (saved: any) => void
@@ -113,12 +122,17 @@ type EquippedWeaponState = {
   overrides?: EquippedWeaponOverrides
 }
 
+type EquippedArmorState = {
+  instanceId: string
+}
+
 type CharacterSkillState = Record<string, { level: number; specialization?: string }>
 type CharacterAptitudesState = Record<string, number>
 
 export default function CharacterSheet({
   initialData,
   canEdit,
+  isTableGmEditor = false,
   onBackToDashboard,
   onOpenEvolution,
   onCharacterSaved,
@@ -177,6 +191,9 @@ export default function CharacterSheet({
       slot1: undefined as EquippedWeaponState | undefined,
       slot2: undefined as EquippedWeaponState | undefined,
     },
+    equippedArmor: undefined as EquippedArmorState | undefined,
+    equippedAccessories: [] as EquippedArmorState[],
+    hasVestuarioEquipState: false,
     skills: {} as CharacterSkillState,
     aptitudes: {} as CharacterAptitudesState,
     equipamentosLivresText: '',
@@ -195,6 +212,8 @@ export default function CharacterSheet({
   const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const hasMasterOverride = isTableGmEditor
+  const canEditSheet = !!canEdit || hasMasterOverride
   const editBackupRef = useRef<typeof characterData | null>(null)
   const initialDataRef = useRef<any>(initialData)
   const limitsAutoSaveTimeoutRef = useRef<number | null>(null)
@@ -407,6 +426,25 @@ export default function CharacterSheet({
           updated.equippedWeapons = { slot1: undefined, slot2: undefined }
         }
 
+        const eqArmor = (initialData as any).equippedArmor
+        const hasEquippedArmorKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedArmor')
+        const hasEquippedAccessoriesKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedAccessories')
+        if (eqArmor && typeof eqArmor === 'object' && typeof (eqArmor as any).instanceId === 'string') {
+          updated.equippedArmor = { instanceId: (eqArmor as any).instanceId }
+        } else {
+          updated.equippedArmor = undefined
+        }
+
+        const eqAccessories = (initialData as any).equippedAccessories
+        if (Array.isArray(eqAccessories)) {
+          updated.equippedAccessories = eqAccessories
+            .filter((it) => it && typeof it === 'object' && typeof (it as any).instanceId === 'string')
+            .map((it) => ({ instanceId: (it as any).instanceId }))
+        } else {
+          updated.equippedAccessories = []
+        }
+        updated.hasVestuarioEquipState = hasEquippedArmorKey || hasEquippedAccessoriesKey
+
         // Singularities selected in the wizard
         if (initialData.singularidades) {
           updated.singularidades = initialData.singularidades
@@ -611,8 +649,19 @@ export default function CharacterSheet({
       const s2 = prev.equippedWeapons?.slot2
       const n1 = s1 && ownedIds.has(s1.instanceId) ? s1 : undefined
       const n2 = s2 && ownedIds.has(s2.instanceId) ? s2 : undefined
-      if (n1 === s1 && n2 === s2) return prev
-      return { ...prev, equippedWeapons: { slot1: n1, slot2: n2 } }
+      const armorState = prev.equippedArmor
+      const nextArmor = armorState && ownedIds.has(armorState.instanceId) ? armorState : undefined
+      const nextAccessories = (prev.equippedAccessories ?? []).filter((it) => ownedIds.has(it.instanceId))
+      const accessoriesUnchanged =
+        nextAccessories.length === (prev.equippedAccessories ?? []).length &&
+        nextAccessories.every((it, idx) => it.instanceId === (prev.equippedAccessories ?? [])[idx]?.instanceId)
+      if (n1 === s1 && n2 === s2 && nextArmor === armorState && accessoriesUnchanged) return prev
+      return {
+        ...prev,
+        equippedWeapons: { slot1: n1, slot2: n2 },
+        equippedArmor: nextArmor,
+        equippedAccessories: nextAccessories,
+      }
     })
   }, [characterData.itensCatalogo])
 
@@ -656,11 +705,15 @@ export default function CharacterSheet({
         slot1: prev.equippedWeapons?.slot1?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot1,
         slot2: prev.equippedWeapons?.slot2?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot2,
       }
+      const nextArmor = prev.equippedArmor?.instanceId === instanceId ? undefined : prev.equippedArmor
+      const nextAccessories = (prev.equippedAccessories ?? []).filter((it) => it.instanceId !== instanceId)
       return {
         ...prev,
         itensCatalogo: next,
         saldoMoedas: prev.saldoMoedas + refund,
         equippedWeapons: nextEquipped,
+        equippedArmor: nextArmor,
+        equippedAccessories: nextAccessories,
       }
     })
   }, [])
@@ -715,6 +768,48 @@ export default function CharacterSheet({
     },
     [findEquippedSlotForInstance, setEquippedWeaponSlot],
   )
+
+  const isArmorCatalogItem = useCallback(
+    (item: CatalogOwnedItem) => {
+      if (item.kind !== 'armor') return false
+      const entry = armorCatalogById.get(String(item.catalogId)) as ArmorCatalogEntry | undefined
+      return !!entry && entry.vestuarioTab !== 'acessorios'
+    },
+    [armorCatalogById],
+  )
+
+  const isAccessoryCatalogItem = useCallback(
+    (item: CatalogOwnedItem) => {
+      if (item.kind !== 'armor') return false
+      const entry = armorCatalogById.get(String(item.catalogId)) as ArmorCatalogEntry | undefined
+      return !!entry && entry.vestuarioTab === 'acessorios'
+    },
+    [armorCatalogById],
+  )
+
+  const toggleEquipArmorInstance = useCallback((instanceId: string, shouldEquip: boolean) => {
+    if (!instanceId) return
+    setCharacterData((prev) => ({
+      ...prev,
+      hasVestuarioEquipState: true,
+      equippedArmor: shouldEquip ? { instanceId } : prev.equippedArmor?.instanceId === instanceId ? undefined : prev.equippedArmor,
+    }))
+  }, [])
+
+  const toggleEquipAccessoryInstance = useCallback((instanceId: string, shouldEquip: boolean) => {
+    if (!instanceId) return
+    setCharacterData((prev) => {
+      const current = prev.equippedAccessories ?? []
+      const already = current.some((it) => it.instanceId === instanceId)
+      if (shouldEquip && !already) {
+        return { ...prev, hasVestuarioEquipState: true, equippedAccessories: [...current, { instanceId }] }
+      }
+      if (!shouldEquip && already) {
+        return { ...prev, hasVestuarioEquipState: true, equippedAccessories: current.filter((it) => it.instanceId !== instanceId) }
+      }
+      return prev
+    })
+  }, [])
 
   const updateField = (path: string, value: any) => {
     const keys = path.split('.')
@@ -1013,6 +1108,8 @@ export default function CharacterSheet({
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
       equippedWeapons: characterData.equippedWeapons,
+      equippedArmor: characterData.equippedArmor,
+      equippedAccessories: characterData.equippedAccessories,
       skills: characterData.skills,
       aptitudes: characterData.aptitudes,
     }
@@ -1076,7 +1173,7 @@ export default function CharacterSheet({
   ])
 
   const handleStartEdit = useCallback(() => {
-    if (!canEdit) return
+    if (!canEditSheet) return
     editBackupRef.current = deepClone(characterData)
     userTriggeredLimitsRef.current = false
     setIsEditing(true)
@@ -1085,7 +1182,7 @@ export default function CharacterSheet({
       clearTimeout(limitsAutoSaveTimeoutRef.current)
       limitsAutoSaveTimeoutRef.current = null
     }
-  }, [canEdit, characterData, deepClone])
+  }, [canEditSheet, characterData, deepClone])
 
   const handleCancelEdit = useCallback(() => {
     if (editBackupRef.current) {
@@ -1238,41 +1335,118 @@ export default function CharacterSheet({
   }, [armorCatalogById, characterData.espacos, characterData.itensCatalogo, coerceInt, parseSpaceNumber, utilityCatalogById, weaponCatalogById])
 
   const activeArmor = useMemo(() => {
+    const equippedInstanceId = characterData.equippedArmor?.instanceId
+    if (equippedInstanceId) {
+      const owned = characterData.itensCatalogo.find((i) => i.instanceId === equippedInstanceId && i.kind === 'armor')
+      const entry = owned ? (armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined) : undefined
+      if (entry && entry.vestuarioTab !== 'acessorios') return entry
+    }
+    if (characterData.hasVestuarioEquipState) return null
     const ownedArmor = characterData.itensCatalogo.filter((i) => i.kind === 'armor')
     if (ownedArmor.length === 0) return null
-    const last = ownedArmor[ownedArmor.length - 1]
-    const entry = armorCatalogById.get(String(last.catalogId))
-    if (!entry) return null
-    return entry as any
-  }, [armorCatalogById, characterData.itensCatalogo])
+    const last = ownedArmor
+      .map((owned) => armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
+      .filter((entry): entry is ArmorCatalogEntry => !!entry && entry.vestuarioTab !== 'acessorios')
+      .at(-1)
+    return last ?? null
+  }, [armorCatalogById, characterData.equippedArmor, characterData.hasVestuarioEquipState, characterData.itensCatalogo])
 
-  const parsedResistances = useMemo(() => {
-    const raw = (activeArmor as any)?.resistances
-    const text = raw ? String(raw) : ''
-    const read = (label: string): string | null => {
-      const r = new RegExp(`${label}\\s*[:=]?\\s*(-?\\d+)`, 'i')
-      const m = text.match(r)
-      if (!m) return null
-      return m[1]
+  const equippedAccessoryEntries = useMemo(() => {
+    return (characterData.equippedAccessories ?? [])
+      .map((state) => {
+        const owned = characterData.itensCatalogo.find((i) => i.instanceId === state.instanceId && i.kind === 'armor')
+        const entry = owned ? (armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined) : undefined
+        if (!entry || entry.vestuarioTab !== 'acessorios') return null
+        return entry
+      })
+      .filter((entry): entry is ArmorCatalogEntry => !!entry)
+  }, [armorCatalogById, characterData.equippedAccessories, characterData.itensCatalogo])
+
+  const totalResistances = useMemo(() => {
+    const normalizeText = (raw: string): string =>
+      raw
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+
+    const parseTextResistanceBonus = (text: string): Partial<ArmorResistanceValues> => {
+      const normalized = normalizeText(text)
+      const numberMatch = normalized.match(/([+-]?\d+)/)
+      if (!numberMatch) return {}
+      const amount = parseInt(numberMatch[1], 10)
+      if (!Number.isFinite(amount)) return {}
+
+      const keyByAlias: Array<{ key: ArmorResistanceKey; aliases: string[] }> = [
+        { key: 'contundente', aliases: ['contundente'] },
+        { key: 'cortante', aliases: ['cortante'] },
+        { key: 'perfurante', aliases: ['perfurante'] },
+        { key: 'balistico', aliases: ['balistico'] },
+        { key: 'esmagador', aliases: ['esmagador'] },
+        { key: 'explosivo', aliases: ['explosivo'] },
+        { key: 'ardente', aliases: ['ardente'] },
+        { key: 'congelante', aliases: ['congelante'] },
+        { key: 'eletrico', aliases: ['eletrico'] },
+        { key: 'corrosivo', aliases: ['corrosivo'] },
+        { key: 'magico', aliases: ['magico'] },
+        { key: 'toxico', aliases: ['toxico'] },
+      ]
+
+      const bonus: Partial<ArmorResistanceValues> = {}
+      keyByAlias.forEach(({ key, aliases }) => {
+        if (aliases.some((alias) => normalized.includes(alias))) {
+          bonus[key] = (bonus[key] ?? 0) + amount
+        }
+      })
+      return bonus
     }
-    return {
-      rawText: text,
-      values: {
-        contundente: read('contundente'),
-        cortante: read('cortante'),
-        perfurante: read('perfurante'),
-        balistico: read('bal[ií]stico'),
-        esmagador: read('esmagador'),
-        explosivo: read('explosivo'),
-        ardente: read('ardente'),
-        congelante: read('congelante'),
-        eletrico: read('el[eé]trico'),
-        corrosivo: read('corrosivo'),
-        magico: read('m[aá]gico'),
-        toxico: read('t[oó]xico'),
-      } as Record<string, string | null>,
+
+    const collectEntryResistances = (entry: ArmorCatalogEntry): ArmorResistanceValues => {
+      const values = ARMOR_RESISTANCE_KEYS.reduce((acc, key) => {
+        const structured = Number(entry.resistances?.[key] ?? 0)
+        acc[key] = Number.isFinite(structured) ? structured : 0
+        return acc
+      }, {} as ArmorResistanceValues)
+
+      const textSources = [entry.flavor ?? '', ...(entry.propriedades ?? [])]
+      textSources.forEach((text) => {
+        const parsed = parseTextResistanceBonus(text)
+        ARMOR_RESISTANCE_KEYS.forEach((key) => {
+          const extra = Number(parsed[key] ?? 0)
+          if (Number.isFinite(extra) && extra !== 0) values[key] += extra
+        })
+      })
+      return values
     }
-  }, [activeArmor])
+
+    const base = ARMOR_RESISTANCE_KEYS.reduce((acc, key) => {
+      acc[key] = 0
+      return acc
+    }, {} as ArmorResistanceValues)
+    const equippedEntries = [activeArmor, ...equippedAccessoryEntries].filter((entry): entry is ArmorCatalogEntry => !!entry)
+    equippedEntries.forEach((entry) => {
+      const entryValues = collectEntryResistances(entry)
+      ARMOR_RESISTANCE_KEYS.forEach((key) => {
+        const value = Number(entryValues[key] ?? 0)
+        base[key] += Number.isFinite(value) ? value : 0
+      })
+    })
+    return base
+  }, [activeArmor, equippedAccessoryEntries])
+
+  const totalArmorStats = useMemo(() => {
+    const equippedEntries = [activeArmor, ...equippedAccessoryEntries].filter((entry): entry is ArmorCatalogEntry => !!entry)
+    const parseSignedInt = (raw?: string): number => {
+      if (!raw) return 0
+      const m = String(raw).match(/-?\d+/)
+      if (!m) return 0
+      const n = parseInt(m[0], 10)
+      return Number.isFinite(n) ? n : 0
+    }
+    const crit = equippedEntries.reduce((sum, entry) => sum + parseSignedInt(entry.defenseCritico), 0)
+    const esquiva = equippedEntries.reduce((sum, entry) => sum + parseSignedInt(entry.esquiva), 0)
+    const furtividade = equippedEntries.reduce((sum, entry) => sum + parseSignedInt(entry.furtividade), 0)
+    return { crit, esquiva, furtividade }
+  }, [activeArmor, equippedAccessoryEntries])
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
@@ -1300,7 +1474,7 @@ export default function CharacterSheet({
                   </div>
                 </div>
 
-                {canEdit && !isEditing && (
+                {canEditSheet && !isEditing && (
                   <button
                     type="button"
                     onClick={handleStartEdit}
@@ -1311,7 +1485,7 @@ export default function CharacterSheet({
                     <span className="text-sm font-medium">Editar</span>
                   </button>
                 )}
-                {canEdit && isEditing && (
+                {canEditSheet && isEditing && (
                   <div className="shrink-0 flex items-center gap-2">
                     <button
                       type="button"
@@ -1417,14 +1591,16 @@ export default function CharacterSheet({
                         <input
                           type="number"
                           value={characterData.pontosEvolucao.atual}
-                          disabled
+                          readOnly
+                          disabled={!isEditing && !hasMasterOverride}
                           className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
                         />
                         <div className="col-span-2 text-center text-slate-500 dark:text-ecoar-light-900/60">/</div>
                         <input
                           type="number"
                           value={characterData.pontosEvolucao.max}
-                          disabled
+                          readOnly
+                          disabled={!isEditing && !hasMasterOverride}
                           className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
                         />
                       </div>
@@ -1463,7 +1639,7 @@ export default function CharacterSheet({
                         >
                           Adicionar
                         </button>
-                        {canEdit && !isEditing && (
+                        {canEditSheet && !isEditing && (
                           <button
                             type="button"
                             disabled={characterData.pontosEvolucao.atual <= 0}
@@ -1820,7 +1996,8 @@ export default function CharacterSheet({
                   <input
                     type="number"
                     value={nivelAlma}
-                    disabled
+                    readOnly
+                    disabled={!isEditing && !hasMasterOverride}
                     className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
@@ -1829,7 +2006,8 @@ export default function CharacterSheet({
                   <input
                     type="number"
                     value={nivelPoder}
-                    disabled
+                    readOnly
+                    disabled={!isEditing && !hasMasterOverride}
                     className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
@@ -1838,7 +2016,8 @@ export default function CharacterSheet({
                   <input
                     type="number"
                     value={nivelTrilha}
-                    disabled
+                    readOnly
+                    disabled={!isEditing && !hasMasterOverride}
                     className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                   />
                 </div>
@@ -1850,14 +2029,16 @@ export default function CharacterSheet({
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.atual}
-                      disabled
+                      readOnly
+                      disabled={!isEditing && !hasMasterOverride}
                       className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                     />
                     <span className="text-slate-500 dark:text-ecoar-light-900/60">/</span>
                     <input
                       type="number"
                       value={characterData.pontosEvolucao.max}
-                      disabled
+                      readOnly
+                      disabled={!isEditing && !hasMasterOverride}
                       className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
                     />
                   </div>
@@ -1900,7 +2081,7 @@ export default function CharacterSheet({
                     </button>
                   </div>
 
-                  {canEdit && !isEditing && (
+                  {canEditSheet && !isEditing && (
                     <div className="mt-3 flex items-center gap-2">
                       <button
                         type="button"
@@ -2184,7 +2365,7 @@ export default function CharacterSheet({
                   Resistência a dano
                 </h3>
                 <div className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60 truncate">
-                  {activeArmor?.name ? `Base: ${activeArmor.name}` : '—'}
+                  {activeArmor?.name ? `Armadura: ${activeArmor.name}` : 'Sem armadura equipada'}
                 </div>
               </div>
 
@@ -2202,19 +2383,19 @@ export default function CharacterSheet({
                           {row.left}
                         </td>
                         <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {parsedResistances.values[row.key] ?? '—'}
+                          {totalResistances[row.key as ArmorResistanceKey]}
                         </td>
                         <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
                           {row.mid}
                         </td>
                         <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {parsedResistances.values[row.midKey] ?? '—'}
+                          {totalResistances[row.midKey as ArmorResistanceKey]}
                         </td>
                         <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
                           {row.right}
                         </td>
                         <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {parsedResistances.values[row.rightKey] ?? '—'}
+                          {totalResistances[row.rightKey as ArmorResistanceKey]}
                         </td>
                       </tr>
                     ))}
@@ -2228,15 +2409,15 @@ export default function CharacterSheet({
                     Defesa de crítico
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
-                    {(activeArmor as any)?.defenseCritico ?? '—'}
+                    {totalArmorStats.crit}
                   </div>
                 </div>
                 <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
                   <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                    Texto (origem)
+                    Origem (equipados)
                   </div>
                   <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80 break-words">
-                    {parsedResistances.rawText?.trim() ? parsedResistances.rawText : '—'}
+                    {[activeArmor?.name, ...equippedAccessoryEntries.map((a) => a.name)].filter(Boolean).join(' + ') || '—'}
                   </div>
                 </div>
               </div>
@@ -2612,11 +2793,11 @@ export default function CharacterSheet({
                                                   <input
                                                     type="checkbox"
                                                     checked={!!slot}
-                                                  disabled={!canEdit}
-                                                  onChange={(e) => {
-                                                    if (!isEditing) handleStartEdit()
-                                                    toggleEquipWeaponInstance(item.instanceId, e.target.checked)
-                                                  }}
+                                                    disabled={!canEditSheet}
+                                                    onChange={(e) => {
+                                                      if (!isEditing) handleStartEdit()
+                                                      toggleEquipWeaponInstance(item.instanceId, e.target.checked)
+                                                    }}
                                                     className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
                                                   />
                                                   Equipar
@@ -2629,6 +2810,40 @@ export default function CharacterSheet({
                                               </div>
                                             )
                                           })()}
+                                          {item.kind === 'armor' && isArmorCatalogItem(item) && (
+                                            <div className="mt-1 flex items-center gap-2">
+                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={characterData.equippedArmor?.instanceId === item.instanceId}
+                                                  disabled={!canEditSheet}
+                                                  onChange={(e) => {
+                                                    if (!isEditing) handleStartEdit()
+                                                    toggleEquipArmorInstance(item.instanceId, e.target.checked)
+                                                  }}
+                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
+                                                />
+                                                Equipar armadura
+                                              </label>
+                                            </div>
+                                          )}
+                                          {item.kind === 'armor' && isAccessoryCatalogItem(item) && (
+                                            <div className="mt-1 flex items-center gap-2">
+                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={(characterData.equippedAccessories ?? []).some((it) => it.instanceId === item.instanceId)}
+                                                  disabled={!canEditSheet}
+                                                  onChange={(e) => {
+                                                    if (!isEditing) handleStartEdit()
+                                                    toggleEquipAccessoryInstance(item.instanceId, e.target.checked)
+                                                  }}
+                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
+                                                />
+                                                Equipar acessório
+                                              </label>
+                                            </div>
+                                          )}
                                         </div>
                                         {isEditing && (
                                           <div className="shrink-0 flex flex-col items-end gap-1">
@@ -2682,6 +2897,20 @@ export default function CharacterSheet({
                           )
                         ) : (
                           <div className="space-y-3">
+                            <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
+                              <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
+                                Vestuário equipado
+                              </div>
+                              <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
+                                Armadura: {activeArmor?.name ?? '—'}
+                              </div>
+                              <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
+                                Acessórios: {equippedAccessoryEntries.map((entry) => entry.name).join(', ') || '—'}
+                              </div>
+                              <div className="mt-1 text-[11px] text-slate-500 dark:text-ecoar-light-900/55">
+                                Esquiva total: {totalArmorStats.esquiva} · Furtividade total: {totalArmorStats.furtividade}
+                              </div>
+                            </div>
                             <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
                               <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
                                 Armas equipadas (1 e 2)

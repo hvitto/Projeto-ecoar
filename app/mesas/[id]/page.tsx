@@ -195,11 +195,13 @@ export default function MesaPage() {
 
   if (viewMode === 'sheet' && selectedCharacter) {
     const canEdit = tableCharacters.find((i) => i.character.id === selectedCharacter.id)?.canEdit ?? false
+    const isTableGmEditor = table.myRole === 'gm'
     return (
       <div className="h-full min-h-0 flex flex-col overflow-hidden">
         <CharacterSheet
           initialData={selectedCharacter.data}
           canEdit={canEdit}
+          isTableGmEditor={isTableGmEditor}
           onOpenEvolution={() => setViewMode('evolution')}
           onCharacterSaved={(saved) => {
             setSelectedCharacter(saved)
@@ -218,10 +220,12 @@ export default function MesaPage() {
   }
 
   if (viewMode === 'evolution' && selectedCharacter) {
+    const isTableGmEditor = table.myRole === 'gm'
     return (
       <div className="h-full min-h-0 flex flex-col overflow-hidden">
         <CharacterEvolutionScreen
           initialCharacterData={selectedCharacter.data}
+          isTableGmEditor={isTableGmEditor}
           onCancel={() => setViewMode('sheet')}
           onSaved={(saved) => {
             setSelectedCharacter(saved)

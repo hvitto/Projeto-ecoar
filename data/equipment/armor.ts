@@ -1,7 +1,38 @@
-import type { ArmorCatalogEntry } from '@/types/equipment'
+import { ARMOR_RESISTANCE_KEYS, type ArmorCatalogEntry, type ArmorResistanceValues } from '@/types/equipment'
 
-function armor(entry: Omit<ArmorCatalogEntry, 'kind'>): ArmorCatalogEntry {
-  return { kind: 'armor', ...entry }
+type ArmorSeedEntry = Omit<ArmorCatalogEntry, 'kind' | 'resistances' | 'defenseCritico' | 'esquiva' | 'furtividade' | 'propriedades' | 'flavor'> & {
+  resistances?: Partial<ArmorResistanceValues>
+  resistancesText?: string
+  defenseCritico?: string
+  esquiva?: string
+  furtividade?: string
+  propriedades?: string[]
+  flavor?: string
+}
+
+function buildDefaultResistances(): ArmorResistanceValues {
+  return ARMOR_RESISTANCE_KEYS.reduce((acc, key) => {
+    acc[key] = 0
+    return acc
+  }, {} as ArmorResistanceValues)
+}
+
+function armor(entry: ArmorSeedEntry): ArmorCatalogEntry {
+  const { resistances, resistancesText, defenseCritico, esquiva, furtividade, propriedades, flavor: rawFlavor, ...rest } = entry
+  const defaults = buildDefaultResistances()
+  const mergedResistances = { ...defaults, ...(resistances ?? {}) }
+  const legacyText = resistancesText?.trim()
+  const flavor = rawFlavor?.trim() || (legacyText ? `Resistências (legado): ${legacyText}` : 'Sem descrição.')
+  return {
+    kind: 'armor',
+    ...rest,
+    resistances: mergedResistances,
+    defenseCritico: defenseCritico ?? '0',
+    esquiva: esquiva ?? '0',
+    furtividade: furtividade ?? '0',
+    propriedades: propriedades ?? [],
+    flavor,
+  }
 }
 
 export const armorCatalog: ArmorCatalogEntry[] = [
@@ -12,7 +43,7 @@ export const armorCatalog: ArmorCatalogEntry[] = [
     category: 'Armaduras Leves',
     space: '2',
     costLabel: 'ȼ2.600',
-    resistances:
+    resistancesText:
       'Tronco/membro: contundente, balístico, ardente, cortante, perfurante, esmagador, congelante, explosivo, mágico, corrosivo, tóxico, elétrico — conforme livro (playtest v0.6.3a).',
     defenseCritico: '6',
     esquiva: '0',
@@ -47,7 +78,7 @@ export const armorCatalog: ArmorCatalogEntry[] = [
     category: 'Armaduras Médias',
     space: '3',
     costLabel: 'ȼ2.900',
-    resistances: 'Bônus tronco/membro conforme tipos de dano (ver livro).',
+    resistancesText: 'Bônus tronco/membro conforme tipos de dano (ver livro).',
     defenseCritico: '9',
     esquiva: '-1',
     furtividade: '0',
@@ -81,7 +112,7 @@ export const armorCatalog: ArmorCatalogEntry[] = [
     category: 'Armaduras Pesadas',
     space: '4',
     costLabel: 'ȼ3.250',
-    resistances: 'Resistências geral e localizadas conforme livro.',
+    resistancesText: 'Resistências geral e localizadas conforme livro.',
     defenseCritico: '12',
     esquiva: '-2',
     furtividade: '0',
@@ -230,7 +261,7 @@ export const armorCatalog: ArmorCatalogEntry[] = [
     category: 'Armaduras Pesadas',
     space: '1',
     costLabel: 'ȼ1.900',
-    resistances: 'Resistências à cabeça conforme tipos de dano (ver livro).',
+    resistancesText: 'Resistências à cabeça conforme tipos de dano (ver livro).',
     defenseCritico: '1–6',
     esquiva: '0 a -2',
     furtividade: '0 a -1',

@@ -21,6 +21,21 @@ const detailSectionSchema = z.object({
   body: z.string(),
 })
 
+const armorResistancesSchema = z.object({
+  contundente: z.coerce.number(),
+  cortante: z.coerce.number(),
+  perfurante: z.coerce.number(),
+  balistico: z.coerce.number(),
+  esmagador: z.coerce.number(),
+  explosivo: z.coerce.number(),
+  ardente: z.coerce.number(),
+  congelante: z.coerce.number(),
+  eletrico: z.coerce.number(),
+  corrosivo: z.coerce.number(),
+  magico: z.coerce.number(),
+  toxico: z.coerce.number(),
+})
+
 const weaponCatalogEntrySchema = z
   .object({
     id: z.string().min(1),
@@ -51,17 +66,17 @@ const armorCatalogEntrySchema = z
   .object({
     id: z.string().min(1),
     kind: z.literal('armor'),
-    name: z.string(),
+    name: z.string().min(1),
     vestuarioTab: vestuarioTabId,
-    category: z.string().optional(),
-    space: z.string().optional(),
-    costLabel: z.string().optional(),
-    resistances: z.string().optional(),
-    defenseCritico: z.string().optional(),
-    esquiva: z.string().optional(),
-    furtividade: z.string().optional(),
-    propriedades: z.array(z.string()).optional(),
-    flavor: z.string().optional(),
+    category: z.string().min(1),
+    space: z.string().min(1),
+    costLabel: z.string().min(1),
+    resistances: armorResistancesSchema,
+    defenseCritico: z.string().min(1),
+    esquiva: z.string().min(1),
+    furtividade: z.string().min(1),
+    propriedades: z.array(z.string()),
+    flavor: z.string().min(1),
     detailSections: z.array(detailSectionSchema).optional(),
   })
   .passthrough()

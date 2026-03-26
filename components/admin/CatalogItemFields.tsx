@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import type { ArmorCatalogEntry, CatalogEntry, EquipmentDetailSection, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+import { useEffect, useMemo, useState } from 'react'
+import { ARMOR_RESISTANCE_KEYS, type ArmorCatalogEntry, type ArmorResistanceKey, type ArmorResistanceValues, type CatalogEntry, type EquipmentDetailSection, type UtilityCatalogEntry, type WeaponCatalogEntry } from '@/types/equipment'
 import { Textarea } from '@/components/ui'
 import { Input } from '@/components/ui'
 import {
@@ -26,6 +26,29 @@ function arrayFromMultilineText(text: string): string[] {
 function multilineTextFromArray(arr?: string[]): string {
   if (!arr || arr.length === 0) return ''
   return arr.join('\n')
+}
+
+const armorResistanceLabelByKey: Record<ArmorResistanceKey, string> = {
+  contundente: 'Contundente',
+  cortante: 'Cortante',
+  perfurante: 'Perfurante',
+  balistico: 'Balístico',
+  esmagador: 'Esmagador',
+  explosivo: 'Explosivo',
+  ardente: 'Ardente',
+  congelante: 'Congelante',
+  eletrico: 'Elétrico',
+  corrosivo: 'Corrosivo',
+  magico: 'Mágico',
+  toxico: 'Tóxico',
+}
+
+function withCompleteArmorResistances(values?: Partial<ArmorResistanceValues>): ArmorResistanceValues {
+  return ARMOR_RESISTANCE_KEYS.reduce((acc, key) => {
+    const raw = values?.[key]
+    acc[key] = Number.isFinite(raw) ? Number(raw) : 0
+    return acc
+  }, {} as ArmorResistanceValues)
 }
 
 function DetailSectionsEditor({
@@ -92,12 +115,24 @@ function DetailSectionsEditor({
 
 export default function CatalogItemFields({ value, onChange }: Props) {
   const kind = value.kind
+  const [armorResistanceDraft, setArmorResistanceDraft] = useState<Partial<Record<ArmorResistanceKey, string>>>({})
 
   // `CatalogEntry` é uma união; para simplificar a edição por kind, usamos update dinâmico
   // e deixamos a validação estrutural para o `parseCatalogPayload` na API.
   const update = (key: string, nextValue: unknown) => {
     onChange({ ...value, [key]: nextValue } as CatalogEntry)
   }
+
+  useEffect(() => {
+    if (kind !== 'armor') return
+    const a = value as ArmorCatalogEntry
+    const complete = withCompleteArmorResistances(a.resistances)
+    const nextDraft: Partial<Record<ArmorResistanceKey, string>> = {}
+    ARMOR_RESISTANCE_KEYS.forEach((key) => {
+      nextDraft[key] = String(complete[key])
+    })
+    setArmorResistanceDraft(nextDraft)
+  }, [kind, value])
 
   const common = (
     <div className="space-y-3">
@@ -183,6 +218,7 @@ export default function CatalogItemFields({ value, onChange }: Props) {
 
     if (kind === 'armor') {
       const a = value as ArmorCatalogEntry
+      const resistances = withCompleteArmorResistances(a.resistances)
       return (
         <div className="space-y-4">
           {common}
@@ -202,28 +238,58 @@ export default function CatalogItemFields({ value, onChange }: Props) {
                 ))}
               </select>
             </div>
-            <Input label="Categoria" value={a.category ?? ''} onChange={(e) => update('category', e.target.value)} />
+            <Input label="Categoria *" required value={a.category ?? ''} onChange={(e) => update('category', e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label="Espaço" value={a.space ?? ''} onChange={(e) => update('space', e.target.value)} />
-            <Input label="Custo (costLabel)" value={a.costLabel ?? ''} onChange={(e) => update('costLabel', e.target.value)} />
+            <Input label="Espaço *" required value={a.space ?? ''} onChange={(e) => update('space', e.target.value)} />
+            <Input label="Custo (costLabel) *" required value={a.costLabel ?? ''} onChange={(e) => update('costLabel', e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
+              Resistências *
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {ARMOR_RESISTANCE_KEYS.map((key) => (
+                <Input
+                  key={key}
+                  label={armorResistanceLabelByKey[key]}
+                  required
+                  inputMode="numeric"
+                  value={armorResistanceDraft[key] ?? String(resistances[key])}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim()
+                    if (!/^-?\d*$/.test(raw)) return
+                    setArmorResistanceDraft((prev) => ({ ...prev, [key]: raw }))
+                  }}
+                  onBlur={() => {
+                    const next = withCompleteArmorResistances(a.resistances)
+                    const raw = (armorResistanceDraft[key] ?? '').trim()
+                    if (raw === '' || raw === '-') {
+                      next[key] = 0
+                    } else {
+                      const parsed = parseInt(raw, 10)
+                      next[key] = Number.isFinite(parsed) ? parsed : 0
+                    }
+                    update('resistances', next)
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label="Resistências" value={a.resistances ?? ''} onChange={(e) => update('resistances', e.target.value)} />
-            <Input label="Defesa de crítico" value={a.defenseCritico ?? ''} onChange={(e) => update('defenseCritico', e.target.value)} />
+            <Input label="Defesa de crítico *" required value={a.defenseCritico ?? ''} onChange={(e) => update('defenseCritico', e.target.value)} />
+            <Input label="Esquiva *" required value={a.esquiva ?? ''} onChange={(e) => update('esquiva', e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label="Esquiva" value={a.esquiva ?? ''} onChange={(e) => update('esquiva', e.target.value)} />
-            <Input label="Furtividade" value={a.furtividade ?? ''} onChange={(e) => update('furtividade', e.target.value)} />
-          </div>
+          <Input label="Furtividade *" required value={a.furtividade ?? ''} onChange={(e) => update('furtividade', e.target.value)} />
 
-          <Input label="Flavour" value={a.flavor ?? ''} onChange={(e) => update('flavor', e.target.value)} />
+          <Input label="Descrição / Flavour *" required value={a.flavor ?? ''} onChange={(e) => update('flavor', e.target.value)} />
 
           <Textarea
-            label="Propriedades (uma por linha)"
+            label="Propriedades (uma por linha) *"
             value={multilineTextFromArray(a.propriedades)}
             onChange={(e) => update('propriedades', arrayFromMultilineText(e.target.value))}
             className="min-h-[120px]"
