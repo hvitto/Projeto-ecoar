@@ -20,12 +20,17 @@ export const vestuarioTabLabels: Record<VestuarioTabId, string> = {
   acessorios: 'Acessórios',
 }
 
+/** JSON do banco pode trazer `propriedades` como objeto; spread em array exige iterável. */
+function propriedadesAsArray(a: ArmorCatalogEntry): string[] {
+  return Array.isArray(a.propriedades) ? a.propriedades : []
+}
+
 export function filterArmor(items: ArmorCatalogEntry[], query: string, tab?: VestuarioTabId | null): ArmorCatalogEntry[] {
   const q = query.trim().toLowerCase()
   return items.filter((a) => {
     if (tab && a.vestuarioTab !== tab) return false
     if (!q) return true
-    const fields = [a.name, a.category, a.id, a.flavor, ...(a.propriedades ?? [])]
+    const fields = [a.name, a.category, a.id, a.flavor, ...propriedadesAsArray(a)]
     return fields.some((f) => (f ? String(f).toLowerCase().includes(q) : false))
   })
 }

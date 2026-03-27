@@ -53,6 +53,7 @@ import {
   type WeaponCatalogEntry,
 } from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
+import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
 import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
 import {
@@ -322,6 +323,22 @@ export default function CharacterSheet({
     })
     return map
   }, [utilities])
+
+  const resolveCatalogEntryKind = useCallback(
+    (entry: CatalogEntry): CatalogOwnedItem['kind'] => {
+      // Runtime: payload do banco pode omitir `kind` no JSON; o union TS cobre todos os casos.
+      const raw = entry as { id: string; kind?: CatalogOwnedItem['kind'] }
+      if (raw.kind === 'weapon' || raw.kind === 'armor' || raw.kind === 'utility') {
+        return raw.kind
+      }
+      const id = String(raw.id)
+      if (weaponCatalogById.has(id)) return 'weapon'
+      if (armorCatalogById.has(id)) return 'armor'
+      if (utilityCatalogById.has(id)) return 'utility'
+      return 'utility'
+    },
+    [weaponCatalogById, armorCatalogById, utilityCatalogById],
+  )
 
   /** Soma `mechanicalBonuses` de armas/armaduras/utilitários atualmente equipados. */
   const equipmentMechanicalBonuses = useMemo(() => {
@@ -825,6 +842,7 @@ export default function CharacterSheet({
         equipLegacy = ''
       }
       const displayLine = catalogDisplayLine(entry, custoCeros)
+      const kind = resolveCatalogEntryKind(entry)
       return {
         ...prev,
         equipamentos: equipLegacy,
@@ -835,7 +853,7 @@ export default function CharacterSheet({
           {
             instanceId: newCatalogInstanceId(),
             catalogId: entry.id,
-            kind: entry.kind,
+            kind,
             nome: entry.name,
             custoCeros,
             displayLine,
@@ -844,7 +862,7 @@ export default function CharacterSheet({
         saldoMoedas: Math.max(0, prev.saldoMoedas - custoCeros),
       }
     })
-  }, [])
+  }, [resolveCatalogEntryKind])
 
   const handleToggleSystemSingularity = useCallback(
     (args: { id: string; kind: SystemSingularityKind; selected: boolean; cost: number }) => {
@@ -3415,7 +3433,7 @@ export default function CharacterSheet({
                               const readNumber = (prefix: string): number | null => {
                                 const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
                                 if (!hit) return null
-                                const m = hit.match(/(-?\\d+)/)
+                                const m = hit.match(/(-?\d+)/)
                                 if (!m) return null
                                 const n = parseInt(m[1], 10)
                                 return Number.isFinite(n) ? n : null
@@ -3757,17 +3775,19 @@ export default function CharacterSheet({
                                 </button>
                               </div>
                               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
-                                <EquipmentCatalogBrowser
-                                  mode="picker"
-                                  urlSync={false}
-                                  saldoDisponivel={characterData.saldoMoedas}
-                                  onPickItem={handleEquipmentCatalogPick}
-                                  showCostMultiplierTables={false}
-                                  weaponCatalog={weapons}
-                                  armorCatalog={armor}
-                                  utilityCatalog={utilities}
-                                  costMultiplierTables={multiplierTables}
-                                />
+                                <EquipmentCatalogErrorBoundary onClose={() => setEquipmentPickerOpen(false)}>
+                                  <EquipmentCatalogBrowser
+                                    mode="picker"
+                                    urlSync={false}
+                                    saldoDisponivel={characterData.saldoMoedas}
+                                    onPickItem={handleEquipmentCatalogPick}
+                                    showCostMultiplierTables={false}
+                                    weaponCatalog={weapons}
+                                    armorCatalog={armor}
+                                    utilityCatalog={utilities}
+                                    costMultiplierTables={multiplierTables}
+                                  />
+                                </EquipmentCatalogErrorBoundary>
                               </div>
                             </div>
                           </div>

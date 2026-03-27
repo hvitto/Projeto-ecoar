@@ -48,7 +48,8 @@ export function filterWeapons(
   return items.filter((w) => {
     if (section && w.macroSection !== section) return false
     if (!q) return true
-    const fields = [w.name, w.category, w.equipmentClass, w.id, w.attackTest, ...(w.properties ?? []), w.flavor]
+    const props = Array.isArray(w.properties) ? w.properties : []
+    const fields = [w.name, w.category, w.equipmentClass, w.id, w.attackTest, ...props, w.flavor]
     return fields.some((f) => (f ? String(f).toLowerCase().includes(q) : false))
   })
 }

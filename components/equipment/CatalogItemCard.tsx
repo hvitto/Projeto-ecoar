@@ -2,25 +2,39 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Check, Pencil } from 'lucide-react'
-import type { ArmorCatalogEntry, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+import {
+  ARMOR_RESISTANCE_KEYS,
+  type ArmorCatalogEntry,
+  type ArmorResistanceKey,
+  type UtilityCatalogEntry,
+  type WeaponCatalogEntry,
+} from '@/types/equipment'
 
 type Entry = WeaponCatalogEntry | ArmorCatalogEntry | UtilityCatalogEntry
 
+const RESISTANCE_ABBREV: Record<ArmorResistanceKey, string> = {
+  contundente: 'Con',
+  cortante: 'Cor',
+  perfurante: 'Per',
+  balistico: 'Bal',
+  esmagador: 'Esm',
+  explosivo: 'Exp',
+  ardente: 'Ard',
+  congelante: 'Conj',
+  eletrico: 'Ele',
+  corrosivo: 'Corr',
+  magico: 'Mag',
+  toxico: 'Tox',
+}
+
+/** Payload do banco pode omitir `resistances`; nunca acessar propriedades sem fallback. */
 function armorResistancesSummary(entry: ArmorCatalogEntry): string {
-  return [
-    `Con ${entry.resistances.contundente}`,
-    `Cor ${entry.resistances.cortante}`,
-    `Per ${entry.resistances.perfurante}`,
-    `Bal ${entry.resistances.balistico}`,
-    `Esm ${entry.resistances.esmagador}`,
-    `Exp ${entry.resistances.explosivo}`,
-    `Ard ${entry.resistances.ardente}`,
-    `Conj ${entry.resistances.congelante}`,
-    `Ele ${entry.resistances.eletrico}`,
-    `Corr ${entry.resistances.corrosivo}`,
-    `Mag ${entry.resistances.magico}`,
-    `Tox ${entry.resistances.toxico}`,
-  ].join(' | ')
+  const r = entry.resistances
+  return ARMOR_RESISTANCE_KEYS.map((key) => {
+    const n = Number(r?.[key] ?? 0)
+    const v = Number.isFinite(n) ? n : 0
+    return `${RESISTANCE_ABBREV[key]} ${v}`
+  }).join(' | ')
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -82,7 +96,7 @@ export default function CatalogItemCard({
             )}
             {isUtil && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-600 dark:text-ecoar-light-900/70">
-                {entry.utilityCategory}
+                {entry.utilityCategory ?? '—'}
               </span>
             )}
           </div>
@@ -141,7 +155,7 @@ export default function CatalogItemCard({
               <Field label="Capacidade" value={entry.capacity} />
               <Field label="Tecnologia" value={entry.technology} />
               {entry.flavor && <p className="text-xs text-slate-600 dark:text-ecoar-light-900/65 italic">{entry.flavor}</p>}
-              {entry.properties && entry.properties.length > 0 && (
+              {Array.isArray(entry.properties) && entry.properties.length > 0 && (
                 <ul className="text-xs list-disc pl-4 text-ecoar-dark-700 dark:text-ecoar-light-900/75 space-y-0.5">
                   {entry.properties.map((p) => (
                     <li key={p}>{p}</li>
@@ -157,7 +171,7 @@ export default function CatalogItemCard({
               <Field label="Esquiva" value={entry.esquiva} />
               <Field label="Furtividade" value={entry.furtividade} />
               {entry.flavor && <p className="text-xs text-slate-600 dark:text-ecoar-light-900/65">{entry.flavor}</p>}
-              {entry.propriedades && entry.propriedades.length > 0 && (
+              {Array.isArray(entry.propriedades) && entry.propriedades.length > 0 && (
                 <ul className="text-xs list-disc pl-4 text-ecoar-dark-700 dark:text-ecoar-light-900/75 space-y-0.5">
                   {entry.propriedades.map((p) => (
                     <li key={p}>{p}</li>

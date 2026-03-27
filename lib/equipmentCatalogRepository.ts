@@ -143,6 +143,22 @@ export function defaultMultiplierTables(): CostMultiplierTable[] {
   return equipmentCostMultiplierTables
 }
 
+function normalizeWeaponPayload(p: WeaponCatalogEntry): WeaponCatalogEntry {
+  return {
+    ...p,
+    kind: 'weapon',
+    properties: Array.isArray(p.properties) ? p.properties : [],
+  }
+}
+
+function normalizeArmorPayload(p: ArmorCatalogEntry): ArmorCatalogEntry {
+  return {
+    ...p,
+    kind: 'armor',
+    propriedades: Array.isArray(p.propriedades) ? p.propriedades : [],
+  }
+}
+
 export function splitItemsByKind(items: EquipmentCatalogItemRow[]): {
   weapons: WeaponCatalogEntry[]
   armor: ArmorCatalogEntry[]
@@ -152,8 +168,8 @@ export function splitItemsByKind(items: EquipmentCatalogItemRow[]): {
   const armor: ArmorCatalogEntry[] = []
   const utilities: UtilityCatalogEntry[] = []
   for (const row of items) {
-    if (row.kind === 'weapon') weapons.push(row.payload as WeaponCatalogEntry)
-    else if (row.kind === 'armor') armor.push(row.payload as ArmorCatalogEntry)
+    if (row.kind === 'weapon') weapons.push(normalizeWeaponPayload(row.payload as WeaponCatalogEntry))
+    else if (row.kind === 'armor') armor.push(normalizeArmorPayload(row.payload as ArmorCatalogEntry))
     else utilities.push(row.payload as UtilityCatalogEntry)
   }
   return { weapons, armor, utilities }
