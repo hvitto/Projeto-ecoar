@@ -6,7 +6,7 @@ import { fadeInUp } from '@/lib/motionVariants'
 import {
   User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
   TrendingUp, Sword, BookOpen, Package, FileText, Target,
-  Waves, Wind, Edit
+  Waves, Wind, Edit, ExternalLink
 } from 'lucide-react'
 import {
   getAttributeModifier,
@@ -3159,7 +3159,31 @@ export default function CharacterSheet({
                         </div>
 
                         {equipmentSubTab === 'inventario' ? (
-                          sheetUsesStructuredEquip ? (
+                          <>
+                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/80 dark:bg-ecoar-dark-800/40 px-3 py-2">
+                              <p className="text-xs text-slate-800 dark:text-ecoar-light-900/90">
+                                <span className="font-semibold text-ecoar-teal-700 dark:text-ecoar-teal-300">Saldo:</span>{' '}
+                                <span className="tabular-nums">{formatCerosDisplay(characterData.saldoMoedas)}</span>
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setEquipmentPickerOpen(true)}
+                                disabled={!canEditSheet || !isEditing}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-ecoar-teal to-ecoar-magenta text-slate-900 dark:text-ecoar-light-900 border border-ecoar-teal/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Abrir catálogo
+                              </button>
+                              <a
+                                href="/referencia/aquisicao-equipamentos"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3 shrink-0" />
+                                Referência completa (nova aba)
+                              </a>
+                            </div>
+                            {sheetUsesStructuredEquip ? (
                             <>
                               {characterData.itensCatalogo.length > 0 && (
                                 <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
@@ -3283,7 +3307,8 @@ export default function CharacterSheet({
                               placeholder="Liste seus equipamentos..."
                               className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
                             />
-                          )
+                          )}
+                          </>
                         ) : (
                           <div className="space-y-3">
                             <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
