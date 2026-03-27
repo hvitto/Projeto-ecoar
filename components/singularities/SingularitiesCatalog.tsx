@@ -364,7 +364,7 @@ export default function SingularitiesCatalog() {
     const hasMarcial = adminRows.some((s) => s.systemType === 'marcial')
     const hasRacial = adminRows.some((s) => s.systemType === 'racial')
     if (!hasCriacao || !hasMarcial || !hasRacial) {
-      return 'Criação/Marciais/Raciais ainda não vieram do banco; exibindo complemento estático temporário.'
+      return 'Criação, Marciais e Raciais ainda não estão completas na base administrativa — a lista abaixo inclui complemento dos arquivos do repositório. As singularidades Ecoar já vêm do banco (API pública).'
     }
     return null
   }, [adminNotice, adminRows])
@@ -425,8 +425,11 @@ export default function SingularitiesCatalog() {
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 space-y-6 pb-24">
           {loading && <p className="text-xs text-slate-500 dark:text-ecoar-light-900/50">Sincronizando catálogo…</p>}
-          {source === 'database' && !loading && (
-            <p className="text-xs text-ecoar-teal-700 dark:text-ecoar-teal-400/80">Catálogo carregado do banco de dados.</p>
+          {/* Ecoar (API pública): mensagem verde só quando não há aviso de complemento estático, para não soar contraditório. */}
+          {source === 'database' && !loading && !effectiveNotice && (
+            <p className="text-xs text-ecoar-teal-700 dark:text-ecoar-teal-400/80">
+              Singularidades Ecoar carregadas do banco de dados (API pública).
+            </p>
           )}
           {effectiveNotice && (
             <p className="text-xs text-amber-700 dark:text-amber-300/90">{effectiveNotice}</p>
