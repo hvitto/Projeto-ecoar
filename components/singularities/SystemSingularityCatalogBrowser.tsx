@@ -33,12 +33,14 @@ type SelectionByKind = {
   criacao: string[]
   ecoar: string[]
   marciais: string[]
+  raciais: string[]
 }
 
 type ConditionalEnabledByKind = SelectionByKind
 
 export interface SystemSingularityCatalogBrowserContext {
   nivelAlma: number
+  raceId?: string
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
@@ -63,11 +65,6 @@ function computeMissingRequirements(args: {
 }): string[] {
   const { sing, selectedIdsByKind, context } = args
   const missing: string[] = []
-
-  if (sing.kind === 'racional') {
-    missing.push('Placeholder: singularidades raciais ainda não estão implementadas')
-    return missing
-  }
 
   if (sing.kind === 'criacao') {
     const req = sing.requirements
@@ -141,6 +138,25 @@ function computeMissingRequirements(args: {
         if (currentLevel < minLevel) missing.push(`Requer ${skillId} nível ${minLevel}+`)
       }
     }
+  }
+
+  if (sing.kind === 'racial') {
+    const req = sing.requirements
+    if (!('raceId' in req)) return missing
+    if (context.raceId && req.raceId !== context.raceId) {
+      missing.push('Não pertence à raça selecionada')
+    }
+    const previousIds = req.previousIds ?? []
+    if (previousIds.length > 0) {
+      const selectedRaciais = selectedIdsByKind.raciais ?? []
+      for (const prevId of previousIds) {
+        if (!selectedRaciais.includes(prevId)) {
+          missing.push('Requer talento racial anterior')
+          break
+        }
+      }
+    }
+    return missing
   }
 
   return missing
@@ -237,8 +253,8 @@ export default function SystemSingularityCatalogBrowser({
 
   const renderCard = (sing: SystemSingularity) => {
     const kind = sing.kind
-    const selectedList = kind === 'racional' ? [] : ((selectedIdsByKind as any)[kind] ?? []) as string[]
-    const conditionalList = kind === 'racional' ? [] : ((conditionalEnabledIdsByKind as any)[kind] ?? []) as string[]
+    const selectedList = ((selectedIdsByKind as any)[kind === 'marcial' ? 'marciais' : kind === 'racial' ? 'raciais' : kind] ?? []) as string[]
+    const conditionalList = ((conditionalEnabledIdsByKind as any)[kind === 'marcial' ? 'marciais' : kind === 'racial' ? 'raciais' : kind] ?? []) as string[]
     const isSelected = selectedList.includes(sing.id)
     const condEnabled = conditionalList.includes(sing.id)
 

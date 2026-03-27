@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
 import { fadeInUp, motionTransition } from '@/lib/motionVariants'
@@ -28,6 +29,7 @@ import MartialSchoolCard from '@/components/ui/MartialSchoolCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
+import { getRacialSingularitiesByRaceId, getRacialSingularityById } from '@/data/racialSingularities'
 import { paths, getPathById, Path } from '@/data/paths'
 import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
 import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
@@ -35,6 +37,7 @@ import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/ap
 import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
 import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
 import { getAllMartialSchools, getMartialSchoolDataById, MartialSchoolData, MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
+import { getRacialCreationExtraPoints } from '@/lib/racialRules'
 import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
 import type { Ecoar } from '@/data/ecoar'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
@@ -164,6 +167,9 @@ interface CharacterCreationWizardProps {
 }
 
 export default function CharacterCreationWizard({ onComplete, initialData }: CharacterCreationWizardProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [showIntroduction, setShowIntroduction] = useState(true)
   const [initialLevel, setInitialLevel] = useState(1) // Nível inicial escolhido (1, 2, 3+)
   const [nivelAlmaInicial, setNivelAlmaInicial] = useState<number>(1) // Nível de Alma inicial (1-24)
@@ -210,6 +216,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [raceBonuses, setRaceBonuses] = useState<Record<string, number>>({})
   const [martialSchoolBonuses, setMartialSchoolBonuses] = useState<Record<string, number>>({})
   const hasInitialized = useRef(false)
+  const hasSyncedStepFromUrl = useRef(false)
 
   const handleCreationPointsSpentChange = useCallback((gastos: number) => {
     setPontosCriacao((prev) => {
@@ -310,6 +317,34 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     hasInitialized.current = true
   }, [initialData])
 
+  useEffect(() => {
+    if (hasSyncedStepFromUrl.current) return
+    const stepParam = searchParams.get('step')
+    if (stepParam == null) {
+      hasSyncedStepFromUrl.current = true
+      return
+    }
+    const parsedStep = Number.parseInt(stepParam, 10)
+    if (!Number.isFinite(parsedStep)) {
+      hasSyncedStepFromUrl.current = true
+      return
+    }
+    const boundedStep = Math.max(0, Math.min(7, parsedStep))
+    setShowIntroduction(false)
+    setCurrentStep(boundedStep)
+    setMaxStepVisited((prev) => Math.max(prev, boundedStep))
+    hasSyncedStepFromUrl.current = true
+  }, [searchParams])
+
+  useEffect(() => {
+    if (showIntroduction) return
+    const params = new URLSearchParams(searchParams.toString())
+    const expected = String(currentStep)
+    if (params.get('step') === expected) return
+    params.set('step', expected)
+    router.replace(`${pathname}?${params.toString()}`)
+  }, [currentStep, pathname, router, searchParams, showIntroduction])
+
   const availableRaces = useMemo(() => races, [])
   
   const selectedRaceData = useMemo(() => 
@@ -324,9 +359,10 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     }, 0)
   , [selectedDisadvantages])
   
-  const totalCreationPoints = useMemo(() => 
-    30 + Math.min(disadvantagePoints, 30)
-  , [disadvantagePoints])
+  const totalCreationPoints = useMemo(() => {
+    const racialExtra = selectedRaca ? getRacialCreationExtraPoints(selectedRaca) : 0
+    return 30 + Math.min(disadvantagePoints, 30) + racialExtra
+  }, [disadvantagePoints, selectedRaca])
   
   useEffect(() => {
     setPontosCriacao(prev => ({
@@ -353,8 +389,8 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     const weightModifier = race?.bonuses?.weightModifier ?? 0
     const automaticBonuses: Record<string, number> = {}
     
-    // Each +1 size gives +1 strength
-    if (sizeModifier !== 0) {
+    // Anão ignora penalidade racial de Força vinda do tamanho.
+    if (sizeModifier !== 0 && !(race?.id === 'anao' && sizeModifier < 0)) {
       automaticBonuses.forca = sizeModifier
     }
     
@@ -403,6 +439,15 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     }
     
     setRaceBonuses(newBonuses)
+    if (race) {
+      setSingularidadesRaciais(
+        getRacialSingularitiesByRaceId(race.id)
+          .filter((s) => (s.acquisitionPhase ?? 'creation') === 'creation')
+          .map((s) => s.id),
+      )
+    } else {
+      setSingularidadesRaciais([])
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRaca])
 
@@ -459,8 +504,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
 
   const equipmentOrcamentoCeros = useMemo(
     () =>
-      (nivelAlmaInicial > 1 ? (getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0) * 50 : 0) +
-      pontosCriacao.disponiveis * 100,
+      5500 +
+      pontosCriacao.disponiveis * 100 +
+      (nivelAlmaInicial > 1 ? (getSoulLevelByNivel(nivelAlmaInicial)?.pontosEvolucao || 0) * 50 : 0),
     [nivelAlmaInicial, pontosCriacao.disponiveis]
   )
 
@@ -809,6 +855,9 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                   onClick={() => {
                     setShowIntroduction(false)
                     setCurrentStep(0)
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.set('step', '0')
+                    router.replace(`${pathname}?${params.toString()}`)
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -1983,11 +2032,11 @@ function MartialSchoolPCSpendingStep({
   // SEMPRE buscar a escola (mesmo que seja null) - hooks devem vir antes de retornos condicionais
   const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
 
-  // Calcula pontos gastos (converte PE para PC: 1 PE = 10 PC)
+  // Calcula pontos gastos usando custo oficial direto em PC
   // Só calcula se tiver escola selecionada
   const pontosGastos = school ? singularidadesMarciais.reduce((sum, singId) => {
     const sing = school.singularities.find(s => s.id === singId)
-    return sum + (sing ? (sing.cost * 10) : 0) // Converte PE para PC
+    return sum + (sing ? sing.cost : 0)
   }, 0) : 0
 
   // Atualiza pontos gastos quando singularidades mudam
@@ -1999,7 +2048,7 @@ function MartialSchoolPCSpendingStep({
     }
     const total = singularidadesMarciais.reduce((sum, singId) => {
       const sing = school.singularities.find(s => s.id === singId)
-      return sum + (sing ? (sing.cost * 10) : 0)
+      return sum + (sing ? sing.cost : 0)
     }, 0)
     onPointsChange(total)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2225,7 +2274,7 @@ function MartialSchoolPCSpendingStep({
               </motion.button>
             </div>
             <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
-              Custo: 1 PE = 10 PC | PC Disponíveis: {pontosDisponiveis}
+              Custo oficial em PC | PC Disponíveis: {pontosDisponiveis}
             </p>
           </div>
         </div>
@@ -2288,17 +2337,17 @@ function MartialSchoolSingularitiesPurchase({
   nivelAlma: number
   onBack: () => void
 }) {
-  // Calcula pontos gastos (converte PE para PC: 1 PE = 10 PC)
+  // Calcula pontos gastos usando custo oficial direto em PC
   const pontosGastos = singularidadesMarciais.reduce((sum, singId) => {
     const sing = escolaMarcial.singularities.find(s => s.id === singId)
-    return sum + (sing ? (sing.cost * 10) : 0) // Converte PE para PC
+    return sum + (sing ? sing.cost : 0)
   }, 0)
 
   // Atualiza pontos gastos quando singularidades mudam
   useEffect(() => {
     const total = singularidadesMarciais.reduce((sum, singId) => {
       const sing = escolaMarcial.singularities.find(s => s.id === singId)
-      return sum + (sing ? (sing.cost * 10) : 0)
+      return sum + (sing ? sing.cost : 0)
     }, 0)
     onPointsChange(total)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2309,7 +2358,7 @@ function MartialSchoolSingularitiesPurchase({
     if (!singularity) return
 
     const isSelected = singularidadesMarciais.includes(id)
-    const costInPC = singularity.cost * 10 // Converte PE para PC
+    const costInPC = singularity.cost
     
     if (isSelected) {
       // Remove
@@ -2362,7 +2411,7 @@ function MartialSchoolSingularitiesPurchase({
           </div>
         </div>
         <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70 dark:text-ecoar-light-900/70 leading-relaxed mt-3">
-          Compre singularidades com Pontos de Criação. Custo: 1 PE = 10 PC
+          Compre singularidades com Pontos de Criação usando custo oficial em PC
         </p>
       </div>
 
@@ -2371,7 +2420,7 @@ function MartialSchoolSingularitiesPurchase({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {escolaMarcial.singularities.map((singularity) => {
             const isSelected = singularidadesMarciais.includes(singularity.id)
-            const costInPC = singularity.cost * 10 // Converte PE para PC
+            const costInPC = singularity.cost
             const canAfford = pontosDisponiveis >= costInPC
             const hasPrevious = !singularity.requirements.previous || singularidadesMarciais.includes(singularity.requirements.previous)
             const hasNivelAlma = !singularity.requirements.nivelAlma || nivelAlma >= singularity.requirements.nivelAlma
@@ -2384,7 +2433,6 @@ function MartialSchoolSingularitiesPurchase({
                 description={singularity.description}
                 cost={costInPC}
                 costLabel="PC"
-                secondaryCost={`${singularity.cost} PE`}
                 isSelected={isSelected}
                 canAfford={canAfford}
                 canSelect={canSelect}
@@ -3311,8 +3359,8 @@ function SoulLevelSelectionStep({
           <span className="text-slate-400 dark:text-ecoar-light-900/40 hidden sm:inline">·</span>
           <span className={`text-xs ${textColorMuted} w-full sm:w-auto`}>
             {selectedSoulLevel.nivel === 1
-              ? 'Recomendado para iniciantes. Comece do zero e evolua com o grupo.'
-              : `${selectedSoulLevel.pontosEvolucao} PE + ȼ${selectedSoulLevel.pontosEvolucao * 50} extras na criação.`
+              ? 'Recomendado para iniciantes. Base de ȼ5500 + pontos de criação.'
+              : `Base de ȼ5500 + pontos de criação + ${selectedSoulLevel.pontosEvolucao} PE (ȼ${selectedSoulLevel.pontosEvolucao * 50}).`
             }
           </span>
         </div>
@@ -3372,9 +3420,10 @@ function SoulLevelSelectionStep({
                 </div>
                 <div className="space-y-1">
                   <p className={`text-xs ${textColorMuted}`}>{soulLevel.pontosEvolucao} PE</p>
+                  <p className="text-xs text-ecoar-teal dark:text-ecoar-teal-400">+ȼ5500 base</p>
                   {soulLevel.nivel > 1 && (
                     <p className="text-xs text-ecoar-teal dark:text-ecoar-teal-400">
-                      +ȼ{soulLevel.pontosEvolucao * 50}
+                      +ȼ{soulLevel.pontosEvolucao * 50} do nível
                     </p>
                   )}
                 </div>
@@ -4130,23 +4179,31 @@ function SkillsStep({
 
   const getMaxLevel = () => isEvolutionStep ? 8 : 3
 
+  const normalizeSkillState = (level: number, specialization?: string) => {
+    const sanitizedLevel = Math.max(0, level)
+    return {
+      level: sanitizedLevel,
+      specialization: sanitizedLevel > 0 ? specialization : undefined,
+    }
+  }
+
+  const getSkillTotalCost = (
+    skillId: string,
+    skillState: { level: number; specialization?: string }
+  ) => {
+    const skillData = getSkillById(skillId)
+    if (!skillData) return 0
+
+    const normalizedState = normalizeSkillState(skillState.level, skillState.specialization)
+    const costPerLevel = getSkillFreeCost(skillData.category)
+    return (normalizedState.level * costPerLevel) + (normalizedState.specialization ? costPerLevel : 0)
+  }
+
   // Calcula quantos pontos gratuitos foram gastos
   const calculateFreePointsUsed = () => {
-    let total = 0
-    Object.entries(skills).forEach(([skillId, skill]) => {
-      if (skill.level > 0) {
-        const skillData = getSkillById(skillId)
-        if (skillData) {
-          const costPerLevel = getSkillFreeCost(skillData.category)
-          total += skill.level * costPerLevel
-          // Especialidade custa o mesmo que um nível da habilidade
-          if (skill.specialization) {
-            total += costPerLevel
-          }
-        }
-      }
-    })
-    return total
+    return Object.entries(skills).reduce((total, [skillId, skillData]) => {
+      return total + getSkillTotalCost(skillId, skillData)
+    }, 0)
   }
 
   // Calcula quantos PC foram gastos (além dos 48 pontos gratuitos)
@@ -4186,14 +4243,16 @@ function SkillsStep({
     const skill = getSkillById(skillId)
     if (!skill) return
 
-    const currentSkill = skills[skillId] || { level: 0, specialization: undefined }
-    const freeCostPerLevel = getSkillFreeCost(skill.category)
+    const currentSkill = normalizeSkillState(
+      skills[skillId]?.level || 0,
+      skills[skillId]?.specialization
+    )
     const maxLevel = getMaxLevel()
+    const nextSkill = normalizeSkillState(Math.min(level, maxLevel), specialization)
     
     // Calcula custo da mudança em pontos gratuitos
-    const oldCost = (currentSkill.level * freeCostPerLevel) + (currentSkill.specialization ? freeCostPerLevel : 0)
-    const newCost = (level * freeCostPerLevel) + (specialization ? freeCostPerLevel : 0)
-    const costDiff = newCost - oldCost
+    const oldCost = getSkillTotalCost(skillId, currentSkill)
+    const newCost = getSkillTotalCost(skillId, nextSkill)
     
     // Calcula quanto está usando atualmente
     const currentFreeUsed = calculateFreePointsUsed()
@@ -4205,12 +4264,12 @@ function SkillsStep({
     }
     
     // Se está dentro dos 48 pontos gratuitos
-    if (skillPoints + oldCost >= newCost && level <= maxLevel) {
+    if (skillPoints + oldCost >= newCost && nextSkill.level <= maxLevel) {
       onSkillsChange({
         ...skills,
-        [skillId]: { level, specialization },
+        [skillId]: nextSkill,
       })
-      onSkillPointsChange(48 - (newFreeUsed))
+      onSkillPointsChange(Math.max(0, Math.min(48, 48 - newFreeUsed)))
     }
   }
 
@@ -4322,14 +4381,11 @@ function SkillsStep({
 
     // Calcula pontos usados
     const freeUsed = Object.entries(newSkills).reduce((total, [skillId, skillData]) => {
-      const skill = getSkillById(skillId)
-      if (!skill) return total
-      const costPerLevel = getSkillFreeCost(skill.category)
-      return total + (skillData.level * costPerLevel) + (skillData.specialization ? costPerLevel : 0)
+      return total + getSkillTotalCost(skillId, skillData)
     }, 0)
 
     onSkillsChange(newSkills)
-    onSkillPointsChange(48 - freeUsed)
+    onSkillPointsChange(Math.max(0, Math.min(48, 48 - freeUsed)))
   }
 
   return (
@@ -4415,7 +4471,7 @@ function SkillsStep({
           <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
             {getSkillsByCategory(selectedCategory).map((skill) => {
               const skillData = skills[skill.id] || { level: 0, specialization: undefined }
-              const freeCostPerLevel = getSkillFreeCost(selectedCategory)
+              const freeCostPerLevel = getSkillFreeCost(skill.category)
               const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
               
               return (
@@ -4455,7 +4511,7 @@ function SkillsStep({
               if (!skill) return null
               
               const skillData = skills[skill.id] || { level: 0, specialization: undefined }
-              const freeCostPerLevel = getSkillFreeCost(selectedCategory)
+              const freeCostPerLevel = getSkillFreeCost(skill.category)
               const maxLevel = getMaxLevel()
               const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
               
@@ -4538,8 +4594,13 @@ function SkillsStep({
                       <select
                         value={skillData.specialization || ''}
                         onChange={(e) => {
+                          if (skillData.level === 0) {
+                            updateSkill(skill.id, 0, undefined)
+                            return
+                          }
                           updateSkill(skill.id, skillData.level, e.target.value || undefined)
                         }}
+                        disabled={skillData.level === 0}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 rounded-lg text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal focus:border-ecoar-teal"
                       >
                         <option value="">Nenhuma</option>
@@ -4618,8 +4679,9 @@ function AptitudesStep({
         
         // Se não tem pontos gratuitos suficientes
         if (aptitudePoints < pointsNeeded) {
-          // Se está na evolução (etapa de gastar PC), permite usar PC
-          if (isEvolutionStep && costInPC > 0 && pontosCriacao.disponiveis >= costInPC) {
+          // Na evolução (etapa de gastar PC), permite reconstruir/redistribuir
+          // aptidões dentro dos 3 pontos sem depender de aptitudePoints local.
+          if (isEvolutionStep) {
             onAptitudesChange({
               ...aptitudes,
               [aptitudeId]: level,
@@ -4729,23 +4791,18 @@ function AptitudesStep({
               // Tem pontos gratuitos disponíveis
               canIncrease = true
             } else if (isEvolutionStep) {
-              // Na etapa de gastar PC, permite redistribuir os 3 gratuitos
-              // Se o total atual é 3, pode redistribuir sem custo
-              const currentTotal = totalPointsUsed
-              if (currentTotal === 3) {
-                canIncrease = true // Permite redistribuir
-              } else {
-                canIncrease = false
-              }
+              // Na etapa de gastar PC, permite reconstruir/redistribuir
+              // aptidões dentro dos 3 pontos, mesmo após zerar.
+              canIncrease = true
             } else {
               canIncrease = false
             }
           } else {
-            // Está além dos 3 gratuitos - só permite na evolução com PC suficiente
+            // Está além dos 3 gratuitos - só permite na evolução com PC suficiente.
+            // O custo para o próximo ponto é incremental (20 PC), não absoluto.
             if (isEvolutionStep) {
-              const pointsOverFreeIfIncrease = newTotalIfIncrease - 3
-              const costInPCIfIncrease = pointsOverFreeIfIncrease * 20
-              canIncrease = pontosCriacao.disponiveis >= costInPCIfIncrease
+              const costInPCDiff = 20
+              canIncrease = pontosCriacao.disponiveis >= costInPCDiff
             } else {
               canIncrease = false // Na criação, não permite passar dos 3 gratuitos
             }
@@ -5577,23 +5634,26 @@ function SingularitiesSpendingStep({
       return sum + (sing?.cost || 0)
     }, 0)
 
-    // Custo das singularidades marciais (converte PE para PC: 1 PE = 10 PC)
+    // Custo das singularidades marciais (custo oficial direto em PC)
     const marciaisCost = school ? singularidadesMarciais.reduce((sum, singId) => {
       const sing = school.singularities.find(s => s.id === singId)
-      return sum + (sing ? (sing.cost * 10) : 0)
+      return sum + (sing ? sing.cost : 0)
     }, 0) : 0
 
-    // Custo das singularidades raciais (quando implementado)
-    const raciaisCost = 0 // TODO: Implementar quando dados estiverem disponíveis
+    // Custo das singularidades raciais
+    const raciaisCost = singularidadesRaciais.reduce((sum, singId) => {
+      const sing = getRacialSingularityById(singId)
+      return sum + (sing?.cost || 0)
+    }, 0)
 
     return criacaoCost + ecoarCost + marciaisCost + raciaisCost
-  }, [singularidades, singularidadesEcoar, singularidadesMarciais, selectedEscolaMarcial])
+  }, [singularidades, singularidadesEcoar, singularidadesMarciais, singularidadesRaciais, selectedEscolaMarcial])
 
   // Atualiza o custo total quando qualquer singularidade muda
   useEffect(() => {
     const totalCost = calculateTotalCost()
     onPointsChange(totalCost)
-  }, [singularidades, singularidadesEcoar, singularidadesMarciais, calculateTotalCost, onPointsChange])
+  }, [singularidades, singularidadesEcoar, singularidadesMarciais, singularidadesRaciais, calculateTotalCost, onPointsChange])
 
   const toggleSingularity = (id: string, isCreation: boolean = false) => {
     let singularity: any = null
@@ -6025,12 +6085,12 @@ function MartialSingularitiesTab({
   const allMartialSchools = getAllMartialSchools()
   const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
 
-  // Calcula pontos gastos (converte PE para PC: 1 PE = 10 PC)
+  // Calcula pontos gastos usando custo oficial direto em PC
   const calculateCost = useCallback(() => {
     if (!school) return 0
     return singularidadesMarciais.reduce((sum, singId) => {
       const sing = school.singularities.find(s => s.id === singId)
-      return sum + (sing ? (sing.cost * 10) : 0) // Converte PE para PC
+      return sum + (sing ? sing.cost : 0)
     }, 0)
   }, [school, singularidadesMarciais])
 
@@ -6103,7 +6163,7 @@ function MartialSingularitiesTab({
     if (!singularity) return
 
     const isSelected = singularidadesMarciais.includes(id)
-    const costInPC = singularity.cost * 10 // Converte PE para PC
+    const costInPC = singularity.cost
 
     if (isSelected) {
       onSingularidadesMarciaisChange(singularidadesMarciais.filter(s => s !== id))
@@ -6195,7 +6255,7 @@ function MartialSingularitiesTab({
                 Singularidades da {school.name}
               </h3>
               <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-0.5">
-                Custo: 1 PE = 10 PC
+                Custo oficial em PC
               </p>
             </div>
           </div>
@@ -6215,7 +6275,7 @@ function MartialSingularitiesTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {school.singularities.map((singularity) => {
           const isSelected = singularidadesMarciais.includes(singularity.id)
-          const costInPC = singularity.cost * 10 // Converte PE para PC
+          const costInPC = singularity.cost
           const canAfford = pontosCriacao.disponiveis >= costInPC
           const { valid, missingReqs } = checkRequirements(singularity)
           const canSelect = valid && canAfford
@@ -6228,7 +6288,6 @@ function MartialSingularitiesTab({
               description={singularity.description}
               cost={costInPC}
               costLabel="PC"
-              secondaryCost={`${singularity.cost} PE`}
               isSelected={isSelected}
               canAfford={canAfford}
               canSelect={canSelect}
@@ -6276,13 +6335,28 @@ function RacialSingularitiesTab({
   aptitudes: Record<string, number>
 }) {
   const race = selectedRaca ? getRaceById(selectedRaca) : null
-
-  // Placeholder para quando os dados forem adicionados
+  const racialList = selectedRaca ? getRacialSingularitiesByRaceId(selectedRaca) : []
   useEffect(() => {
-    // Quando os dados de singularidades raciais forem implementados, 
-    // calcular o custo total aqui similar às outras tabs
-    onPointsChange(0)
+    const total = singularidadesRaciais.reduce((sum, id) => {
+      const sing = getRacialSingularityById(id)
+      return sum + (sing?.cost ?? 0)
+    }, 0)
+    onPointsChange(total)
   }, [singularidadesRaciais, onPointsChange])
+
+  const toggleRacial = (id: string) => {
+    const singularity = getRacialSingularityById(id)
+    if (!singularity) return
+    const isSelected = singularidadesRaciais.includes(id)
+    if (isSelected) {
+      onSingularidadesRaciaisChange(singularidadesRaciais.filter((s) => s !== id))
+      return
+    }
+    const hasRequirements = (singularity.requirements ?? []).every((reqId) => singularidadesRaciais.includes(reqId))
+    if (!hasRequirements) return
+    if (pontosCriacao.disponiveis < singularity.cost) return
+    onSingularidadesRaciaisChange([...singularidadesRaciais, id])
+  }
 
   if (!selectedRaca || !race) {
     return (
@@ -6334,10 +6408,30 @@ function RacialSingularitiesTab({
         </div>
       </div>
 
-      <div className="p-4 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20">
-        <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm">
-          As singularidades raciais ainda não foram implementadas. Esta funcionalidade estará disponível em breve.
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {racialList.map((singularity) => {
+          const isSelected = singularidadesRaciais.includes(singularity.id)
+          const hasRequirements = (singularity.requirements ?? []).every((reqId) => singularidadesRaciais.includes(reqId))
+          const canAfford = pontosCriacao.disponiveis >= singularity.cost
+          const canSelect = isSelected || (hasRequirements && canAfford)
+          return (
+            <SingularityCard
+              key={singularity.id}
+              name={singularity.name}
+              description={singularity.description}
+              cost={singularity.cost}
+              costLabel={singularity.cost === 0 ? undefined : 'PC'}
+              secondaryCost={singularity.cost === 0 ? 'Inata' : undefined}
+              isSelected={isSelected}
+              canAfford={canAfford}
+              canSelect={canSelect}
+              onClick={() => toggleRacial(singularity.id)}
+              effects={singularity.effects}
+              requirementsText={!hasRequirements ? 'Requer talento racial anterior' : undefined}
+              variant="teal"
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -6492,13 +6586,10 @@ function TraitsSpendingStep({
     
     const newGastosAtributos = newPointsOverFree * 10
     const gastosAptitudesAtuais = getGastosAptitudes()
-    const gastosAtributosAtuais = getGastosAtributos()
-    const gastosTotaisAtuais = gastosAtributosAtuais + gastosAptitudesAtuais
-    const disponiveisAtuais = pontosDisponiveis - gastosTotaisAtuais
     
     if (costInPC > 0) {
       // Aumentando - precisa de PC
-      if (disponiveisAtuais >= costInPC) {
+      if (pontosDisponiveis >= costInPC) {
         onAttributesChange(newAttributes)
         onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
       } else {
@@ -6577,7 +6668,7 @@ function TraitsSpendingStep({
           <AttributesStep
             attributes={attributes}
             attributePoints={0}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis - getGastosAptitudes()) }}
+            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
             onUpdate={updateAttributeWithPC}
             raceBonuses={raceBonuses}
             martialSchoolBonuses={martialSchoolBonuses}
@@ -6597,10 +6688,10 @@ function TraitsSpendingStep({
         {activeTab === 'aptidoes' && (
           <AptitudesStep
             aptitudes={aptitudes}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis - getGastosAtributos()) }}
+            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
             onAptitudesChange={handleAptitudesChange}
             onPointsChange={() => {}} // Não usado, calculamos manualmente
-            aptitudePoints={0}
+            aptitudePoints={Math.max(0, 3 - calculateAptitudeTotal(aptitudes))}
             onAptitudePointsChange={() => {}}
             isEvolutionStep={true}
           />

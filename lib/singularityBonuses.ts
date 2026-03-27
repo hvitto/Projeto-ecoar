@@ -30,11 +30,13 @@ type SystemAggregateArgs = {
     criacao: string[]
     ecoar: string[]
     marciais: string[]
+    raciais: string[]
   }
   conditionalEnabledIdsByKind: {
     criacao: string[]
     ecoar: string[]
     marciais: string[]
+    raciais: string[]
   }
   getSystemSingularityById: (id: string) => SystemSingularity | undefined
 }
@@ -73,13 +75,14 @@ export function aggregateSimpleBonuses(args: LegacyEcoarAggregateArgs | SystemAg
 
   // System: Criação + Ecoar + Marciais.
   const systemArgs = args as SystemAggregateArgs
-  const conditionalEnabledSets: Record<'criacao' | 'ecoar' | 'marciais', Set<string>> = {
+  const conditionalEnabledSets: Record<'criacao' | 'ecoar' | 'marciais' | 'raciais', Set<string>> = {
     criacao: new Set(systemArgs.conditionalEnabledIdsByKind.criacao),
     ecoar: new Set(systemArgs.conditionalEnabledIdsByKind.ecoar),
     marciais: new Set(systemArgs.conditionalEnabledIdsByKind.marciais),
+    raciais: new Set(systemArgs.conditionalEnabledIdsByKind.raciais),
   }
 
-  const addOne = (id: string, kind: 'criacao' | 'ecoar' | 'marciais') => {
+  const addOne = (id: string, kind: 'criacao' | 'ecoar' | 'marciais' | 'raciais') => {
     const sing = systemArgs.getSystemSingularityById(id)
     if (!sing) return
 
@@ -100,6 +103,7 @@ export function aggregateSimpleBonuses(args: LegacyEcoarAggregateArgs | SystemAg
   for (const id of systemArgs.selectedSingularityIdsByKind.criacao) addOne(id, 'criacao')
   for (const id of systemArgs.selectedSingularityIdsByKind.ecoar) addOne(id, 'ecoar')
   for (const id of systemArgs.selectedSingularityIdsByKind.marciais) addOne(id, 'marciais')
+  for (const id of systemArgs.selectedSingularityIdsByKind.raciais) addOne(id, 'raciais')
   return out
 }
 

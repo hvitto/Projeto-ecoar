@@ -44,16 +44,24 @@ export function getAptitudeModifier(level: number): number {
 }
 
 // Limits Calculation
-// Corpo (Body) = Based on Vitality modifier + base value
-// Mente (Mind) = Based on Willpower modifier + base value  
-// Fôlego (Breath) = Usually starts at 0, can be increased
-// Mana = Usually starts at 0, can be increased
-export function calculateCorpoMax(vitality: number, baseCorpo: number = 9): number {
-  return baseCorpo + getAttributeModifier(vitality);
+// Corpo = (Vitalidade + Nível de Poder) x 3
+// Mente = (Vontade + Nível de Poder) x 3
+// Fôlego = Corpo x 2
+// Mana = Mente x 2
+export function calculateCorpoMax(vitalidade: number, nivelPoder: number): number {
+  return (vitalidade + nivelPoder) * 3;
 }
 
-export function calculateMenteMax(vontade: number, baseMente: number = 9): number {
-  return baseMente + getAttributeModifier(vontade);
+export function calculateMenteMax(vontade: number, nivelPoder: number): number {
+  return (vontade + nivelPoder) * 3;
+}
+
+export function calculateFolegoMax(corpoMax: number): number {
+  return corpoMax * 2;
+}
+
+export function calculateManaMax(menteMax: number): number {
+  return menteMax * 2;
 }
 
 // Common Tests Calculations

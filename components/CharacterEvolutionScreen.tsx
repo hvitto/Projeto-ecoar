@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import { getSkillDice } from '@/lib/calculations'
 import { getRaceById } from '@/data/races'
+import { getRacialSingularitiesByRaceId, getRacialSingularityById } from '@/data/racialSingularities'
 import { getSkillsByCategory, getSkillById, type Skill } from '@/data/skills'
 import { aptitudes as aptitudesData, type Aptitude } from '@/data/aptitudes'
 import {
@@ -149,10 +150,15 @@ export default function CharacterEvolutionScreen({
     () => Array.isArray(initialCharacterData?.singularidadesMarciais) ? initialCharacterData.singularidadesMarciais : [],
     [initialCharacterData?.singularidadesMarciais]
   )
+  const baselineSingularidadesRaciais = useMemo<string[]>(
+    () => Array.isArray(initialCharacterData?.singularidadesRaciais) ? initialCharacterData.singularidadesRaciais : [],
+    [initialCharacterData?.singularidadesRaciais]
+  )
 
   const baselineCreationSet = useMemo(() => new Set(baselineSingularidadesCriacao), [baselineSingularidadesCriacao])
   const baselineEcoarSet = useMemo(() => new Set(baselineSingularidadesEcoar), [baselineSingularidadesEcoar])
   const baselineMartialSet = useMemo(() => new Set(baselineSingularidadesMarciais), [baselineSingularidadesMarciais])
+  const baselineRacialSet = useMemo(() => new Set(baselineSingularidadesRaciais), [baselineSingularidadesRaciais])
 
   // Draft (estado temporário)
   const [tab, setTab] = useState<EvolutionTab>('tracos')
@@ -167,6 +173,7 @@ export default function CharacterEvolutionScreen({
   const [draftSingularidadesCriacao, setDraftSingularidadesCriacao] = useState<string[]>(baselineSingularidadesCriacao)
   const [draftSingularidadesEcoar, setDraftSingularidadesEcoar] = useState<string[]>(baselineSingularidadesEcoar)
   const [draftSingularidadesMarciais, setDraftSingularidadesMarciais] = useState<string[]>(baselineSingularidadesMarciais)
+  const [draftSingularidadesRaciais, setDraftSingularidadesRaciais] = useState<string[]>(baselineSingularidadesRaciais)
 
   const [selectedSkillCategory, setSelectedSkillCategory] = useState<Skill['category']>('combate')
   const hasMasterOverride = isTableGmEditor
@@ -250,6 +257,14 @@ export default function CharacterEvolutionScreen({
       return sum + (map.get(id) ?? 0)
     }, 0)
   }, [baselineMartialSet, draftSingularidadesMarciais])
+  const costSingularidadesRaciaisPE = useMemo(() => {
+    const map = new Map<string, number>()
+    getRacialSingularitiesByRaceId(selectedRaca).forEach((s) => map.set(s.id, s.cost))
+    return draftSingularidadesRaciais.reduce((sum, id) => {
+      if (baselineRacialSet.has(id)) return sum
+      return sum + (map.get(id) ?? 0)
+    }, 0)
+  }, [baselineRacialSet, draftSingularidadesRaciais, selectedRaca])
 
   const totalCostPE = useMemo(() => {
     return (
@@ -258,7 +273,8 @@ export default function CharacterEvolutionScreen({
       costAptitudesPE +
       costSingularidadesCriacaoPE +
       costSingularidadesEcoarPE +
-      costSingularidadesMarciaisPE
+      costSingularidadesMarciaisPE +
+      costSingularidadesRaciaisPE
     )
   }, [
     costAptitudesPE,
@@ -267,6 +283,7 @@ export default function CharacterEvolutionScreen({
     costSingularidadesCriacaoPE,
     costSingularidadesEcoarPE,
     costSingularidadesMarciaisPE,
+    costSingularidadesRaciaisPE,
   ])
 
   const pontosDisponiveisAtual = pontosEvolucaoDisponivelInicial - totalCostPE
@@ -278,6 +295,7 @@ export default function CharacterEvolutionScreen({
     if (!eqArr(draftSingularidadesCriacao, baselineSingularidadesCriacao)) return true
     if (!eqArr(draftSingularidadesEcoar, baselineSingularidadesEcoar)) return true
     if (!eqArr(draftSingularidadesMarciais, baselineSingularidadesMarciais)) return true
+    if (!eqArr(draftSingularidadesRaciais, baselineSingularidadesRaciais)) return true
 
     for (const k of ATTRIBUTE_KEYS) {
       if ((draftAttributes[k] ?? 0) !== (baselineAttributes[k] ?? 0)) return true
@@ -322,12 +340,14 @@ export default function CharacterEvolutionScreen({
     baselineSingularidadesCriacao,
     baselineSingularidadesEcoar,
     baselineSingularidadesMarciais,
+    baselineSingularidadesRaciais,
     draftAptitudes,
     draftAttributes,
     draftSkills,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
+    draftSingularidadesRaciais,
   ])
 
   const updateAttribute = (key: AttributeKey, nextTotalValue: number) => {
@@ -495,6 +515,23 @@ export default function CharacterEvolutionScreen({
       return [...prev, id]
     })
   }
+  const toggleRacialSingularity = (id: string) => {
+    const isBaselineLocked = baselineRacialSet.has(id)
+    setDraftSingularidadesRaciais((prev) => {
+      const has = prev.includes(id)
+      if (has) {
+        if (isBaselineLocked && !hasMasterOverride) return prev
+        return prev.filter((x) => x !== id)
+      }
+      const sing = getRacialSingularityById(id)
+      if (!sing) return prev
+      const requiredIds = sing.requirements ?? []
+      if (!hasMasterOverride && requiredIds.some((reqId) => !prev.includes(reqId))) return prev
+      const addCost = sing.cost ?? 0
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
+      return [...prev, id]
+    })
+  }
 
   const draftAttributesForReqCheck: Record<string, number> = draftAttributes
   const draftSkillsForReqCheck = draftSkills
@@ -520,6 +557,7 @@ export default function CharacterEvolutionScreen({
       singularidades: draftSingularidadesCriacao,
       singularidadesEcoar: draftSingularidadesEcoar,
       singularidadesMarciais: draftSingularidadesMarciais,
+      singularidadesRaciais: draftSingularidadesRaciais,
     }
 
     const saved = await saveCharacter(user.id, updated)
@@ -538,6 +576,7 @@ export default function CharacterEvolutionScreen({
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
+    draftSingularidadesRaciais,
     onSaved,
   ])
 
@@ -1066,8 +1105,44 @@ export default function CharacterEvolutionScreen({
         )}
 
         {singSubTab === 'raciais' && (
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600">
-            Singularidades raciais ainda não estão implementadas.
+          <div className="space-y-4">
+            {!selectedRaca ? (
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-sm text-slate-600">Este personagem não tem `Raça` selecionada.</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {getRacialSingularitiesByRaceId(selectedRaca).map((sing) => {
+                  const isSelected = draftSingularidadesRaciais.includes(sing.id)
+                  const isBaselineLocked = baselineRacialSet.has(sing.id)
+                  const hasRequirements = (sing.requirements ?? []).every((reqId) => draftSingularidadesRaciais.includes(reqId))
+                  const addCost = sing.cost ?? 0
+                  const canAfford = pontosDisponiveisAtual >= addCost
+                  const canSelect =
+                    !isSelected &&
+                    (!isBaselineLocked || hasMasterOverride) &&
+                    (hasRequirements || hasMasterOverride) &&
+                    (addCost === 0 || canAfford || hasMasterOverride)
+                  return (
+                    <SingularityCard
+                      key={sing.id}
+                      name={sing.name}
+                      description={sing.description}
+                      cost={sing.cost ?? 0}
+                      costLabel={sing.cost === 0 ? undefined : 'PE'}
+                      secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
+                      isSelected={isSelected}
+                      canAfford={canAfford}
+                      canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
+                      onClick={() => toggleRacialSingularity(sing.id)}
+                      effects={sing.effects}
+                      requirementsText={!hasRequirements ? 'Requer talento racial anterior' : undefined}
+                      variant="teal"
+                    />
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

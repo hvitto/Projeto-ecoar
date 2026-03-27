@@ -1,13 +1,12 @@
 'use client'
 
 import { Fragment, useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motionVariants'
 import {
   User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
   TrendingUp, Sword, BookOpen, Package, FileText, Target,
-  Waves, Wind, Edit, ExternalLink
+  Waves, Wind, Edit
 } from 'lucide-react'
 import {
   getAttributeModifier,
@@ -15,6 +14,8 @@ import {
   getAptitudeDice,
   calculateCorpoMax,
   calculateMenteMax,
+  calculateFolegoMax,
+  calculateManaMax,
   calculateCommonTests,
   formatModifier,
 } from '@/lib/calculations'
@@ -33,6 +34,7 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
+import { aggregateRacialRulesBySelectedIds } from '@/lib/racialRules'
 import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorCatalogEntry,
@@ -44,6 +46,7 @@ import {
 } from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
+import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
 import {
   catalogDisplayLine,
   formatCerosDisplay,
@@ -730,7 +733,7 @@ export default function CharacterSheet({
               ? prev.singularidadesEcoar.includes(id)
               : kind === 'marcial'
                 ? prev.singularidadesMarciais.includes(id)
-                : false
+                : prev.singularidadesRaciais.includes(id)
 
         if (selected && alreadySelected) return prev
         if (!selected && !alreadySelected) return prev
@@ -740,8 +743,6 @@ export default function CharacterSheet({
 
         if (selected && cost > 0 && currentAtuais < cost) return prev
         if (!selected && delta < 0) return prev
-
-        if (kind === 'racional') return prev // placeholder desabilitado
 
         if (selected) {
           if (kind === 'criacao') {
@@ -767,14 +768,21 @@ export default function CharacterSheet({
             }
           }
 
-          // marciais
-          const nextSelected = [...prev.singularidadesMarciais, id]
-          const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+          if (kind === 'marcial') {
+            const nextSelected = [...prev.singularidadesMarciais, id]
+            const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+            return {
+              ...prev,
+              pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+              singularidadesMarciais: nextSelected,
+              singularidadesCondicionaisMarciaisAtivas: nextCond,
+            }
+          }
+
           return {
             ...prev,
             pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
-            singularidadesMarciais: nextSelected,
-            singularidadesCondicionaisMarciaisAtivas: nextCond,
+            singularidadesRaciais: [...prev.singularidadesRaciais, id],
           }
         }
 
@@ -801,14 +809,21 @@ export default function CharacterSheet({
           }
         }
 
-        // marciais
-        const nextSelected = prev.singularidadesMarciais.filter((it) => it !== id)
-        const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+        if (kind === 'marcial') {
+          const nextSelected = prev.singularidadesMarciais.filter((it) => it !== id)
+          const nextCond = prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id)
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+            singularidadesMarciais: nextSelected,
+            singularidadesCondicionaisMarciaisAtivas: nextCond,
+          }
+        }
+
         return {
           ...prev,
           pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
-          singularidadesMarciais: nextSelected,
-          singularidadesCondicionaisMarciaisAtivas: nextCond,
+          singularidadesRaciais: prev.singularidadesRaciais.filter((it) => it !== id),
         }
       })
     },
@@ -841,14 +856,17 @@ export default function CharacterSheet({
           }
         }
 
-        // marciais
-        if (!prev.singularidadesMarciais.includes(id)) return prev
-        return {
-          ...prev,
-          singularidadesCondicionaisMarciaisAtivas: enabled
-            ? [...prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id), id]
-            : prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id),
+        if (kind === 'marcial') {
+          if (!prev.singularidadesMarciais.includes(id)) return prev
+          return {
+            ...prev,
+            singularidadesCondicionaisMarciaisAtivas: enabled
+              ? [...prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id), id]
+              : prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id),
+          }
         }
+
+        return prev
       })
     },
     [canEditSheet],
@@ -1071,8 +1089,8 @@ export default function CharacterSheet({
     }
     
     // Apply automatic bonuses from size and weight modifiers
-    // Each +1 size gives +1 strength
-    if (sizeModifier !== 0) {
+    // Anão ignora penalidade racial de Força vinda do tamanho.
+    if (sizeModifier !== 0 && !(race.id === 'anao' && sizeModifier < 0)) {
       setCharacterData(prev => {
         const currentForca = prev.forca.nivel
         const newLevel = currentForca + sizeModifier
@@ -1143,11 +1161,13 @@ export default function CharacterSheet({
           criacao: characterData.singularidades,
           ecoar: characterData.singularidadesEcoar,
           marciais: characterData.singularidadesMarciais,
+          raciais: characterData.singularidadesRaciais,
         },
         conditionalEnabledIdsByKind: {
           criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
           ecoar: characterData.singularidadesCondicionaisAtivas,
           marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
+          raciais: [],
         },
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
@@ -1158,8 +1178,18 @@ export default function CharacterSheet({
       characterData.singularidadesCondicionaisAtivas,
       characterData.singularidadesMarciais,
       characterData.singularidadesCondicionaisMarciaisAtivas,
+      characterData.singularidadesRaciais,
       systemSingularityById,
     ]
+  )
+
+  const racialRules = useMemo(
+    () =>
+      aggregateRacialRulesBySelectedIds(
+        characterData.singularidadesRaciais,
+        getSoulLevelByPontosEvolucao(characterData.pontosEvolucao.max).nivelPoder,
+      ),
+    [characterData.singularidadesRaciais, characterData.pontosEvolucao.max],
   )
 
   const derivedValues = useMemo(() => {
@@ -1180,7 +1210,7 @@ export default function CharacterSheet({
     //           size=+1, weight=+1 => penalty = -(+1 + +1) = -2
     const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
     const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
-    const sizeWeightPenalty = -(sizeModifier + weightModifier)
+    const sizeWeightPenalty = -(sizeModifier + weightModifier) + racialRules.dodgeBonus
 
     const atencaoBonus = singularityBonuses.skills.atencao ?? 0
     const raciocinioBonus = singularityBonuses.skills.raciocinio ?? 0
@@ -1194,21 +1224,30 @@ export default function CharacterSheet({
     const vontadeAttrBonus = singularityBonuses.attributes.vontade ?? 0
     const corpoBonus = singularityBonuses.corpo ?? 0
     const menteBonus = singularityBonuses.mente ?? 0
+    const folegoBonus = singularityBonuses.folego ?? 0
+    const manaBonus = singularityBonuses.mana ?? 0
+    const nivelPoder = getSoulLevelByPontosEvolucao(characterData.pontosEvolucao.max).nivelPoder
 
     const percepcaoEffective = percepcaoLevel + percepcaoAttrBonus
     const vitalidadeEffective = vitalidadeLevel + vitalidadeAttrBonus
     const vontadeEffective = vontadeLevel + vontadeAttrBonus
+    const corpoMaxBase = calculateCorpoMax(vitalidadeEffective, nivelPoder)
+    const menteMaxBase = calculateMenteMax(vontadeEffective, nivelPoder)
+    const corpoMax = corpoMaxBase + corpoBonus
+    const menteMax = menteMaxBase + menteBonus
 
     return {
-      corpoMax: calculateCorpoMax(vitalidadeEffective) + corpoBonus,
-      menteMax: calculateMenteMax(vontadeEffective) + menteBonus,
+      corpoMax,
+      menteMax,
+      folegoMax: calculateFolegoMax(corpoMax) + folegoBonus,
+      manaMax: calculateManaMax(menteMax) + manaBonus,
       commonTests: calculateCommonTests(
         percepcaoEffective,
         vontadeEffective,
-        atencaoBonus,
-        raciocinioBonus,
+        atencaoBonus + racialRules.visionAttentionPenalty,
+        raciocinioBonus + racialRules.initiativeBonus,
         reflexosBonus,
-        composturaBonus,
+        composturaBonus + racialRules.composturaBonus,
         0,
         sizeWeightPenalty
       ),
@@ -1218,11 +1257,18 @@ export default function CharacterSheet({
     singularityBonuses.skills,
     singularityBonuses.corpo,
     singularityBonuses.mente,
+    singularityBonuses.folego,
+    singularityBonuses.mana,
+    characterData.pontosEvolucao.max,
     characterData.percepcao.nivel,
     characterData.vitalidade.nivel,
     characterData.vontade.nivel,
     characterData.tamanho,
-    characterData.peso
+    characterData.peso,
+    racialRules.dodgeBonus,
+    racialRules.initiativeBonus,
+    racialRules.composturaBonus,
+    racialRules.visionAttentionPenalty,
   ])
 
   // Níveis automáticos a partir dos Pontos de Evolução acumulados (lado após '/')
@@ -1265,10 +1311,17 @@ export default function CharacterSheet({
       ...base,
       corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
       mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
-      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
-      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
+      folego: coerceLimitShape(base.folego, characterData.folego.atual, derivedValues.folegoMax),
+      mana: coerceLimitShape(base.mana, characterData.mana.atual, derivedValues.manaMax),
     }
-  }, [characterData, coerceLimitShape, derivedValues.corpoMax, derivedValues.menteMax])
+  }, [
+    characterData,
+    coerceLimitShape,
+    derivedValues.corpoMax,
+    derivedValues.menteMax,
+    derivedValues.folegoMax,
+    derivedValues.manaMax,
+  ])
 
   const buildFullPayload = useCallback(() => {
     const base = initialDataRef.current ?? {}
@@ -1309,8 +1362,8 @@ export default function CharacterSheet({
       attributes: attributesPayload,
       corpo: coerceLimitShape(base.corpo, characterData.corpo.atual, derivedValues.corpoMax),
       mente: coerceLimitShape(base.mente, characterData.mente.atual, derivedValues.menteMax),
-      folego: coerceLimitShape(base.folego, characterData.folego.atual, characterData.folego.max),
-      mana: coerceLimitShape(base.mana, characterData.mana.atual, characterData.mana.max),
+      folego: coerceLimitShape(base.folego, characterData.folego.atual, derivedValues.folegoMax),
+      mana: coerceLimitShape(base.mana, characterData.mana.atual, derivedValues.manaMax),
       deslocamento: {
         terrestre: parseMeters(characterData.terrestre),
         aquatico: parseMeters(characterData.aquatico),
@@ -1390,6 +1443,8 @@ export default function CharacterSheet({
     coerceLimitShape,
     derivedValues.corpoMax,
     derivedValues.menteMax,
+    derivedValues.folegoMax,
+    derivedValues.manaMax,
     nivelAlma,
     nivelPoder,
     nivelTrilha,
@@ -1654,8 +1709,15 @@ export default function CharacterSheet({
         base[key] += Number.isFinite(value) ? value : 0
       })
     })
+    if (racialRules.physicalResistanceBonus) {
+      base.contundente += racialRules.physicalResistanceBonus
+      base.cortante += racialRules.physicalResistanceBonus
+      base.perfurante += racialRules.physicalResistanceBonus
+      base.balistico += racialRules.physicalResistanceBonus
+      base.esmagador += racialRules.physicalResistanceBonus
+    }
     return base
-  }, [activeArmor, equippedAccessoryEntries])
+  }, [activeArmor, equippedAccessoryEntries, racialRules.physicalResistanceBonus])
 
   const totalArmorStats = useMemo(() => {
     const equippedEntries = [activeArmor, ...equippedAccessoryEntries].filter((entry): entry is ArmorCatalogEntry => !!entry)
@@ -2337,8 +2399,8 @@ export default function CharacterSheet({
                 {[
                   { key: 'corpo', label: 'Corpo', icon: Heart, max: derivedValues.corpoMax },
                   { key: 'mente', label: 'Mente', icon: Brain, max: derivedValues.menteMax },
-                  { key: 'folego', label: 'Fôlego', icon: Waves, max: characterData.folego.max },
-                  { key: 'mana', label: 'Mana', icon: Sparkles, max: characterData.mana.max },
+                  { key: 'folego', label: 'Fôlego', icon: Waves, max: derivedValues.folegoMax },
+                  { key: 'mana', label: 'Mana', icon: Sparkles, max: derivedValues.manaMax },
                 ].map((limit) => {
                   const Icon = limit.icon
                   const current = characterData[limit.key as keyof typeof characterData] as { atual: number; max: number }
@@ -2460,8 +2522,8 @@ export default function CharacterSheet({
                   {[
                     { key: 'corpo', label: 'Corpo', max: derivedValues.corpoMax },
                     { key: 'mente', label: 'Mente', max: derivedValues.menteMax },
-                    { key: 'folego', label: 'Fôlego', max: characterData.folego.max },
-                    { key: 'mana', label: 'Mana', max: characterData.mana.max },
+                    { key: 'folego', label: 'Fôlego', max: derivedValues.folegoMax },
+                    { key: 'mana', label: 'Mana', max: derivedValues.manaMax },
                   ].map((limit) => {
                     const current = characterData[limit.key as keyof typeof characterData] as { atual: number; max: number }
                     return (
@@ -2755,187 +2817,23 @@ export default function CharacterSheet({
               {activeSidebarTab === 'singularidades' && (
                 <div className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
                   <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                    {isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => setSingularityPickerOpen(true)}
-                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30"
-                      >
-                        Abrir catálogo de singularidades
-                      </button>
-                    )}
-                    <Link
-                      href="/referencia/singularidades"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs inline-flex items-center gap-1 text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline"
-                    >
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                      Referência completa (nova aba)
-                    </Link>
                     {(Object.keys(singularityBonuses.attributes).length > 0 || Object.keys(singularityBonuses.skills).length > 0 || singularityBonuses.corpo !== 0 || singularityBonuses.mente !== 0 || singularityBonuses.folego !== 0 || singularityBonuses.mana !== 0) && (
                       <p className="text-[11px] text-slate-600 dark:text-ecoar-light-900/65">
                         Bônus simples ativos aplicados automaticamente na ficha.
                       </p>
                     )}
                   </div>
-                  {(() => {
-                    const hasCreation = characterData.singularidades.length > 0
-                    const hasEcoar = characterData.singularidadesEcoar.length > 0
-                    const hasMartial = characterData.singularidadesMarciais.length > 0
-
-                    const hasAny = hasCreation || hasEcoar || hasMartial
-                    if (!hasAny) {
-                      return (
-                        <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                          Nenhuma singularidade selecionada.
-                        </div>
-                      )
-                    }
-
-                    const resolveNameById = (id: string) => {
-                      return (
-                        getCreationSingularityById(id)?.name ||
-                        getEcoarSingularityById(id)?.name ||
-                        getMartialSchoolSingularityById(id)?.name ||
-                        getSingularityById(id)?.name ||
-                        id
-                      )
-                    }
-
-                    const getSimpleRequirementText = (req: any): string | undefined => {
-                      if (!req) return undefined
-                      const parts: string[] = []
-                      if (req.previous) parts.push(`Requer: ${resolveNameById(req.previous)}`)
-                      if (typeof req.nivelAlma === 'number' && !Number.isNaN(req.nivelAlma)) {
-                        parts.push(`Nível de Alma ${req.nivelAlma}+`)
-                      }
-                      return parts.length ? parts.join(', ') : undefined
-                    }
-
-                    return (
-                      <div className="space-y-4">
-                        {hasCreation && (
-                          <div className="space-y-3">
-                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                              Criação
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
-                              {characterData.singularidades.map((id) => {
-                                const sing = getCreationSingularityById(id) || getSingularityById(id)
-                                if (!sing) {
-                                  return (
-                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                      Singularidade não encontrada: {id}
-                                    </div>
-                                  )
-                                }
-
-                                const restrictionsText =
-                                  sing.requirements && sing.requirements.length > 0
-                                    ? `Não pode possuir: ${sing.requirements
-                                      .map((reqId) => resolveNameById(reqId))
-                                      .join(', ')}`
-                                    : undefined
-
-                                return (
-                                  <SingularityCard
-                                    key={id}
-                                    name={sing.name}
-                                    description={sing.description}
-                                    cost={sing.cost}
-                                    isSelected={true}
-                                    canAfford={true}
-                                    canSelect={false}
-                                    onClick={() => {}}
-                                    variant="teal"
-                                    requirementsText={restrictionsText}
-                                  />
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {hasEcoar && (
-                          <div className="space-y-3">
-                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                              Ecoar
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
-                              {characterData.singularidadesEcoar.map((id) => {
-                                const sing = getEcoarSingularityById(id)
-                                if (!sing) {
-                                  return (
-                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                      Singularidade não encontrada: {id}
-                                    </div>
-                                  )
-                                }
-
-                                return (
-                                  <SingularityCard
-                                    key={id}
-                                    name={sing.name}
-                                    description={sing.description}
-                                    cost={sing.cost}
-                                    costLabel="PC"
-                                    secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
-                                    effects={sing.effects || undefined}
-                                    isSelected={true}
-                                    canAfford={true}
-                                    canSelect={false}
-                                    onClick={() => {}}
-                                    variant="teal"
-                                    requirementsText={getSimpleRequirementText(sing.requirements)}
-                                  />
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {hasMartial && (
-                          <div className="space-y-3">
-                            <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                              Marciais
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
-                              {characterData.singularidadesMarciais.map((id) => {
-                                const sing = getMartialSchoolSingularityById(id)
-                                if (!sing) {
-                                  return (
-                                    <div key={id} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                      Singularidade não encontrada: {id}
-                                    </div>
-                                  )
-                                }
-
-                                return (
-                                  <SingularityCard
-                                    key={id}
-                                    name={sing.name}
-                                    description={sing.description}
-                                    cost={sing.cost * 10}
-                                    costLabel="PC"
-                                    secondaryCost={`${sing.cost} PE`}
-                                    level={sing.level}
-                                    effects={sing.effects || undefined}
-                                    isSelected={true}
-                                    canAfford={true}
-                                    canSelect={false}
-                                    onClick={() => {}}
-                                    variant="teal"
-                                    requirementsText={getSimpleRequirementText(sing.requirements)}
-                                  />
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
+                  {initialDataRef.current?.id && (
+                    <a
+                      href={`/personagens/${initialDataRef.current.id}/singularidades`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-[11px] font-medium text-ecoar-teal-700 dark:text-ecoar-teal-300 hover:underline"
+                    >
+                      Abrir singularidades em nova aba
+                    </a>
+                  )}
+                  <PlayerSingularitiesViewer characterData={characterData} compact />
                 </div>
               )}
 
@@ -2973,24 +2871,6 @@ export default function CharacterSheet({
                               </p>
                             </div>
                           </div>
-                          {isEditing && (
-                            <button
-                              type="button"
-                              onClick={() => setEquipmentPickerOpen(true)}
-                              className="w-full mt-1 px-3 py-2 rounded-lg text-xs font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30"
-                            >
-                              Abrir catálogo (compra)
-                            </button>
-                          )}
-                          <Link
-                            href="/referencia/aquisicao-equipamentos"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs inline-flex items-center gap-1 text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline"
-                          >
-                            <ExternalLink className="w-3 h-3 shrink-0" />
-                            Referência completa (nova aba)
-                          </Link>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -3561,15 +3441,18 @@ export default function CharacterSheet({
                                     criacao: characterData.singularidades,
                                     ecoar: characterData.singularidadesEcoar,
                                     marciais: characterData.singularidadesMarciais,
+                                    raciais: characterData.singularidadesRaciais,
                                   }}
                                   conditionalEnabledIdsByKind={{
                                     criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
                                     ecoar: characterData.singularidadesCondicionaisAtivas,
                                     marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
+                                    raciais: [],
                                   }}
                                   saldoPe={characterData.pontosEvolucao.atual}
                                   context={{
                                     nivelAlma,
+                                    raceId: characterData.raca,
                                     attributes: {
                                       carisma: characterData.carisma.nivel + (singularityBonuses.attributes.carisma ?? 0),
                                       finesse: characterData.finesse.nivel + (singularityBonuses.attributes.finesse ?? 0),

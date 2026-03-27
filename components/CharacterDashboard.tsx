@@ -11,7 +11,7 @@ import { CharacterWithMetadata } from '@/types/auth'
 import type { GameTable } from '@/types/tables'
 import CharacterCard from '@/components/ui/CharacterCard'
 import Button from '@/components/ui/Button'
-import { UserPlus, FileText, LogOut, Users, Plus, LogIn } from 'lucide-react'
+import { UserPlus, FileText, LogOut, Users, Plus, LogIn, Database, Sparkles } from 'lucide-react'
 import Header from './Header'
 
 interface CharacterDashboardProps {
@@ -142,6 +142,33 @@ export default function CharacterDashboard({
             </div>
           </div>
         </motion.div>
+
+        <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
+          <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/70 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-ecoar-light-900/85">
+                  Acesso rápido admin
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-1">
+                  Abra as bases para consulta e gestão de catálogo.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/referencia/aquisicao-equipamentos" target="_blank" rel="noopener noreferrer">
+                  <Button variant="secondary" leftIcon={Database} size="md">
+                    Base de Equipamentos
+                  </Button>
+                </Link>
+                <Link href="/referencia/singularidades" target="_blank" rel="noopener noreferrer">
+                  <Button variant="secondary" leftIcon={Sparkles} size="md">
+                    Base de Singularidades
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </motion.section>
 
         {/* Suas mesas */}
         <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-10">

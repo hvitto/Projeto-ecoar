@@ -4,6 +4,11 @@
 export interface EcoarSingularity {
   id: string
   ecoarId: string
+  systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial'
+  sourceGroup?: string
+  groupKey?: string
+  groupLabel?: string
+  originLabel?: string
   name: string
   description: string
   cost: number // Pontos de Criação ou Pontos de Evolução

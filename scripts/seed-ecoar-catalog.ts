@@ -12,25 +12,28 @@ import {
   ecoarSingularitiesSeed,
 } from '../data/ecoarCatalogSeed'
 
-function loadEnvLocal() {
-  const p = resolve(process.cwd(), '.env.local')
-  if (!existsSync(p)) return
-  const text = readFileSync(p, 'utf8')
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const eq = trimmed.indexOf('=')
-    if (eq <= 0) continue
-    const key = trimmed.slice(0, eq).trim()
-    let val = trimmed.slice(eq + 1).trim()
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1)
+function loadEnvFiles() {
+  const envPaths = ['.env.local', '.env']
+  for (const fileName of envPaths) {
+    const p = resolve(process.cwd(), fileName)
+    if (!existsSync(p)) continue
+    const text = readFileSync(p, 'utf8')
+    for (const line of text.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eq = trimmed.indexOf('=')
+      if (eq <= 0) continue
+      const key = trimmed.slice(0, eq).trim()
+      let val = trimmed.slice(eq + 1).trim()
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1)
+      }
+      if (!process.env[key]) process.env[key] = val
     }
-    if (!process.env[key]) process.env[key] = val
   }
 }
 
-loadEnvLocal()
+loadEnvFiles()
 
 function extraRequirementsForSingularity(singId: string): Array<{
   requirement_type: string

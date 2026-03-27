@@ -4,9 +4,7 @@ import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
 
-type BrowserMode = 'reference' | 'picker'
 type MainTab = 'passivas-condicionais' | 'complexas' | 'ativas'
 
 const TAB_LABELS: Record<MainTab, string> = {
@@ -37,30 +35,48 @@ function bonusSummary(s: EcoarSingularity): string {
   return out.length ? out.join(' | ') : 'Sem bônus simples configurado.'
 }
 
-type SingularidadeEditavel = Pick<EcoarSingularity, 'id' | 'name' | 'description' | 'activationType' | 'bonuses'>
+type GroupedSingularities = {
+  key: string
+  label: string
+  items: EcoarSingularity[]
+}
+
+function groupByOrigin(items: EcoarSingularity[]): GroupedSingularities[] {
+  const grouped = new Map<string, GroupedSingularities>()
+  for (const item of items) {
+    const key = item.groupKey ?? `${item.systemType ?? 'ecoar'}:${item.sourceGroup ?? item.ecoarId}`
+    const label =
+      item.groupLabel ??
+      (item.systemType === 'marcial'
+        ? `Escola Marcial: ${item.sourceGroup ?? item.ecoarId}`
+        : item.systemType === 'criacao'
+          ? 'Criação'
+          : `Ecoar: ${item.ecoarId}`)
+    if (!grouped.has(key)) grouped.set(key, { key, label, items: [] })
+    grouped.get(key)!.items.push(item)
+  }
+  return Array.from(grouped.values())
+    .map((group) => ({
+      ...group,
+      items: [...group.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+}
+
+type SingularidadeEditavel = Pick<EcoarSingularity, 'id' | 'ecoarId' | 'systemType' | 'name' | 'description' | 'cost' | 'activationType' | 'bonuses'>
 
 interface Props {
-  mode: BrowserMode
   singularities: EcoarSingularity[]
-  selectedIds: string[]
-  conditionalEnabledIds: string[]
-  onToggleSelect?: (id: string, selected: boolean) => void
-  onToggleConditional?: (id: string, enabled: boolean) => void
   onAdminEditItem?: (item: SingularidadeEditavel) => void
   urlSync?: boolean
 }
 
 export default function SingularityCatalogBrowser({
-  mode,
   singularities,
-  selectedIds,
-  conditionalEnabledIds,
-  onToggleSelect,
-  onToggleConditional,
   onAdminEditItem,
   urlSync: urlSyncProp,
 }: Props) {
-  const urlSync = urlSyncProp ?? mode === 'reference'
+  const urlSync = urlSyncProp ?? true
   const router = useRouter()
   const pathname = usePathname()
   const sp = useSearchParams()
@@ -96,32 +112,21 @@ export default function SingularityCatalogBrowser({
     })
   }, [deferredSearch, singularities])
 
-  const singularityByIdForTotals = useMemo(() => {
-    const map = new Map<string, EcoarSingularity>()
-    for (const s of singularities) map.set(s.id, s)
-    return map
-  }, [singularities])
-
-  const passiveConditionalTotals = useMemo(() => {
-    return aggregateSimpleBonuses({
-      selectedSingularityIds: selectedIds,
-      conditionalEnabledIds: conditionalEnabledIds,
-      getEcoarSingularityById: (id) => singularityByIdForTotals.get(id),
-    })
-  }, [conditionalEnabledIds, selectedIds, singularityByIdForTotals])
-
   const passiveItems = filtered.filter((s) => (s.activationType ?? 'complexa') === 'passiva')
   const conditionalItems = filtered.filter((s) => (s.activationType ?? 'complexa') === 'condicional')
   const complexItems = filtered.filter((s) => (s.activationType ?? 'complexa') === 'complexa')
   const activeItems = filtered.filter((s) => (s.activationType ?? 'complexa') === 'ativa')
+  const passiveGroups = useMemo(() => groupByOrigin(passiveItems), [passiveItems])
+  const conditionalGroups = useMemo(() => groupByOrigin(conditionalItems), [conditionalItems])
+  const complexGroups = useMemo(() => groupByOrigin(complexItems), [complexItems])
+  const activeGroups = useMemo(() => groupByOrigin(activeItems), [activeItems])
 
   const renderCard = (s: EcoarSingularity, showConditionalBox: boolean) => {
-    const selected = selectedIds.includes(s.id)
-    const conditionalEnabled = conditionalEnabledIds.includes(s.id)
     return (
       <article key={s.id} className="rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/50 p-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div>
+            <p className="text-[11px] font-medium text-ecoar-teal-700 dark:text-ecoar-teal-300">{s.originLabel ?? 'Origem não categorizada'}</p>
             <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">{s.name}</h4>
             <p className="text-xs text-slate-600 dark:text-ecoar-light-900/65">{s.description}</p>
           </div>
@@ -131,8 +136,11 @@ export default function SingularityCatalogBrowser({
               onClick={() =>
                 onAdminEditItem({
                   id: s.id,
+                  ecoarId: s.ecoarId,
+                  systemType: s.systemType,
                   name: s.name,
                   description: s.description,
+                  cost: s.cost,
                   activationType: s.activationType ?? 'complexa',
                   bonuses: s.bonuses,
                 })
@@ -144,29 +152,24 @@ export default function SingularityCatalogBrowser({
           )}
         </div>
         <p className="text-[11px] text-slate-500 dark:text-ecoar-light-900/55">{bonusSummary(s)}</p>
-        {mode === 'picker' && onToggleSelect && (
-          <label className="inline-flex items-center gap-2 text-xs text-slate-700 dark:text-ecoar-light-900/75">
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={(e) => onToggleSelect(s.id, e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/30"
-            />
-            Selecionada
-          </label>
-        )}
-        {showConditionalBox && onToggleConditional && (
-          <label className="inline-flex items-center gap-2 text-xs text-slate-700 dark:text-ecoar-light-900/75">
-            <input
-              type="checkbox"
-              checked={conditionalEnabled}
-              onChange={(e) => onToggleConditional(s.id, e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/30"
-            />
-            Condição ativa [X]
-          </label>
-        )}
+        {showConditionalBox && <span className="text-[11px] text-slate-500 dark:text-ecoar-light-900/55">Ativação condicional.</span>}
       </article>
+    )
+  }
+
+  const renderGroupedSection = (groups: GroupedSingularities[], showConditionalBox: boolean) => {
+    if (groups.length === 0) {
+      return <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">Nenhuma singularidade encontrada para este filtro.</p>
+    }
+    return (
+      <div className="space-y-3">
+        {groups.map((group) => (
+          <section key={group.key} className="space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-ecoar-light-900/70">{group.label}</h4>
+            {group.items.map((s) => renderCard(s, showConditionalBox))}
+          </section>
+        ))}
+      </div>
     )
   }
 
@@ -205,73 +208,19 @@ export default function SingularityCatalogBrowser({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <section className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-ecoar-light-900/85">Passivas</h3>
-              {passiveItems.map((s) => renderCard(s, false))}
+              {renderGroupedSection(passiveGroups, false)}
             </section>
             <section className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-ecoar-light-900/85">Condicionais</h3>
-              {conditionalItems.map((s) => renderCard(s, true))}
+              {renderGroupedSection(conditionalGroups, true)}
             </section>
           </div>
 
-          {mode === 'picker' && (Object.keys(passiveConditionalTotals.attributes).length > 0 ||
-            Object.keys(passiveConditionalTotals.skills).length > 0 ||
-            passiveConditionalTotals.corpo !== 0 ||
-            passiveConditionalTotals.mente !== 0 ||
-            passiveConditionalTotals.folego !== 0 ||
-            passiveConditionalTotals.mana !== 0) && (
-            <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10 space-y-2">
-              <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/85 uppercase tracking-wider">
-                Tabela de bônus simples (ativos)
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {Object.entries(passiveConditionalTotals.attributes)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between gap-2">
-                      <span className="text-slate-600 dark:text-ecoar-light-900/70 capitalize">{k}</span>
-                      <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{v >= 0 ? `+${v}` : v}</span>
-                    </div>
-                  ))}
-                {Object.entries(passiveConditionalTotals.skills)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between gap-2">
-                      <span className="text-slate-600 dark:text-ecoar-light-900/70">{k}</span>
-                      <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{v >= 0 ? `+${v}` : v}</span>
-                    </div>
-                  ))}
-                {passiveConditionalTotals.corpo !== 0 && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600 dark:text-ecoar-light-900/70">corpo</span>
-                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{passiveConditionalTotals.corpo >= 0 ? `+${passiveConditionalTotals.corpo}` : passiveConditionalTotals.corpo}</span>
-                  </div>
-                )}
-                {passiveConditionalTotals.mente !== 0 && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600 dark:text-ecoar-light-900/70">mente</span>
-                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{passiveConditionalTotals.mente >= 0 ? `+${passiveConditionalTotals.mente}` : passiveConditionalTotals.mente}</span>
-                  </div>
-                )}
-                {passiveConditionalTotals.folego !== 0 && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600 dark:text-ecoar-light-900/70">folego</span>
-                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{passiveConditionalTotals.folego >= 0 ? `+${passiveConditionalTotals.folego}` : passiveConditionalTotals.folego}</span>
-                  </div>
-                )}
-                {passiveConditionalTotals.mana !== 0 && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600 dark:text-ecoar-light-900/70">mana</span>
-                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{passiveConditionalTotals.mana >= 0 ? `+${passiveConditionalTotals.mana}` : passiveConditionalTotals.mana}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </>
       )}
 
-      {tab === 'complexas' && <div className="space-y-2">{complexItems.map((s) => renderCard(s, false))}</div>}
-      {tab === 'ativas' && <div className="space-y-2">{activeItems.map((s) => renderCard(s, false))}</div>}
+      {tab === 'complexas' && <div className="space-y-2">{renderGroupedSection(complexGroups, false)}</div>}
+      {tab === 'ativas' && <div className="space-y-2">{renderGroupedSection(activeGroups, false)}</div>}
     </div>
   )
 }

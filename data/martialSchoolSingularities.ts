@@ -37,6 +37,26 @@ export interface MartialSchoolData {
   singularities: MartialSchoolSingularity[]
 }
 
+// Progressão oficial de custo (Pontos de Evolução) por nível marcial.
+export const MARTIAL_COST_BY_LEVEL: Record<number, number> = {
+  1: 25,
+  2: 5,
+  3: 10,
+  4: 15,
+  5: 20,
+  6: 30,
+  7: 55,
+  8: 35,
+  9: 40,
+  10: 45,
+  11: 50,
+  12: 60,
+}
+
+export const getOfficialMartialCostByLevel = (level: number): number | undefined => {
+  return MARTIAL_COST_BY_LEVEL[level]
+}
+
 export const martialSchoolData: MartialSchoolData[] = [
   {
     id: 'astrologo',

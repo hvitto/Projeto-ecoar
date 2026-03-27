@@ -5,10 +5,12 @@ import type { Singularity } from '@/data/singularities'
 import { singularities } from '@/data/singularities'
 import type { MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
 import { getAllMartialSchools } from '@/data/martialSchoolSingularities'
+import type { RacialSingularity } from '@/data/racialSingularities'
+import { racialSingularities } from '@/data/racialSingularities'
 import { inferSingularityActivationType } from '@/lib/inferSingularityActivationType'
 import { extractSimpleBonusesFromMartialText } from '@/lib/extractSimpleBonusesFromMartialText'
 
-export type SystemSingularityKind = 'criacao' | 'ecoar' | 'marcial' | 'racional'
+export type SystemSingularityKind = 'criacao' | 'ecoar' | 'marcial' | 'racial'
 
 export type SystemSingularityActivationType = 'passiva' | 'condicional' | 'complexa' | 'ativa'
 
@@ -36,8 +38,10 @@ export type SystemSingularityRequirements =
       requirements?: MartialSchoolSingularity['requirements']
     }
   | {
-      kind: 'racional'
-      placeholder: true
+      kind: 'racial'
+      raceId: string
+      previousIds?: string[]
+      acquisitionPhase?: 'creation' | 'evolution'
     }
 
 export type SystemSingularity = {
@@ -111,54 +115,91 @@ function normalizeBonusesFromEcoar(sing: EcoarSingularity): SimpleBonusesAggrega
   return out
 }
 
+function normalizeBonusesFromRacial(sing: Pick<RacialSingularity, 'bonuses'>): SimpleBonusesAggregate {
+  if (!sing.bonuses) return emptyBonuses
+  return {
+    attributes: { ...(sing.bonuses.attributes ?? {}) },
+    skills: { ...(sing.bonuses.skills ?? {}) },
+    corpo: typeof sing.bonuses.corpo === 'number' ? sing.bonuses.corpo : 0,
+    mente: typeof sing.bonuses.mente === 'number' ? sing.bonuses.mente : 0,
+    folego: typeof sing.bonuses.folego === 'number' ? sing.bonuses.folego : 0,
+    mana: typeof sing.bonuses.mana === 'number' ? sing.bonuses.mana : 0,
+  }
+}
+
 export function buildSystemSingularities(ecoarSingularities: EcoarSingularity[]): SystemSingularity[] {
   const out: SystemSingularity[] = []
-
-  // --- Criação (inclui both data/creationSingularities and data/singularities) ---
-  const baseCreation: CreationSingularity[] = creationSingularities
-  for (const s of baseCreation) {
-    const inferred = inferSingularityActivationType({
-      kind: 'criacao',
-      name: s.name,
-      description: s.description,
-      bonuses: s.bonuses,
-      penalties: s.penalties,
-    })
-    out.push({
-      id: s.id,
-      kind: 'criacao',
-      name: s.name,
-      description: s.description,
-      cost: s.cost,
-      activationType: inferred,
-      bonusesSimpleExtracted: normalizeBonusesFromCreation(s),
-      requirements: { kind: 'criacao', conflictWithIds: s.requirements ?? [] },
-    })
+  const existingIds = new Set<string>()
+  const pushUnique = (value: SystemSingularity) => {
+    if (existingIds.has(value.id)) return
+    existingIds.add(value.id)
+    out.push(value)
   }
+  const dbCriacao = ecoarSingularities.filter((s) => s.systemType === 'criacao')
+  const dbMarciais = ecoarSingularities.filter((s) => s.systemType === 'marcial')
+  const dbRaciais = ecoarSingularities.filter((s) => s.systemType === 'racial')
+  const dbEcoar = ecoarSingularities.filter((s) => !s.systemType || s.systemType === 'ecoar')
 
-  for (const s of singularities as Singularity[]) {
-    const inferred = inferSingularityActivationType({
-      kind: 'criacao',
-      name: s.name,
-      description: s.description,
-      bonuses: s.bonuses,
-      penalties: s.penalties,
-    })
-    out.push({
-      id: s.id,
-      kind: 'criacao',
-      name: s.name,
-      description: s.description,
-      cost: s.cost,
-      activationType: inferred,
-      bonusesSimpleExtracted: normalizeBonusesFromCreation(s),
-      requirements: { kind: 'criacao', conflictWithIds: s.requirements ?? [] },
-    })
+  // --- Criação ---
+  if (dbCriacao.length > 0) {
+    for (const s of dbCriacao) {
+      pushUnique({
+        id: s.id,
+        kind: 'criacao',
+        name: s.name,
+        description: s.description,
+        cost: s.cost,
+        activationType: (s.activationType ?? 'complexa') as SystemSingularityActivationType,
+        bonusesSimpleExtracted: normalizeBonusesFromEcoar(s),
+        requirements: { kind: 'criacao', conflictWithIds: [] },
+      })
+    }
+  } else {
+    const baseCreation: CreationSingularity[] = creationSingularities
+    for (const s of baseCreation) {
+      const inferred = inferSingularityActivationType({
+        kind: 'criacao',
+        name: s.name,
+        description: s.description,
+        bonuses: s.bonuses,
+        penalties: s.penalties,
+      })
+      pushUnique({
+        id: s.id,
+        kind: 'criacao',
+        name: s.name,
+        description: s.description,
+        cost: s.cost,
+        activationType: inferred,
+        bonusesSimpleExtracted: normalizeBonusesFromCreation(s),
+        requirements: { kind: 'criacao', conflictWithIds: s.requirements ?? [] },
+      })
+    }
+
+    for (const s of singularities as Singularity[]) {
+      const inferred = inferSingularityActivationType({
+        kind: 'criacao',
+        name: s.name,
+        description: s.description,
+        bonuses: s.bonuses,
+        penalties: s.penalties,
+      })
+      pushUnique({
+        id: s.id,
+        kind: 'criacao',
+        name: s.name,
+        description: s.description,
+        cost: s.cost,
+        activationType: inferred,
+        bonusesSimpleExtracted: normalizeBonusesFromCreation(s),
+        requirements: { kind: 'criacao', conflictWithIds: s.requirements ?? [] },
+      })
+    }
   }
 
   // --- Ecoar (vem do catálogo) ---
-  for (const s of ecoarSingularities) {
-    out.push({
+  for (const s of dbEcoar) {
+    pushUnique({
       id: s.id,
       kind: 'ecoar',
       name: s.name,
@@ -170,40 +211,89 @@ export function buildSystemSingularities(ecoarSingularities: EcoarSingularity[])
     })
   }
 
-  // --- Marciais (todas as escolas) ---
-  const allSchools = getAllMartialSchools()
-  for (const school of allSchools) {
-    for (const ms of school.singularities) {
-      const inferred = inferSingularityActivationType({
-        kind: 'marcial',
-        name: ms.name,
-        description: ms.description,
-        effects: ms.effects,
-      })
-      out.push({
+  // --- Marciais ---
+  if (dbMarciais.length > 0) {
+    for (const ms of dbMarciais) {
+      pushUnique({
         id: ms.id,
         kind: 'marcial',
         name: ms.name,
         description: ms.description,
         cost: ms.cost,
-        activationType: inferred,
-        bonusesSimpleExtracted: extractSimpleBonusesFromMartialText({ description: ms.description, effects: ms.effects }),
-        requirements: { kind: 'marcial', requirements: ms.requirements },
+        activationType: (ms.activationType ?? 'complexa') as SystemSingularityActivationType,
+        bonusesSimpleExtracted: normalizeBonusesFromEcoar(ms),
+        requirements: { kind: 'marcial', requirements: ms.requirements as MartialSchoolSingularity['requirements'] | undefined },
       })
+    }
+  } else {
+    const allSchools = getAllMartialSchools()
+    for (const school of allSchools) {
+      for (const ms of school.singularities) {
+        const inferred = inferSingularityActivationType({
+          kind: 'marcial',
+          name: ms.name,
+          description: ms.description,
+          effects: ms.effects,
+        })
+        pushUnique({
+          id: ms.id,
+          kind: 'marcial',
+          name: ms.name,
+          description: ms.description,
+          cost: ms.cost,
+          activationType: inferred,
+          bonusesSimpleExtracted: extractSimpleBonusesFromMartialText({ description: ms.description, effects: ms.effects }),
+          requirements: { kind: 'marcial', requirements: ms.requirements },
+        })
+      }
     }
   }
 
-  // --- Raciais placeholder (não implementadas) ---
-  out.push({
-    id: 'singularidades-raciais-placeholder',
-    kind: 'racional',
-    name: 'Singularidades Raciais',
-    description: 'Placeholder: singularidades raciais ainda não estão implementadas.',
-    cost: 0,
-    activationType: 'complexa',
-    bonusesSimpleExtracted: emptyBonuses,
-    requirements: { kind: 'racional', placeholder: true },
-  })
+  // --- Raciais ---
+  if (dbRaciais.length > 0) {
+    for (const rs of dbRaciais) {
+      const raceId =
+        rs.sourceGroup?.replace(/^racial-/, '') ??
+        rs.ecoarId?.replace(/^racial-/, '') ??
+        'desconhecida'
+      const previousIds = (rs.requirementEntries ?? [])
+        .filter((entry) => entry.type === 'previous')
+        .map((entry) => entry.value)
+      pushUnique({
+        id: rs.id,
+        kind: 'racial',
+        name: rs.name,
+        description: rs.description,
+        cost: rs.cost,
+        activationType: (rs.activationType ?? 'complexa') as SystemSingularityActivationType,
+        bonusesSimpleExtracted: normalizeBonusesFromEcoar(rs),
+        requirements: {
+          kind: 'racial',
+          raceId,
+          previousIds,
+          acquisitionPhase: ((rs as any).sourceMeta?.acquisitionPhase ?? 'creation') as 'creation' | 'evolution',
+        },
+      })
+    }
+  } else {
+    for (const rs of racialSingularities) {
+      pushUnique({
+        id: rs.id,
+        kind: 'racial',
+        name: rs.name,
+        description: rs.description,
+        cost: rs.cost,
+        activationType: rs.activationType,
+        bonusesSimpleExtracted: normalizeBonusesFromRacial(rs),
+        requirements: {
+          kind: 'racial',
+          raceId: rs.raceId,
+          previousIds: rs.requirements ?? [],
+          acquisitionPhase: rs.acquisitionPhase ?? 'creation',
+        },
+      })
+    }
+  }
 
   return out
 }

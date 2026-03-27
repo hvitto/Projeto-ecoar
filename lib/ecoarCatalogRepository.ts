@@ -15,6 +15,8 @@ type EcoarCatalogRow = {
 type EcoarSingularityRow = {
   id: string
   ecoar_id: string
+  system_type: 'ecoar' | 'criacao' | 'marcial' | 'racial' | null
+  source_group: string | null
   name: string
   description: string
   cost: number
@@ -40,10 +42,10 @@ export async function listActiveEcoarCatalog(): Promise<Ecoar[]> {
 
 export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]> {
   const rows = (await sql`
-    SELECT id, ecoar_id, name, description, cost, activation_type, bonuses_simple
+    SELECT id, ecoar_id, system_type, source_group, name, description, cost, activation_type, bonuses_simple
     FROM ecoar_singularities
     WHERE is_active = true
-    ORDER BY ecoar_id, tier NULLS LAST, name
+    ORDER BY system_type NULLS LAST, source_group NULLS LAST, ecoar_id, tier NULLS LAST, name
   `) as EcoarSingularityRow[]
 
   const reqRows = (await sql`
@@ -102,6 +104,8 @@ export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]
   return rows.map((r) => ({
     id: r.id,
     ecoarId: r.ecoar_id,
+    systemType: r.system_type ?? 'ecoar',
+    sourceGroup: r.source_group ?? undefined,
     name: r.name,
     description: r.description,
     cost: r.cost,

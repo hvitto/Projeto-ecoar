@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { config } from '@/lib/config'
 import { AppProvider } from '@/contexts/AppContext'
@@ -12,7 +12,7 @@ import CharacterEvolutionScreen from '@/components/CharacterEvolutionScreen'
 import CharacterDashboard from '@/components/CharacterDashboard'
 import LoginForm from '@/components/auth/LoginForm'
 import RegisterForm from '@/components/auth/RegisterForm'
-import { saveCharacter } from '@/lib/storage/characterStorage'
+import { getCharacter, saveCharacter } from '@/lib/storage/characterStorage'
 import { CharacterWithMetadata } from '@/types/auth'
 import { pageTransition } from '@/lib/motionVariants'
 
@@ -21,6 +21,7 @@ type ViewMode = 'auth' | 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet'
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
 
 function AppContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isAuthenticated, isLoading, refreshUser } = useAuth()
   const [viewMode, setViewMode] = useState<ViewMode>('auth')
@@ -28,6 +29,23 @@ function AppContent() {
   const [wizardKey, setWizardKey] = useState(0)
   const [loginMessage, setLoginMessage] = useState<string | null>(null)
   const hasInitialized = useRef(false)
+
+  const requestedView = useMemo(() => searchParams.get('view'), [searchParams])
+  const requestedCharacterId = useMemo(() => searchParams.get('characterId'), [searchParams])
+
+  const updateUrlState = useCallback((
+    nextView: 'login' | 'register' | 'dashboard' | 'wizard' | 'sheet' | 'evolution',
+    nextCharacterId?: string | null,
+  ) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', nextView)
+    if (nextCharacterId) {
+      params.set('characterId', nextCharacterId)
+    } else {
+      params.delete('characterId')
+    }
+    router.replace(`/?${params.toString()}`)
+  }, [router, searchParams])
 
   useEffect(() => {
     const token = searchParams.get('token')
@@ -53,37 +71,80 @@ function AppContent() {
     if (error === 'no_email') setLoginMessage('Não foi possível obter seu email do Google.')
   }, [searchParams])
 
-  // Ajustar viewMode inicial baseado na autenticação
+  // Ajustar viewMode inicial baseado na autenticação e na URL
   useEffect(() => {
     if (isLoading) return
 
     if (!hasInitialized.current) {
       if (isAuthenticated) {
-        setViewMode('dashboard')
+        if (requestedView === 'wizard' || requestedView === 'sheet' || requestedView === 'evolution') {
+          setViewMode(requestedView)
+        } else {
+          setViewMode('dashboard')
+          updateUrlState('dashboard')
+        }
       } else {
-        setViewMode('login')
+        if (requestedView === 'register') {
+          setViewMode('register')
+        } else {
+          setViewMode('login')
+          updateUrlState('login')
+        }
       }
       hasInitialized.current = true
       return
     }
 
-    if (isAuthenticated && (viewMode === 'login' || viewMode === 'register' || viewMode === 'auth')) {
-      setViewMode('dashboard')
+    if (!isAuthenticated) {
+      if (requestedView === 'register') {
+        setViewMode('register')
+      } else {
+        setViewMode('login')
+      }
+      return
     }
-  }, [isAuthenticated, isLoading, viewMode])
+
+    if (requestedView === 'wizard' || requestedView === 'sheet' || requestedView === 'evolution' || requestedView === 'dashboard') {
+      setViewMode(requestedView)
+    } else if (viewMode !== 'dashboard') {
+      setViewMode('dashboard')
+      updateUrlState('dashboard')
+    }
+  }, [isAuthenticated, isLoading, requestedView, viewMode, updateUrlState])
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    if ((viewMode !== 'sheet' && viewMode !== 'evolution' && viewMode !== 'wizard') || !requestedCharacterId) return
+    getCharacter(user.id, requestedCharacterId)
+      .then((character) => {
+        if (!character) {
+          setSelectedCharacter(null)
+          updateUrlState('dashboard')
+          return
+        }
+        setSelectedCharacter(character)
+      })
+      .catch(() => {
+        setSelectedCharacter(null)
+        updateUrlState('dashboard')
+      })
+  }, [isAuthenticated, user, viewMode, requestedCharacterId, updateUrlState])
 
   const handleLoginSuccess = () => {
     setViewMode('dashboard')
+    updateUrlState('dashboard')
   }
 
   const handleRegisterSuccess = () => {
     setViewMode('dashboard')
+    updateUrlState('dashboard')
   }
 
   const handleNewCharacter = () => {
     setSelectedCharacter(null)
     setWizardKey(prev => prev + 1)
     setViewMode('wizard')
+    updateUrlState('wizard')
   }
 
   const handleWizardComplete = async (data: any) => {
@@ -96,6 +157,7 @@ function AppContent() {
       const characterWithMetadata = await saveCharacter(user.id, data)
       setSelectedCharacter(characterWithMetadata)
       setViewMode('sheet')
+      updateUrlState('sheet', characterWithMetadata.id)
     } catch (error) {
       console.error('Error saving character:', error)
       alert('Erro ao salvar ficha. Tente novamente.')
@@ -105,17 +167,20 @@ function AppContent() {
   const handleViewCharacter = (character: CharacterWithMetadata) => {
     setSelectedCharacter(character)
     setViewMode('sheet')
+    updateUrlState('sheet', character.id)
   }
 
   const handleEditCharacter = (character: CharacterWithMetadata) => {
     setSelectedCharacter(character)
     setWizardKey(prev => prev + 1)
     setViewMode('wizard')
+    updateUrlState('wizard', character.id)
   }
 
   const handleGoToDashboard = () => {
     setSelectedCharacter(null)
     setViewMode('dashboard')
+    updateUrlState('dashboard')
   }
 
   // Loading state
@@ -133,12 +198,18 @@ function AppContent() {
       <div className="w-full max-w-md">
         {viewMode === 'register' ? (
           <RegisterForm
-            onSwitchToLogin={() => setViewMode('login')}
+            onSwitchToLogin={() => {
+              setViewMode('login')
+              updateUrlState('login')
+            }}
             onSuccess={handleRegisterSuccess}
           />
         ) : (
           <LoginForm
-            onSwitchToRegister={() => setViewMode('register')}
+            onSwitchToRegister={() => {
+              setViewMode('register')
+              updateUrlState('register')
+            }}
             onSuccess={handleLoginSuccess}
             initialMessage={loginMessage}
             onMessageShown={() => setLoginMessage(null)}
@@ -202,9 +273,13 @@ function AppContent() {
               <CharacterSheet
               initialData={selectedCharacter.data}
                 canEdit={true}
-                onOpenEvolution={() => setViewMode('evolution')}
+                onOpenEvolution={() => {
+                  setViewMode('evolution')
+                  updateUrlState('evolution', selectedCharacter.id)
+                }}
                 onCharacterSaved={(saved) => {
                   setSelectedCharacter(saved)
+                  updateUrlState('sheet', saved.id)
                 }}
               onBackToDashboard={handleGoToDashboard}
             />
@@ -222,10 +297,14 @@ function AppContent() {
             >
               <CharacterEvolutionScreen
                 initialCharacterData={selectedCharacter.data}
-                onCancel={() => setViewMode('sheet')}
+                onCancel={() => {
+                  setViewMode('sheet')
+                  updateUrlState('sheet', selectedCharacter.id)
+                }}
                 onSaved={(saved) => {
                   setSelectedCharacter(saved)
                   setViewMode('sheet')
+                  updateUrlState('sheet', saved.id)
                 }}
               />
             </motion.div>

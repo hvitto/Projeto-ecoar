@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { fadeInUp } from '@/lib/motionVariants'
@@ -12,7 +12,7 @@ import {
   setMyTableCharacter,
   type TableCharacterItem,
 } from '@/lib/storage/tablesApiService'
-import { getUserCharacters } from '@/lib/storage/characterStorage'
+import { getCharacter, getUserCharacters } from '@/lib/storage/characterStorage'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 import type { GameTableWithMembers } from '@/types/tables'
 import type { CharacterWithMetadata } from '@/types/auth'
@@ -27,6 +27,7 @@ const POLL_INTERVAL_MS = 8000
 export default function MesaPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const tableId = params.id as string
 
@@ -38,6 +39,23 @@ export default function MesaPage() {
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithMetadata | null>(null)
   const [myCharacters, setMyCharacters] = useState<CharacterWithMetadata[]>([])
   const [copySuccess, setCopySuccess] = useState(false)
+  const requestedView = searchParams.get('view')
+  const requestedCharacterId = searchParams.get('characterId')
+
+  const isValidViewMode = (value: string | null): value is 'list' | 'sheet' | 'wizard' | 'pickCharacter' | 'evolution' => {
+    return value === 'list' || value === 'sheet' || value === 'wizard' || value === 'pickCharacter' || value === 'evolution'
+  }
+
+  const updateRouteState = (nextView: 'list' | 'sheet' | 'wizard' | 'pickCharacter' | 'evolution', nextCharacterId?: string | null) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', nextView)
+    if (nextCharacterId) {
+      params.set('characterId', nextCharacterId)
+    } else {
+      params.delete('characterId')
+    }
+    router.replace(`/mesas/${tableId}?${params.toString()}`)
+  }
 
   const loadTable = useCallback(async () => {
     if (!tableId) return
@@ -71,6 +89,15 @@ export default function MesaPage() {
   }, [tableId, load])
 
   useEffect(() => {
+    if (!isValidViewMode(requestedView)) {
+      setViewMode('list')
+      updateRouteState('list')
+      return
+    }
+    setViewMode(requestedView)
+  }, [requestedView])
+
+  useEffect(() => {
     if (!tableId || !table || viewMode !== 'list') return
     const interval = setInterval(loadCharacters, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
@@ -97,8 +124,16 @@ export default function MesaPage() {
     }
   }, [viewMode, user])
 
-  const handleCreateNewCharacter = () => setViewMode('wizard')
-  const handleUseExistingCharacter = () => setViewMode('pickCharacter')
+  const handleCreateNewCharacter = () => {
+    setSelectedCharacter(null)
+    setViewMode('wizard')
+    updateRouteState('wizard')
+  }
+  const handleUseExistingCharacter = () => {
+    setSelectedCharacter(null)
+    setViewMode('pickCharacter')
+    updateRouteState('pickCharacter')
+  }
 
   const handleWizardComplete = async (
     data: Parameters<Parameters<typeof CharacterCreationWizard>[0]['onComplete']>[0]
@@ -109,6 +144,7 @@ export default function MesaPage() {
       await setMyTableCharacter(tableId, created.id)
       setSelectedCharacter(null)
       setViewMode('list')
+      updateRouteState('list')
       load()
     } catch (err) {
       console.error(err)
@@ -121,6 +157,7 @@ export default function MesaPage() {
     try {
       await setMyTableCharacter(tableId, character.id)
       setViewMode('list')
+      updateRouteState('list')
       load()
     } catch (err) {
       console.error(err)
@@ -131,24 +168,50 @@ export default function MesaPage() {
   const handleViewCharacter = (item: TableCharacterItem) => {
     setSelectedCharacter(item.character)
     setViewMode('sheet')
+    updateRouteState('sheet', item.character.id)
   }
 
   const handleEditCharacter = (item: TableCharacterItem) => {
     if (!item.canEdit) return
     setSelectedCharacter(item.character)
     setViewMode('wizard')
+    updateRouteState('wizard', item.character.id)
   }
 
   const handleBackFromSheet = () => {
     setSelectedCharacter(null)
     setViewMode('list')
+    updateRouteState('list')
     loadCharacters()
   }
 
   const handleBackFromWizard = () => {
     setSelectedCharacter(null)
     setViewMode('list')
+    updateRouteState('list')
   }
+
+  useEffect(() => {
+    if (!requestedCharacterId || !user) return
+    const fromTableList = tableCharacters.find((item) => item.character.id === requestedCharacterId)?.character
+    if (fromTableList) {
+      setSelectedCharacter(fromTableList)
+      return
+    }
+    getCharacter(user.id, requestedCharacterId)
+      .then((character) => {
+        if (!character) {
+          setSelectedCharacter(null)
+          updateRouteState('list')
+          return
+        }
+        setSelectedCharacter(character)
+      })
+      .catch(() => {
+        setSelectedCharacter(null)
+        updateRouteState('list')
+      })
+  }, [requestedCharacterId, tableCharacters, user])
 
   if (loading && !table) {
     return (
@@ -202,7 +265,10 @@ export default function MesaPage() {
           initialData={selectedCharacter.data}
           canEdit={canEdit}
           isTableGmEditor={isTableGmEditor}
-          onOpenEvolution={() => setViewMode('evolution')}
+          onOpenEvolution={() => {
+            setViewMode('evolution')
+            updateRouteState('evolution', selectedCharacter.id)
+          }}
           onCharacterSaved={(saved) => {
             setSelectedCharacter(saved)
             setTableCharacters((prev) =>
@@ -226,10 +292,14 @@ export default function MesaPage() {
         <CharacterEvolutionScreen
           initialCharacterData={selectedCharacter.data}
           isTableGmEditor={isTableGmEditor}
-          onCancel={() => setViewMode('sheet')}
+          onCancel={() => {
+            setViewMode('sheet')
+            updateRouteState('sheet', selectedCharacter.id)
+          }}
           onSaved={(saved) => {
             setSelectedCharacter(saved)
             setViewMode('sheet')
+            updateRouteState('sheet', saved.id)
             load()
           }}
         />
@@ -243,7 +313,10 @@ export default function MesaPage() {
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <motion.div className="max-w-2xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6" variants={fadeInUp} initial="hidden" animate="visible">
           <button
-            onClick={() => setViewMode('list')}
+            onClick={() => {
+              setViewMode('list')
+              updateRouteState('list')
+            }}
             className="inline-flex items-center gap-2 text-sm text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline mb-6 transition-colors duration-fast"
           >
             <ArrowLeft className="w-4 h-4" /> Voltar
