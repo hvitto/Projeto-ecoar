@@ -250,8 +250,7 @@ export const martialSchoolData: MartialSchoolData[] = [
         cost: 25,
         requirements: {
           aptitudes: { lethalis: 2 },
-          skills: { arqueria: 2 }, // ou Arremesso ou Balística
-          attributes: { raciocinio: 2 },
+          skills: { pontaria: 2, raciocinio: 2 },
         },
         effects: '',
       },
