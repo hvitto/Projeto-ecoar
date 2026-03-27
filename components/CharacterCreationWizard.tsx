@@ -6736,13 +6736,13 @@ function EcoarSelection({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
-  const { ecoarTypes: ecoaTypes } = useEcoarCatalogData()
+  const { playableEcoarTypes } = useEcoarCatalogData()
   return (
     <div className="space-y-6">
       <div>
         <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-4">Tipo de Ecoar</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ecoaTypes.map((ecoa) => (
+          {playableEcoarTypes.map((ecoa) => (
             <motion.button
               key={ecoa.id}
               onClick={() => onEcoarSelect(ecoa.id)}
@@ -7023,7 +7023,7 @@ function EcoarStep({
   onEcoarSelect: (id: string) => void
   onSingularidadesChange: (singularidades: string[]) => void
 }) {
-  const { ecoarTypes: ecoaTypes } = useEcoarCatalogData()
+  const { playableEcoarTypes } = useEcoarCatalogData()
   return (
     <div className="space-y-5">
       <div className="text-center mb-6">
@@ -7035,7 +7035,7 @@ function EcoarStep({
       <div>
         <h4 className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-3">Tipo de Ecoar</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ecoaTypes.map((ecoa) => (
+          {playableEcoarTypes.map((ecoa) => (
             <button
               key={ecoa.id}
               onClick={() => onEcoarSelect(ecoa.id)}

@@ -9,6 +9,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+let warnedMissingDatabaseUrl = false
+
 /** Resposta alinhada ao cliente: vazio → fallback para dados estáticos (sem 500). */
 function emptyCatalogResponse() {
   return NextResponse.json({
@@ -21,6 +23,16 @@ function emptyCatalogResponse() {
 }
 
 export async function GET() {
+  if (!process.env.DATABASE_URL?.trim()) {
+    if (!warnedMissingDatabaseUrl) {
+      warnedMissingDatabaseUrl = true
+      console.warn(
+        'GET equipment-catalog: DATABASE_URL não definido. Resposta vazia; o cliente usa o catálogo estático (data/equipment).'
+      )
+    }
+    return emptyCatalogResponse()
+  }
+
   try {
     const items = await listActiveCatalogItems()
     if (items.length === 0) {

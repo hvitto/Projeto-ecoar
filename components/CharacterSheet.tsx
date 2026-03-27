@@ -254,7 +254,8 @@ export default function CharacterSheet({
       slot1: undefined as EquippedWeaponState | undefined,
       slot2: undefined as EquippedWeaponState | undefined,
     },
-    equippedArmor: undefined as EquippedArmorState | undefined,
+    /** Peças de armadura (não acessório) equipadas — pode haver várias. */
+    equippedArmors: [] as EquippedArmorState[],
     equippedAccessories: [] as EquippedArmorState[],
     hasVestuarioEquipState: false,
     skills: {} as CharacterSkillState,
@@ -348,8 +349,9 @@ export default function CharacterSheet({
       const owned = findOwned(slot.instanceId)
       if (owned?.kind === 'weapon') add(weaponCatalogById.get(String(owned.catalogId)) as WeaponCatalogEntry | undefined)
     }
-    if (characterData.equippedArmor?.instanceId) {
-      const owned = findOwned(characterData.equippedArmor.instanceId)
+    for (const arm of characterData.equippedArmors ?? []) {
+      if (!arm?.instanceId) continue
+      const owned = findOwned(arm.instanceId)
       if (owned?.kind === 'armor')
         add(armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
     }
@@ -364,7 +366,7 @@ export default function CharacterSheet({
   }, [
     armorCatalogById,
     characterData.equippedAccessories,
-    characterData.equippedArmor,
+    characterData.equippedArmors,
     characterData.equippedWeapons,
     characterData.itensCatalogo,
     utilityCatalogById,
@@ -554,13 +556,19 @@ export default function CharacterSheet({
           updated.equippedWeapons = { slot1: undefined, slot2: undefined }
         }
 
-        const eqArmor = (initialData as any).equippedArmor
-        const hasEquippedArmorKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedArmor')
+        const eqArmors = (initialData as any).equippedArmors
+        const eqArmorLegacy = (initialData as any).equippedArmor
+        const hasEquippedArmorsKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedArmors')
+        const hasEquippedArmorLegacyKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedArmor')
         const hasEquippedAccessoriesKey = Object.prototype.hasOwnProperty.call(initialData, 'equippedAccessories')
-        if (eqArmor && typeof eqArmor === 'object' && typeof (eqArmor as any).instanceId === 'string') {
-          updated.equippedArmor = { instanceId: (eqArmor as any).instanceId }
+        if (Array.isArray(eqArmors)) {
+          updated.equippedArmors = eqArmors
+            .filter((it: unknown) => it && typeof it === 'object' && typeof (it as any).instanceId === 'string')
+            .map((it: any) => ({ instanceId: it.instanceId as string }))
+        } else if (eqArmorLegacy && typeof eqArmorLegacy === 'object' && typeof (eqArmorLegacy as any).instanceId === 'string') {
+          updated.equippedArmors = [{ instanceId: (eqArmorLegacy as any).instanceId as string }]
         } else {
-          updated.equippedArmor = undefined
+          updated.equippedArmors = []
         }
 
         const eqAccessories = (initialData as any).equippedAccessories
@@ -571,7 +579,8 @@ export default function CharacterSheet({
         } else {
           updated.equippedAccessories = []
         }
-        updated.hasVestuarioEquipState = hasEquippedArmorKey || hasEquippedAccessoriesKey
+        updated.hasVestuarioEquipState =
+          hasEquippedArmorsKey || hasEquippedArmorLegacyKey || hasEquippedAccessoriesKey
 
         // Singularities selected in the wizard
         if (initialData.singularidades) {
@@ -788,17 +797,19 @@ export default function CharacterSheet({
       const s2 = prev.equippedWeapons?.slot2
       const n1 = s1 && ownedIds.has(s1.instanceId) ? s1 : undefined
       const n2 = s2 && ownedIds.has(s2.instanceId) ? s2 : undefined
-      const armorState = prev.equippedArmor
-      const nextArmor = armorState && ownedIds.has(armorState.instanceId) ? armorState : undefined
+      const prevArmors = prev.equippedArmors ?? []
+      const nextArmors = prevArmors.filter((it) => ownedIds.has(it.instanceId))
       const nextAccessories = (prev.equippedAccessories ?? []).filter((it) => ownedIds.has(it.instanceId))
+      const armorsUnchanged =
+        nextArmors.length === prevArmors.length && nextArmors.every((it, i) => it.instanceId === prevArmors[i]?.instanceId)
       const accessoriesUnchanged =
         nextAccessories.length === (prev.equippedAccessories ?? []).length &&
         nextAccessories.every((it, idx) => it.instanceId === (prev.equippedAccessories ?? [])[idx]?.instanceId)
-      if (n1 === s1 && n2 === s2 && nextArmor === armorState && accessoriesUnchanged) return prev
+      if (n1 === s1 && n2 === s2 && armorsUnchanged && accessoriesUnchanged) return prev
       return {
         ...prev,
         equippedWeapons: { slot1: n1, slot2: n2 },
-        equippedArmor: nextArmor,
+        equippedArmors: nextArmors,
         equippedAccessories: nextAccessories,
       }
     })
@@ -1022,14 +1033,14 @@ export default function CharacterSheet({
         slot1: prev.equippedWeapons?.slot1?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot1,
         slot2: prev.equippedWeapons?.slot2?.instanceId === instanceId ? undefined : prev.equippedWeapons?.slot2,
       }
-      const nextArmor = prev.equippedArmor?.instanceId === instanceId ? undefined : prev.equippedArmor
+      const nextArmors = (prev.equippedArmors ?? []).filter((it) => it.instanceId !== instanceId)
       const nextAccessories = (prev.equippedAccessories ?? []).filter((it) => it.instanceId !== instanceId)
       return {
         ...prev,
         itensCatalogo: next,
         saldoMoedas: prev.saldoMoedas + refund,
         equippedWeapons: nextEquipped,
-        equippedArmor: nextArmor,
+        equippedArmors: nextArmors,
         equippedAccessories: nextAccessories,
       }
     })
@@ -1106,11 +1117,20 @@ export default function CharacterSheet({
 
   const toggleEquipArmorInstance = useCallback((instanceId: string, shouldEquip: boolean) => {
     if (!instanceId) return
-    setCharacterData((prev) => ({
-      ...prev,
-      hasVestuarioEquipState: true,
-      equippedArmor: shouldEquip ? { instanceId } : prev.equippedArmor?.instanceId === instanceId ? undefined : prev.equippedArmor,
-    }))
+    setCharacterData((prev) => {
+      const current = prev.equippedArmors ?? []
+      const already = current.some((it) => it.instanceId === instanceId)
+      if (shouldEquip) {
+        if (already) return prev
+        return { ...prev, hasVestuarioEquipState: true, equippedArmors: [...current, { instanceId }] }
+      }
+      if (!already) return prev
+      return {
+        ...prev,
+        hasVestuarioEquipState: true,
+        equippedArmors: current.filter((it) => it.instanceId !== instanceId),
+      }
+    })
   }, [])
 
   const toggleEquipAccessoryInstance = useCallback((instanceId: string, shouldEquip: boolean) => {
@@ -1558,7 +1578,9 @@ export default function CharacterSheet({
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
       equippedWeapons: characterData.equippedWeapons,
-      equippedArmor: characterData.equippedArmor,
+      equippedArmors: characterData.equippedArmors,
+      /** Compat.: leitores antigos que só conhecem uma armadura principal. */
+      equippedArmor: characterData.equippedArmors[0],
       equippedAccessories: characterData.equippedAccessories,
       skills: characterData.skills,
       aptitudes: characterData.aptitudes,
@@ -1786,22 +1808,25 @@ export default function CharacterSheet({
     return { used: usedCatalog, total: Math.max(0, total) }
   }, [armorCatalogById, characterData.espacos, characterData.itensCatalogo, coerceInt, parseSpaceNumber, utilityCatalogById, weaponCatalogById])
 
-  const activeArmor = useMemo(() => {
-    const equippedInstanceId = characterData.equippedArmor?.instanceId
-    if (equippedInstanceId) {
-      const owned = characterData.itensCatalogo.find((i) => i.instanceId === equippedInstanceId && i.kind === 'armor')
-      const entry = owned ? (armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined) : undefined
-      if (entry && entry.vestuarioTab !== 'acessorios') return entry
-    }
-    if (characterData.hasVestuarioEquipState) return null
+  /** Armaduras principais (não acessório) consideradas equipadas, com fallback legado se o jogador nunca usou o estado explícito. */
+  const equippedMainArmorEntries = useMemo(() => {
+    const fromState = (characterData.equippedArmors ?? [])
+      .map((state) => {
+        const owned = characterData.itensCatalogo.find((i) => i.instanceId === state.instanceId && i.kind === 'armor')
+        const entry = owned ? (armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined) : undefined
+        return entry && entry.vestuarioTab !== 'acessorios' ? entry : null
+      })
+      .filter((entry): entry is ArmorCatalogEntry => !!entry)
+    if (fromState.length > 0) return fromState
+    if (characterData.hasVestuarioEquipState) return []
     const ownedArmor = characterData.itensCatalogo.filter((i) => i.kind === 'armor')
-    if (ownedArmor.length === 0) return null
+    if (ownedArmor.length === 0) return []
     const last = ownedArmor
       .map((owned) => armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
       .filter((entry): entry is ArmorCatalogEntry => !!entry && entry.vestuarioTab !== 'acessorios')
       .at(-1)
-    return last ?? null
-  }, [armorCatalogById, characterData.equippedArmor, characterData.hasVestuarioEquipState, characterData.itensCatalogo])
+    return last ? [last] : []
+  }, [armorCatalogById, characterData.equippedArmors, characterData.hasVestuarioEquipState, characterData.itensCatalogo])
 
   const equippedAccessoryEntries = useMemo(() => {
     return (characterData.equippedAccessories ?? [])
@@ -1813,6 +1838,15 @@ export default function CharacterSheet({
       })
       .filter((entry): entry is ArmorCatalogEntry => !!entry)
   }, [armorCatalogById, characterData.equippedAccessories, characterData.itensCatalogo])
+
+  const equippedUtilityEntries = useMemo(() => {
+    return (characterData.equippedAccessories ?? [])
+      .map((state) => {
+        const owned = characterData.itensCatalogo.find((i) => i.instanceId === state.instanceId && i.kind === 'utility')
+        return owned ? (utilityCatalogById.get(String(owned.catalogId)) as UtilityCatalogEntry | undefined) : undefined
+      })
+      .filter((entry): entry is UtilityCatalogEntry => !!entry)
+  }, [characterData.equippedAccessories, characterData.itensCatalogo, utilityCatalogById])
 
   const totalResistances = useMemo(() => {
     const normalizeText = (raw: string): string =>
@@ -1874,7 +1908,9 @@ export default function CharacterSheet({
       acc[key] = 0
       return acc
     }, {} as ArmorResistanceValues)
-    const equippedEntries = [activeArmor, ...equippedAccessoryEntries].filter((entry): entry is ArmorCatalogEntry => !!entry)
+    const equippedEntries = [...equippedMainArmorEntries, ...equippedAccessoryEntries].filter(
+      (entry): entry is ArmorCatalogEntry => !!entry,
+    )
     equippedEntries.forEach((entry) => {
       const entryValues = collectEntryResistances(entry)
       ARMOR_RESISTANCE_KEYS.forEach((key) => {
@@ -1890,10 +1926,12 @@ export default function CharacterSheet({
       base.esmagador += racialRules.physicalResistanceBonus
     }
     return base
-  }, [activeArmor, equippedAccessoryEntries, racialRules.physicalResistanceBonus])
+  }, [equippedMainArmorEntries, equippedAccessoryEntries, racialRules.physicalResistanceBonus])
 
   const totalArmorStats = useMemo(() => {
-    const equippedEntries = [activeArmor, ...equippedAccessoryEntries].filter((entry): entry is ArmorCatalogEntry => !!entry)
+    const equippedEntries = [...equippedMainArmorEntries, ...equippedAccessoryEntries].filter(
+      (entry): entry is ArmorCatalogEntry => !!entry,
+    )
     const parseSignedInt = (raw?: string): number => {
       if (!raw) return 0
       const m = String(raw).match(/-?\d+/)
@@ -1905,7 +1943,7 @@ export default function CharacterSheet({
     const esquiva = equippedEntries.reduce((sum, entry) => sum + parseSignedInt(entry.esquiva), 0)
     const furtividade = equippedEntries.reduce((sum, entry) => sum + parseSignedInt(entry.furtividade), 0)
     return { crit, esquiva, furtividade }
-  }, [activeArmor, equippedAccessoryEntries])
+  }, [equippedMainArmorEntries, equippedAccessoryEntries])
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
@@ -2900,7 +2938,9 @@ export default function CharacterSheet({
                   Resistência a dano
                 </h3>
                 <div className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60 truncate">
-                  {activeArmor?.name ? `Armadura: ${activeArmor.name}` : 'Sem armadura equipada'}
+                  {equippedMainArmorEntries.length > 0
+                    ? `Armaduras: ${equippedMainArmorEntries.map((e) => e.name).join(', ')}`
+                    : 'Sem armadura equipada'}
                 </div>
               </div>
 
@@ -2952,7 +2992,13 @@ export default function CharacterSheet({
                     Origem (equipados)
                   </div>
                   <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80 break-words">
-                    {[activeArmor?.name, ...equippedAccessoryEntries.map((a) => a.name)].filter(Boolean).join(' + ') || '—'}
+                    {[
+                      ...equippedMainArmorEntries.map((e) => e.name),
+                      ...equippedAccessoryEntries.map((a) => a.name),
+                      ...equippedUtilityEntries.map((u) => u.name),
+                    ]
+                      .filter(Boolean)
+                      .join(' + ') || '—'}
                   </div>
                 </div>
               </div>
@@ -3227,15 +3273,17 @@ export default function CharacterSheet({
                                             <div className="mt-1 flex items-center gap-2">
                                               <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
                                                 <input
-                                                  type="checkbox"
-                                                  checked={characterData.equippedArmor?.instanceId === item.instanceId}
-                                                  disabled={!canEditSheet}
-                                                  onChange={(e) => {
-                                                    if (!isEditing) handleStartEdit()
-                                                    toggleEquipArmorInstance(item.instanceId, e.target.checked)
-                                                  }}
-                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
-                                                />
+                                                    type="checkbox"
+                                                    checked={(characterData.equippedArmors ?? []).some(
+                                                      (it) => it.instanceId === item.instanceId,
+                                                    )}
+                                                    disabled={!canEditSheet}
+                                                    onChange={(e) => {
+                                                      if (!isEditing) handleStartEdit()
+                                                      toggleEquipArmorInstance(item.instanceId, e.target.checked)
+                                                    }}
+                                                    className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
+                                                  />
                                                 Equipar armadura
                                               </label>
                                             </div>
@@ -3254,6 +3302,23 @@ export default function CharacterSheet({
                                                   className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
                                                 />
                                                 Equipar acessório
+                                              </label>
+                                            </div>
+                                          )}
+                                          {item.kind === 'utility' && (
+                                            <div className="mt-1 flex items-center gap-2">
+                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={(characterData.equippedAccessories ?? []).some((it) => it.instanceId === item.instanceId)}
+                                                  disabled={!canEditSheet}
+                                                  onChange={(e) => {
+                                                    if (!isEditing) handleStartEdit()
+                                                    toggleEquipAccessoryInstance(item.instanceId, e.target.checked)
+                                                  }}
+                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
+                                                />
+                                                Equipar (equipamento)
                                               </label>
                                             </div>
                                           )}
@@ -3316,10 +3381,15 @@ export default function CharacterSheet({
                                 Vestuário equipado
                               </div>
                               <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
-                                Armadura: {activeArmor?.name ?? '—'}
+                                Armaduras:{' '}
+                                {equippedMainArmorEntries.map((e) => e.name).join(', ') || '—'}
                               </div>
                               <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
-                                Acessórios: {equippedAccessoryEntries.map((entry) => entry.name).join(', ') || '—'}
+                                Acessórios / outros:{' '}
+                                {[
+                                  ...equippedAccessoryEntries.map((entry) => entry.name),
+                                  ...equippedUtilityEntries.map((u) => u.name),
+                                ].join(', ') || '—'}
                               </div>
                               <div className="mt-1 text-[11px] text-slate-500 dark:text-ecoar-light-900/55">
                                 Esquiva total: {totalArmorStats.esquiva} · Furtividade total: {totalArmorStats.furtividade}

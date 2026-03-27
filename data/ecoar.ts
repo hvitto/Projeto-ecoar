@@ -9,6 +9,24 @@ export interface Ecoar {
   description: string
 }
 
+/** Tipos de Eco jogáveis (exclui agrupadores de sistema: criação, marcial, racial no mesmo catálogo). */
+const PLAYABLE_ECOAR_TYPE_SET = new Set<string>([
+  'apodrecido',
+  'elisiade',
+  'fenix',
+  'geist',
+  'immortalis',
+  'lycantropo',
+  'proelita',
+  'revenant',
+  'triade',
+  'vampiro',
+])
+
+export function isPlayableEcoarCatalogEntry(eco: { type: string }): boolean {
+  return PLAYABLE_ECOAR_TYPE_SET.has(eco.type)
+}
+
 export const ecoarTypes: Ecoar[] = [
   {
     id: 'apodrecido',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ecoarTypes as staticEcoarTypes } from '@/data/ecoar'
+import { ecoarTypes as staticEcoarTypes, isPlayableEcoarCatalogEntry } from '@/data/ecoar'
 import { ecoarSingularities as staticEcoarSingularities } from '@/data/ecoarSingularities'
 import type { Ecoar } from '@/data/ecoar'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
@@ -50,11 +50,19 @@ export function useEcoarCatalogData() {
     return map
   }, [ecoarTypes])
 
+  const playableEcoarTypes = useMemo(() => {
+    const filtered = ecoarTypes.filter(isPlayableEcoarCatalogEntry)
+    if (filtered.length > 0) return filtered
+    return staticEcoarTypes.filter(isPlayableEcoarCatalogEntry)
+  }, [ecoarTypes])
+
   return {
     ecoarSingularities,
     source,
     loading,
     ecoarTypes,
+    /** Apenas tipos de Eco (imortais etc.); sem agrupadores Criação/Marcial/Racial do catálogo unificado. */
+    playableEcoarTypes,
     getEcoarById: (id: string) => ecoarById.get(id),
     getEcoarSingularitiesByEcoarId: (ecoarId: string) => ecoarSingularities.filter((s) => s.ecoarId === ecoarId),
     getEcoarSingularityById: (id: string) => singularityById.get(id),
