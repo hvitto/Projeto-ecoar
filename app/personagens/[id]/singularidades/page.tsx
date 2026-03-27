@@ -6,8 +6,42 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getCharacter } from '@/lib/storage/characterStorage'
-import type { CharacterWithMetadata } from '@/types/auth'
+import type { CharacterData, CharacterWithMetadata } from '@/types/auth'
 import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
+import type { CharacterSingularitySelectionSlice } from '@/lib/characterBonuses'
+import { useSystemSingularityBonuses } from '@/lib/useSystemSingularityBonuses'
+
+function PlayerSingularitiesSection({ characterData }: { characterData: CharacterData }) {
+  const selectionSlice = useMemo((): CharacterSingularitySelectionSlice => {
+    return {
+      singularidades: (characterData.singularidades as string[] | undefined) ?? [],
+      singularidadesEcoar: (characterData.singularidadesEcoar as string[] | undefined) ?? [],
+      singularidadesMarciais: (characterData.singularidadesMarciais as string[] | undefined) ?? [],
+      singularidadesRaciais: (characterData.singularidadesRaciais as string[] | undefined) ?? [],
+      singularidadesCondicionaisCriacaoAtivas:
+        (characterData.singularidadesCondicionaisCriacaoAtivas as string[] | undefined) ?? [],
+      singularidadesCondicionaisAtivas:
+        (characterData.singularidadesCondicionaisAtivas as string[] | undefined) ?? [],
+      singularidadesCondicionaisMarciaisAtivas:
+        (characterData.singularidadesCondicionaisMarciaisAtivas as string[] | undefined) ?? [],
+      singularidadesCondicionaisRaciaisAtivas:
+        (characterData.singularidadesCondicionaisRaciaisAtivas as string[] | undefined) ?? [],
+    }
+  }, [
+    characterData.singularidades,
+    characterData.singularidadesEcoar,
+    characterData.singularidadesMarciais,
+    characterData.singularidadesRaciais,
+    characterData.singularidadesCondicionaisCriacaoAtivas,
+    characterData.singularidadesCondicionaisAtivas,
+    characterData.singularidadesCondicionaisMarciaisAtivas,
+    characterData.singularidadesCondicionaisRaciaisAtivas,
+  ])
+
+  const singularityBonuses = useSystemSingularityBonuses(selectionSlice)
+
+  return <PlayerSingularitiesViewer characterData={characterData} singularityBonuses={singularityBonuses} />
+}
 
 export default function PlayerSingularitiesPage() {
   const params = useParams()
@@ -107,7 +141,7 @@ export default function PlayerSingularitiesPage() {
           )}
           {!loading && !error && character && (
             <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/50 p-4">
-              <PlayerSingularitiesViewer characterData={character.data} />
+              <PlayerSingularitiesSection characterData={character.data} />
             </div>
           )}
         </div>

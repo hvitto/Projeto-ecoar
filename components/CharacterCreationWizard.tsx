@@ -180,10 +180,12 @@ interface CharacterCreationData {
 interface CharacterCreationWizardProps {
   onComplete: (data: CharacterCreationData) => void
   initialData?: Partial<CharacterCreationData>
+  /** Logo / início: volta ao painel sem confundir com novo personagem */
+  onGoToDashboard?: () => void
 }
 
-export default function CharacterCreationWizard({ onComplete, initialData }: CharacterCreationWizardProps) {
-  const { ecoarSingularities } = useEcoarCatalogData()
+export default function CharacterCreationWizard({ onComplete, initialData, onGoToDashboard }: CharacterCreationWizardProps) {
+  const { ecoarSingularities, getEcoarSingularityById } = useEcoarCatalogData()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -221,6 +223,11 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   const [selectedEcoar, setSelectedEcoar] = useState<string>('')
   const [singularidadesEcoar, setSingularidadesEcoar] = useState<string[]>([])
   const [singularidadesRaciais, setSingularidadesRaciais] = useState<string[]>([])
+  /** Gastos de PC na aba Trilha (estado elevado para somar com traços ao trocar sub-etapa). */
+  const [pathSingularityBase, setPathSingularityBase] = useState('')
+  const [pathBruxarias, setPathBruxarias] = useState<string[]>([])
+  const [pathCacadaPowers, setPathCacadaPowers] = useState<string[]>([])
+  const [pathCacadaEnhancements, setPathCacadaEnhancements] = useState<string[]>([])
   const [pontosCriacao, setPontosCriacao] = useState({ obtidos: 30, gastos: 0, disponiveis: 30 }) // Começa com 30
   const [nome, setNome] = useState('')
   const [backstory, setBackstory] = useState('')
@@ -242,6 +249,18 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
         return prev
       }
       return { ...prev, gastos, disponiveis }
+    })
+  }, [])
+
+  const handleTrilhaSelectForPCStep = useCallback((id: string) => {
+    setSelectedTrilha((prev) => {
+      if (id !== prev) {
+        setPathSingularityBase('')
+        setPathBruxarias([])
+        setPathCacadaPowers([])
+        setPathCacadaEnhancements([])
+      }
+      return id
     })
   }, [])
 
@@ -539,6 +558,84 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     if (!school) return []
     return singularidades.filter((s) => school.singularities.some((sing) => sing.id === s))
   }, [singularidades, selectedEscolaMarcial])
+
+  /** PC gasto em singularidades (criação + ecoar + marciais + raciais), mesma regra de SingularitiesSpendingStep. */
+  const gastosPCEmSingularidades = useMemo(() => {
+    const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
+    const criacaoCost = singularidades.reduce((sum, singId) => {
+      if (school?.singularities.some((s) => s.id === singId)) return sum
+      let sing: { cost?: number } | null | undefined = getCreationSingularityById(singId)
+      if (!sing) sing = getSingularityById(singId)
+      return sum + (sing?.cost || 0)
+    }, 0)
+    const ecoarCost = singularidadesEcoar.reduce((sum, singId) => {
+      const sing = getEcoarSingularityById(singId)
+      return sum + (sing?.cost || 0)
+    }, 0)
+    const marciaisCost = school
+      ? singularidadesMarciaisFiltered.reduce((sum, singId) => {
+          const sing = school.singularities.find((s) => s.id === singId)
+          return sum + (sing ? sing.cost : 0)
+        }, 0)
+      : 0
+    const raciaisCost = singularidadesRaciais.reduce((sum, singId) => {
+      const sing = getRacialSingularityById(singId)
+      return sum + (sing?.cost ?? 0)
+    }, 0)
+    return criacaoCost + ecoarCost + marciaisCost + raciaisCost
+  }, [
+    singularidades,
+    singularidadesEcoar,
+    singularidadesMarciaisFiltered,
+    singularidadesRaciais,
+    selectedEscolaMarcial,
+    getEcoarSingularityById,
+  ])
+
+  /** PC gasto na aba Trilha (base + caçada). */
+  const gastosPCEmTrilha = useMemo(() => {
+    const pathBaseSingularity = selectedTrilha ? getPathBaseSingularityByPathId(selectedTrilha) : null
+    let total = 0
+    if (pathSingularityBase && pathBaseSingularity) {
+      total += pathBaseSingularity.cost
+    }
+    // Bruxarias are free
+    pathCacadaPowers.forEach((powerId) => {
+      const power = getCacadaPowerById(powerId)
+      if (power) total += power.cost
+    })
+    pathCacadaEnhancements.forEach((enhId) => {
+      const enh = getCacadaEnhancementById(enhId)
+      if (enh) total += enh.cost
+    })
+    return total
+  }, [selectedTrilha, pathSingularityBase, pathCacadaPowers, pathCacadaEnhancements])
+
+  /** PC gasto em atributos (além dos 12) e aptidões (além dos 3). */
+  const gastosPCEmTracos = useMemo(() => {
+    const totalBase = CHARACTER_ATTRIBUTE_KEYS.reduce((sum, a) => {
+      const k = a as keyof typeof attributes
+      const rB = raceBonuses[k] || 0
+      const mB = martialSchoolBonuses[k] || 0
+      return sum + Math.max(0, (attributes[k] ?? 0) - rB - mB)
+    }, 0)
+    const pointsOverFreeAttrs = Math.max(0, totalBase - 12)
+    const aptTotal = Object.values(aptitudes).reduce((s, l) => s + l, 0)
+    const pointsOverFreeApt = Math.max(0, aptTotal - 3)
+    return pointsOverFreeAttrs * 10 + pointsOverFreeApt * 20
+  }, [attributes, aptitudes, raceBonuses, martialSchoolBonuses])
+
+  /** Singularidades + trilha (tudo que não é traço atributo/aptidão). */
+  const gastosPCNaoTracos = useMemo(
+    () => gastosPCEmSingularidades + gastosPCEmTrilha,
+    [gastosPCEmSingularidades, gastosPCEmTrilha],
+  )
+
+  /** Sincroniza gastos de PC na etapa "Gastando PC" a partir do estado (singularidades + trilha + traços). */
+  useEffect(() => {
+    if (currentStep !== 5) return
+    handleCreationPointsSpentChange(gastosPCNaoTracos + gastosPCEmTracos)
+  }, [currentStep, gastosPCNaoTracos, gastosPCEmTracos, handleCreationPointsSpentChange])
 
   const systemSingularities = useMemo(() => buildSystemSingularities(ecoarSingularities), [ecoarSingularities])
   const systemSingularityById = useMemo(() => {
@@ -893,7 +990,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   if (showIntroduction) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header onNewCharacter={() => {}} />
+        <Header onGoToDashboard={onGoToDashboard} />
         <main className="flex-1 w-full min-h-[calc(100vh-4rem)] px-3 sm:px-4 md:px-6 py-6 md:py-8">
           <div className="max-w-[1600px] mx-auto">
             <motion.div
@@ -956,7 +1053,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
   return (
     <div className="h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden">
       <div className="flex-shrink-0">
-        <Header onNewCharacter={() => {}} />
+        <Header onGoToDashboard={onGoToDashboard} />
       </div>
       {/* Área de conteúdo preenche a viewport para o footer ficar sempre abaixo da dobra (só visível ao rolar) */}
       <div className="flex-1 min-h-[calc(100dvh-5rem)] flex items-stretch gap-4 min-w-0">
@@ -1258,7 +1355,15 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     selectedEcoar={selectedEcoar}
                     singularidadesEcoar={singularidadesEcoar}
                     selectedTrilha={selectedTrilha}
-                    onTrilhaSelect={setSelectedTrilha}
+                    onTrilhaSelect={handleTrilhaSelectForPCStep}
+                    pathSingularityBase={pathSingularityBase}
+                    onPathSingularityBaseChange={setPathSingularityBase}
+                    pathBruxarias={pathBruxarias}
+                    onPathBruxariasChange={setPathBruxarias}
+                    pathCacadaPowers={pathCacadaPowers}
+                    onPathCacadaPowersChange={setPathCacadaPowers}
+                    pathCacadaEnhancements={pathCacadaEnhancements}
+                    onPathCacadaEnhancementsChange={setPathCacadaEnhancements}
                     attributes={attributes}
                     skills={skills}
                     aptitudes={aptitudes}
@@ -1288,7 +1393,6 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     onAttributesChange={(attrs: Record<string, number>) => setAttributes(attrs as typeof attributes)}
                     onSkillsChange={setSkills}
                     onAptitudesChange={setAptitudes}
-                    onPointsChange={handleCreationPointsSpentChange}
                     pontosCriacao={pontosCriacao}
                     nivelAlma={nivelAlmaInicial}
                     activeSubStep={pcSubStep}
@@ -3852,8 +3956,8 @@ function AttributesStep({
         const newPointsOverFree = Math.max(0, newTotalBase - 12)
         const costInPC = (newPointsOverFree - currentPointsOverFree) * 10
         if (costInPC <= 0) return true
-        const pcDisponivelParaAtributos = pontosCriacao.disponiveis - currentPointsOverFree * 10
-        return pcDisponivelParaAtributos >= costInPC
+        // disponiveis já reflete obtidos - gastos (incluindo PC já gasto em atributos)
+        return pontosCriacao.disponiveis >= costInPC
       }
       return attributePoints > 0
     })()
@@ -5268,7 +5372,6 @@ function PathSingularitiesTab({
   onCacadaPowersChange,
   onCacadaEnhancementsChange,
   pontosDisponiveis,
-  onPointsChange,
 }: {
   selectedTrilha: string
   selectedPathBase: string
@@ -5281,7 +5384,6 @@ function PathSingularitiesTab({
   onCacadaPowersChange: (ids: string[]) => void
   onCacadaEnhancementsChange: (ids: string[]) => void
   pontosDisponiveis: number
-  onPointsChange: (gastos: number) => void
 }) {
   const selectedPath = selectedTrilha ? getPathById(selectedTrilha) : null
   const pathBaseSingularity = selectedTrilha ? getPathBaseSingularityByPathId(selectedTrilha) : null
@@ -5309,10 +5411,8 @@ function PathSingularitiesTab({
   const togglePathBase = (id: string) => {
     if (selectedPathBase === id) {
       onPathBaseSelect('')
-      onPointsChange(calculateTotalCost() - (pathBaseSingularity?.cost || 0))
     } else {
       onPathBaseSelect(id)
-      onPointsChange(calculateTotalCost())
     }
   }
 
@@ -5341,23 +5441,10 @@ function PathSingularitiesTab({
       })
       onCacadaPowersChange(newPowers)
       onCacadaEnhancementsChange(newEnhancements)
-      
-      // Recalculate cost
-      let newCost = selectedPathBase && pathBaseSingularity ? pathBaseSingularity.cost : 0
-      newPowers.forEach(pId => {
-        const p = getCacadaPowerById(pId)
-        if (p) newCost += p.cost
-      })
-      newEnhancements.forEach(eId => {
-        const e = getCacadaEnhancementById(eId)
-        if (e) newCost += e.cost
-      })
-      onPointsChange(newCost)
     } else {
       // Add power if can afford
       if (pontosDisponiveis >= (currentCost + power.cost)) {
         onCacadaPowersChange([...selectedCacadaPowers, id])
-        onPointsChange(currentCost + power.cost)
       }
     }
   }
@@ -5376,18 +5463,6 @@ function PathSingularitiesTab({
     if (isSelected) {
       const newEnhancements = selectedCacadaEnhancements.filter(e => e !== id)
       onCacadaEnhancementsChange(newEnhancements)
-      
-      // Recalculate cost
-      let newCost = selectedPathBase && pathBaseSingularity ? pathBaseSingularity.cost : 0
-      selectedCacadaPowers.forEach(pId => {
-        const p = getCacadaPowerById(pId)
-        if (p) newCost += p.cost
-      })
-      newEnhancements.forEach(eId => {
-        const e = getCacadaEnhancementById(eId)
-        if (e) newCost += e.cost
-      })
-      onPointsChange(newCost)
     } else {
       // Check if another enhancement for same power is selected
       const otherEnhancements = selectedCacadaEnhancements.filter(e => {
@@ -5401,7 +5476,6 @@ function PathSingularitiesTab({
 
       if (pontosDisponiveis >= (currentCost + enhancement.cost)) {
         onCacadaEnhancementsChange([...selectedCacadaEnhancements, id])
-        onPointsChange(currentCost + enhancement.cost)
       }
     }
   }
@@ -5468,15 +5542,11 @@ function PathSingularitiesTab({
         </div>
         <button
           onClick={() => {
-            // Primeiro limpa as seleções
             onPathBaseSelect('')
             onBruxariasChange([])
             onCacadaPowersChange([])
             onCacadaEnhancementsChange([])
-            // Depois remove a trilha (isso vai recalcular os pontos automaticamente)
             onTrilhaSelect('')
-            // Reseta os pontos gastos da trilha
-            onPointsChange(0)
           }}
           className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 transition-colors text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-900 dark:text-ecoar-light-900"
           title="Remover Trilha"
@@ -5644,6 +5714,14 @@ function PCSpendingStep({
   singularidadesEcoar,
   selectedTrilha,
   onTrilhaSelect,
+  pathSingularityBase,
+  onPathSingularityBaseChange,
+  pathBruxarias,
+  onPathBruxariasChange,
+  pathCacadaPowers,
+  onPathCacadaPowersChange,
+  pathCacadaEnhancements,
+  onPathCacadaEnhancementsChange,
   attributes,
   skills,
   aptitudes,
@@ -5663,7 +5741,6 @@ function PCSpendingStep({
   onAttributesChange,
   onSkillsChange,
   onAptitudesChange,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   activeSubStep,
@@ -5674,6 +5751,14 @@ function PCSpendingStep({
   singularidadesEcoar: string[]
   selectedTrilha: string
   onTrilhaSelect: (id: string) => void
+  pathSingularityBase: string
+  onPathSingularityBaseChange: (id: string) => void
+  pathBruxarias: string[]
+  onPathBruxariasChange: (ids: string[]) => void
+  pathCacadaPowers: string[]
+  onPathCacadaPowersChange: (ids: string[]) => void
+  pathCacadaEnhancements: string[]
+  onPathCacadaEnhancementsChange: (ids: string[]) => void
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
@@ -5693,7 +5778,6 @@ function PCSpendingStep({
   onAttributesChange: (attrs: Record<string, number>) => void
   onSkillsChange: (skills: Record<string, { level: number; specialization?: string }>) => void
   onAptitudesChange: (apts: Record<string, number>) => void
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   activeSubStep: 'singularidades' | 'traços' | 'escola-marcial'
@@ -5710,6 +5794,14 @@ function PCSpendingStep({
             singularidadesEcoar={singularidadesEcoar}
             selectedTrilha={selectedTrilha}
             onTrilhaSelect={onTrilhaSelect}
+            pathSingularityBase={pathSingularityBase}
+            onPathSingularityBaseChange={onPathSingularityBaseChange}
+            pathBruxarias={pathBruxarias}
+            onPathBruxariasChange={onPathBruxariasChange}
+            pathCacadaPowers={pathCacadaPowers}
+            onPathCacadaPowersChange={onPathCacadaPowersChange}
+            pathCacadaEnhancements={pathCacadaEnhancements}
+            onPathCacadaEnhancementsChange={onPathCacadaEnhancementsChange}
             selectedEscolaMarcial={selectedEscolaMarcial}
             onEscolaMarcialSelect={onEscolaMarcialSelect}
             singularidadesMarciais={singularidadesMarciais}
@@ -5721,7 +5813,6 @@ function PCSpendingStep({
             onSingularidadesChange={onSingularidadesChange}
             onEcoarSelect={onEcoarSelect}
             onSingularidadesEcoarChange={onSingularidadesEcoarChange}
-            onPointsChange={onPointsChange}
             pontosCriacao={pontosCriacao}
             nivelAlma={nivelAlma}
             attributes={attributes}
@@ -5741,7 +5832,6 @@ function PCSpendingStep({
             onAttributesChange={onAttributesChange}
             onSkillsChange={onSkillsChange}
             onAptitudesChange={onAptitudesChange}
-            onPointsChange={onPointsChange}
           />
         )}
 
@@ -5757,6 +5847,14 @@ function SingularitiesSpendingStep({
   singularidadesEcoar,
   selectedTrilha,
   onTrilhaSelect,
+  pathSingularityBase,
+  onPathSingularityBaseChange,
+  pathBruxarias,
+  onPathBruxariasChange,
+  pathCacadaPowers,
+  onPathCacadaPowersChange,
+  pathCacadaEnhancements,
+  onPathCacadaEnhancementsChange,
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
   singularidadesMarciais,
@@ -5768,7 +5866,6 @@ function SingularitiesSpendingStep({
   onSingularidadesChange,
   onEcoarSelect,
   onSingularidadesEcoarChange,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   attributes,
@@ -5780,6 +5877,14 @@ function SingularitiesSpendingStep({
   singularidadesEcoar: string[]
   selectedTrilha: string
   onTrilhaSelect: (id: string) => void
+  pathSingularityBase: string
+  onPathSingularityBaseChange: (id: string) => void
+  pathBruxarias: string[]
+  onPathBruxariasChange: (ids: string[]) => void
+  pathCacadaPowers: string[]
+  onPathCacadaPowersChange: (ids: string[]) => void
+  pathCacadaEnhancements: string[]
+  onPathCacadaEnhancementsChange: (ids: string[]) => void
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
   singularidadesMarciais: string[]
@@ -5791,7 +5896,6 @@ function SingularitiesSpendingStep({
   onSingularidadesChange: (singularidades: string[]) => void
   onEcoarSelect: (id: string) => void
   onSingularidadesEcoarChange: (singularidades: string[]) => void
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   attributes: Record<string, number>
@@ -5800,12 +5904,8 @@ function SingularitiesSpendingStep({
 }) {
   const { getEcoarSingularityById } = useEcoarCatalogData()
   const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
-  const [selectedBruxarias, setSelectedBruxarias] = useState<string[]>([])
-  const [selectedCacadaPowers, setSelectedCacadaPowers] = useState<string[]>([])
-  const [selectedCacadaEnhancements, setSelectedCacadaEnhancements] = useState<string[]>([])
-  const [selectedPathBase, setSelectedPathBase] = useState<string>('')
 
-  // Calcula o custo total incluindo todas as singularidades
+  // Custo de singularidades (singularidades + trilha são sincronizados no pai via useEffect)
   const calculateTotalCost = useCallback(() => {
     // Custo das singularidades de criação (excluindo marciais e raciais)
     const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
@@ -5841,12 +5941,6 @@ function SingularitiesSpendingStep({
 
     return criacaoCost + ecoarCost + marciaisCost + raciaisCost
   }, [singularidades, singularidadesEcoar, singularidadesMarciais, singularidadesRaciais, selectedEscolaMarcial])
-
-  // Atualiza o custo total quando qualquer singularidade muda
-  useEffect(() => {
-    const totalCost = calculateTotalCost()
-    onPointsChange(totalCost)
-  }, [singularidades, singularidadesEcoar, singularidadesMarciais, singularidadesRaciais, calculateTotalCost, onPointsChange])
 
   const toggleSingularity = (id: string, isCreation: boolean = false) => {
     let singularity: any = null
@@ -5995,7 +6089,6 @@ function SingularitiesSpendingStep({
             singularidadesMarciais={singularidadesMarciais}
             onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
             pontosDisponiveis={pontosDisponiveis}
-            onPointsChange={onPointsChange}
             pontosCriacao={pontosCriacao}
             nivelAlma={nivelAlma}
             attributes={attributes}
@@ -6010,7 +6103,6 @@ function SingularitiesSpendingStep({
             singularidadesRaciais={singularidadesRaciais}
             onSingularidadesRaciaisChange={onSingularidadesRaciaisChange}
             pontosDisponiveis={pontosDisponiveis}
-            onPointsChange={onPointsChange}
             pontosCriacao={pontosCriacao}
             nivelAlma={nivelAlma}
             attributes={attributes}
@@ -6022,27 +6114,24 @@ function SingularitiesSpendingStep({
         {activeTab === 'trilha' && (
           <PathSingularitiesTab
             selectedTrilha={selectedTrilha}
-            selectedPathBase={selectedPathBase}
-            selectedBruxarias={selectedBruxarias}
-            selectedCacadaPowers={selectedCacadaPowers}
-            selectedCacadaEnhancements={selectedCacadaEnhancements}
+            selectedPathBase={pathSingularityBase}
+            selectedBruxarias={pathBruxarias}
+            selectedCacadaPowers={pathCacadaPowers}
+            selectedCacadaEnhancements={pathCacadaEnhancements}
             onTrilhaSelect={(id) => {
-              // Se mudar a trilha, limpa as seleções específicas
               if (id !== selectedTrilha) {
-                setSelectedPathBase('')
-                setSelectedBruxarias([])
-                setSelectedCacadaPowers([])
-                setSelectedCacadaEnhancements([])
+                onPathSingularityBaseChange('')
+                onPathBruxariasChange([])
+                onPathCacadaPowersChange([])
+                onPathCacadaEnhancementsChange([])
               }
-              // Atualiza a trilha selecionada no componente pai
               onTrilhaSelect(id)
             }}
-            onPathBaseSelect={setSelectedPathBase}
-            onBruxariasChange={setSelectedBruxarias}
-            onCacadaPowersChange={setSelectedCacadaPowers}
-            onCacadaEnhancementsChange={setSelectedCacadaEnhancements}
+            onPathBaseSelect={onPathSingularityBaseChange}
+            onBruxariasChange={onPathBruxariasChange}
+            onCacadaPowersChange={onPathCacadaPowersChange}
+            onCacadaEnhancementsChange={onPathCacadaEnhancementsChange}
             pontosDisponiveis={pontosDisponiveis}
-            onPointsChange={onPointsChange}
           />
         )}
 
@@ -6053,7 +6142,6 @@ function SingularitiesSpendingStep({
             onEcoarSelect={onEcoarSelect}
             onSingularidadesEcoarChange={onSingularidadesEcoarChange}
             pontosDisponiveis={pontosDisponiveis}
-            onPointsChange={onPointsChange}
             pontosCriacao={pontosCriacao}
             nivelAlma={nivelAlma}
             attributes={attributes}
@@ -6072,7 +6160,6 @@ function EcoarSingularitiesList({
   singularidadesEcoar,
   onSingularidadesEcoarChange,
   pontosDisponiveis,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   attributes,
@@ -6083,7 +6170,6 @@ function EcoarSingularitiesList({
   singularidadesEcoar: string[]
   onSingularidadesEcoarChange: (singularidades: string[]) => void
   pontosDisponiveis: number
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   attributes: Record<string, number>
@@ -6256,7 +6342,6 @@ function MartialSingularitiesTab({
   singularidadesMarciais,
   onSingularidadesMarciaisChange,
   pontosDisponiveis,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   attributes,
@@ -6268,7 +6353,6 @@ function MartialSingularitiesTab({
   singularidadesMarciais: string[]
   onSingularidadesMarciaisChange: (ids: string[]) => void
   pontosDisponiveis: number
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   attributes: Record<string, number>
@@ -6277,21 +6361,6 @@ function MartialSingularitiesTab({
 }) {
   const allMartialSchools = getAllMartialSchools()
   const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
-
-  // Calcula pontos gastos usando custo oficial direto em PC
-  const calculateCost = useCallback(() => {
-    if (!school) return 0
-    return singularidadesMarciais.reduce((sum, singId) => {
-      const sing = school.singularities.find(s => s.id === singId)
-      return sum + (sing ? sing.cost : 0)
-    }, 0)
-  }, [school, singularidadesMarciais])
-
-  // Atualiza pontos gastos quando singularidades mudam
-  useEffect(() => {
-    const total = calculateCost()
-    onPointsChange(total)
-  }, [singularidadesMarciais, calculateCost, onPointsChange])
 
   // Valida requisitos de uma singularidade marcial
   const checkRequirements = useCallback((singularity: MartialSchoolSingularity): { valid: boolean; missingReqs: string[] } => {
@@ -6509,7 +6578,6 @@ function RacialSingularitiesTab({
   singularidadesRaciais,
   onSingularidadesRaciaisChange,
   pontosDisponiveis,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   attributes,
@@ -6520,7 +6588,6 @@ function RacialSingularitiesTab({
   singularidadesRaciais: string[]
   onSingularidadesRaciaisChange: (ids: string[]) => void
   pontosDisponiveis: number
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   attributes: Record<string, number>
@@ -6529,13 +6596,6 @@ function RacialSingularitiesTab({
 }) {
   const race = selectedRaca ? getRaceById(selectedRaca) : null
   const racialList = selectedRaca ? getRacialSingularitiesByRaceId(selectedRaca) : []
-  useEffect(() => {
-    const total = singularidadesRaciais.reduce((sum, id) => {
-      const sing = getRacialSingularityById(id)
-      return sum + (sing?.cost ?? 0)
-    }, 0)
-    onPointsChange(total)
-  }, [singularidadesRaciais, onPointsChange])
 
   const toggleRacial = (id: string) => {
     const singularity = getRacialSingularityById(id)
@@ -6639,7 +6699,6 @@ function EcoarSelection({
   onEcoarSelect,
   onSingularidadesEcoarChange,
   pontosDisponiveis,
-  onPointsChange,
   pontosCriacao,
   nivelAlma,
   attributes,
@@ -6651,7 +6710,6 @@ function EcoarSelection({
   onEcoarSelect: (id: string) => void
   onSingularidadesEcoarChange: (singularidades: string[]) => void
   pontosDisponiveis: number
-  onPointsChange: (gastos: number) => void
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   nivelAlma: number
   attributes: Record<string, number>
@@ -6688,7 +6746,6 @@ function EcoarSelection({
         singularidadesEcoar={singularidadesEcoar}
         onSingularidadesEcoarChange={onSingularidadesEcoarChange}
         pontosDisponiveis={pontosDisponiveis}
-        onPointsChange={onPointsChange}
         pontosCriacao={pontosCriacao}
         nivelAlma={nivelAlma}
         attributes={attributes}
@@ -6710,7 +6767,6 @@ function TraitsSpendingStep({
   onAttributesChange,
   onSkillsChange,
   onAptitudesChange,
-  onPointsChange,
 }: {
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
@@ -6721,7 +6777,6 @@ function TraitsSpendingStep({
   onAttributesChange: (attrs: Record<string, number>) => void
   onSkillsChange: (skills: Record<string, { level: number; specialization?: string }>) => void
   onAptitudesChange: (apts: Record<string, number>) => void
-  onPointsChange: (gastos: number) => void
 }) {
   const [activeTab, setActiveTab] = useState<'atributos' | 'habilidades' | 'aptidoes'>('atributos')
   
@@ -6741,21 +6796,7 @@ function TraitsSpendingStep({
     return Object.values(apts).reduce((sum, l) => sum + l, 0)
   }
 
-  // Calcula gastos atuais em atributos
-  const getGastosAtributos = () => {
-    const totalBase = calculateTotalBasePoints(attributes)
-    const pointsOverFree = Math.max(0, totalBase - 12)
-    return pointsOverFree * 10
-  }
-
-  // Calcula gastos atuais em aptidões
-  const getGastosAptitudes = () => {
-    const total = calculateAptitudeTotal(aptitudes)
-    const pointsOverFree = Math.max(0, total - 3)
-    return pointsOverFree * 20
-  }
-
-  // Lógica para atualizar atributos com PC (10 PC por ponto além dos gratuitos)
+  // Lógica para atualizar atributos com PC (10 PC por ponto além dos gratuitos); gastos são sincronizados no pai (currentStep === 5).
   const updateAttributeWithPC = (attr: string, newTotalValue: number) => {
     const attrKey = attr as keyof typeof attributes
     const oldValue = attributes[attrKey]
@@ -6778,42 +6819,12 @@ function TraitsSpendingStep({
     const newPointsOverFree = Math.max(0, newTotalBase - 12)
     const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
     const costInPC = pointsOverFreeDiff * 10
-    
-    const newGastosAtributos = newPointsOverFree * 10
-    const gastosAptitudesAtuais = getGastosAptitudes()
-    
-    if (costInPC > 0) {
-      // Aumentando - precisa de PC
-      if (pontosDisponiveis >= costInPC) {
-        onAttributesChange(newAttributes)
-        onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
-      } else {
-        // Bug 2 Fix: Fornece feedback quando não há PC suficiente
-        // O botão já está desabilitado pela lógica de canIncrease, então isso é uma camada extra de segurança
-        // Em produção, poderia usar um toast/notificação aqui
-      }
-    } else if (costInPC < 0) {
-      // Diminuindo - libera PC
-      onAttributesChange(newAttributes)
-      onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
-    } else {
-      // Sem mudança no custo de PC (redistribuição dentro dos gratuitos)
-      // Na etapa 6, permite redistribuir mesmo sem custo
-      onAttributesChange(newAttributes)
-      // Atualiza os gastos mesmo que não mude (para manter sincronizado)
-      onPointsChange(newGastosAtributos + gastosAptitudesAtuais)
-    }
+    if (costInPC > 0 && pontosDisponiveis < costInPC) return
+    onAttributesChange(newAttributes)
   }
 
-  // Wrapper para atualizar aptidões que também atualiza os gastos totais
   const handleAptitudesChange = (newAptitudes: Record<string, number>) => {
     onAptitudesChange(newAptitudes)
-    // Recalcula os gastos de aptidões com os novos valores
-    const newTotal = Object.values(newAptitudes).reduce((sum, l) => sum + l, 0)
-    const newPointsOverFree = Math.max(0, newTotal - 3)
-    const newGastosAptitudes = newPointsOverFree * 20
-    // Atualiza os gastos totais incluindo atributos e aptidões
-    onPointsChange(getGastosAtributos() + newGastosAptitudes)
   }
 
   return (

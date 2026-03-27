@@ -44,6 +44,9 @@ function AppContent() {
     } else {
       params.delete('characterId')
     }
+    // O assistente persiste o passo em ?step=; ao trocar de tela (ex.: novo personagem) isso precisa sumir
+    // senão o wizard remonta em etapa antiga e pula a escolha do nível de alma.
+    params.delete('step')
     router.replace(`/?${params.toString()}`)
   }, [router, searchParams])
 
@@ -257,6 +260,7 @@ function AppContent() {
               key={wizardKey}
               onComplete={handleWizardComplete}
               initialData={selectedCharacter?.data as Parameters<typeof CharacterCreationWizard>[0]['initialData']}
+              onGoToDashboard={handleGoToDashboard}
             />
           </motion.div>
         )}
