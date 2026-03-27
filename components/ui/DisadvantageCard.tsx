@@ -11,6 +11,7 @@ interface DisadvantageCardProps {
   isSelected: boolean
   onClick: () => void
   className?: string
+  disabled?: boolean
 }
 
 export default function DisadvantageCard({
@@ -20,15 +21,20 @@ export default function DisadvantageCard({
   isSelected,
   onClick,
   className = '',
+  disabled = false,
 }: DisadvantageCardProps) {
   return (
     <motion.button
+      type="button"
+      disabled={disabled}
       onClick={onClick}
-      whileHover={{ y: -1 }}
+      whileHover={disabled ? undefined : { y: -1 }}
       className={`p-3.5 rounded-lg border transition-all duration-200 text-left ${
-        isSelected
-          ? 'bg-ecoar-magenta-100/50 dark:bg-ecoar-magenta-800/15 border-ecoar-magenta-500/60 dark:border-ecoar-magenta-500/60 shadow-lg shadow-ecoar-magenta-200/30 dark:shadow-ecoar-magenta-900/20'
-          : 'bg-ecoar-light-700/50 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800/70 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-magenta-400/40 dark:hover:border-ecoar-magenta-500/30'
+        disabled
+          ? 'opacity-50 cursor-not-allowed border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.06] bg-ecoar-light-700/30 dark:bg-ecoar-light-900/[0.02]'
+          : isSelected
+            ? 'bg-ecoar-magenta-100/50 dark:bg-ecoar-magenta-800/15 border-ecoar-magenta-500/60 dark:border-ecoar-magenta-500/60 shadow-lg shadow-ecoar-magenta-200/30 dark:shadow-ecoar-magenta-900/20'
+            : 'bg-ecoar-light-700/50 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800/70 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-magenta-400/40 dark:hover:border-ecoar-magenta-500/30'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-1.5">

@@ -111,6 +111,52 @@ const ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL: Record<string, AttributeStateKey> = {
   vontade: 'vontade',
 }
 
+/** Labels do passo físico do wizard — mod. numérico = índice relativo a "Médio". */
+const WIZARD_TAMANHO_LABELS = [
+  'Minúsculo',
+  'Muito Pequeno',
+  'Pequeno',
+  'Médio',
+  'Grande',
+  'Enorme',
+  'Gigante',
+  'Massivo',
+  'Titânico',
+  'Colossal',
+  'Absurdo',
+] as const
+const WIZARD_PESO_LABELS = [
+  'Peso Pena',
+  'Miúdo',
+  'Delicado',
+  'Muito Leve',
+  'Leve',
+  'Médio',
+  'Pesado',
+  'Enorme',
+  'Gigante',
+  'Massivo',
+  'Titânico',
+  'Colossal',
+  'Absurdo',
+] as const
+
+function modifierFromWizardSizeOrWeight(raw: unknown, kind: 'tamanho' | 'peso'): number | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
+  if (typeof raw === 'string') {
+    const s = raw.trim()
+    if (!s) return undefined
+    const n = parseFloat(s)
+    if (Number.isFinite(n) && /^-?\d+(\.\d+)?$/.test(s)) return n
+    const labels = kind === 'tamanho' ? WIZARD_TAMANHO_LABELS : WIZARD_PESO_LABELS
+    const mediumIdx = labels.indexOf('Médio')
+    const idx = (labels as readonly string[]).indexOf(s)
+    if (idx >= 0 && mediumIdx >= 0) return idx - mediumIdx
+  }
+  return undefined
+}
+
 interface CharacterSheetProps {
   initialData?: any
   canEdit?: boolean
@@ -165,6 +211,7 @@ export default function CharacterSheet({
     // Personality
     tracoPositivo: '',
     tracoNegativo: '',
+    personalidade: '',
     peso: 0,
     tamanho: 0,
     
@@ -356,6 +403,16 @@ export default function CharacterSheet({
         if (initialData.localizacao) updated.localizacao = initialData.localizacao
         if (initialData.trilha) updated.trilha = initialData.trilha
 
+        if (initialData.tracoPositivo !== undefined && initialData.tracoPositivo !== null) {
+          updated.tracoPositivo = String(initialData.tracoPositivo)
+        }
+        if (initialData.tracoNegativo !== undefined && initialData.tracoNegativo !== null) {
+          updated.tracoNegativo = String(initialData.tracoNegativo)
+        }
+        if (initialData.personalidade !== undefined && initialData.personalidade !== null) {
+          updated.personalidade = String(initialData.personalidade)
+        }
+
         const toMeterString = (v: any): string => {
           if (v === undefined || v === null) return ''
           if (typeof v === 'string') {
@@ -545,18 +602,14 @@ export default function CharacterSheet({
           updated.desvantagens = (initialData as any).desvantagens
         }
         
-        // Initialize size and weight from initialData (convert string to number if needed)
+        // Mod. tamanho/peso: número ou rótulo do wizard (ex.: "Médio" → 0)
         if (initialData.tamanho !== undefined && initialData.tamanho !== null) {
-          const tamanhoValue = typeof initialData.tamanho === 'string' 
-            ? parseFloat(initialData.tamanho) 
-            : initialData.tamanho
-          updated.tamanho = isNaN(tamanhoValue) ? 0 : tamanhoValue
+          const mod = modifierFromWizardSizeOrWeight(initialData.tamanho, 'tamanho')
+          if (mod !== undefined) updated.tamanho = mod
         }
         if (initialData.peso !== undefined && initialData.peso !== null) {
-          const pesoValue = typeof initialData.peso === 'string' 
-            ? parseFloat(initialData.peso) 
-            : initialData.peso
-          updated.peso = isNaN(pesoValue) ? 0 : pesoValue
+          const mod = modifierFromWizardSizeOrWeight(initialData.peso, 'peso')
+          if (mod !== undefined) updated.peso = mod
         }
         
         return updated
@@ -1472,6 +1525,9 @@ export default function CharacterSheet({
       localizacao: characterData.localizacao,
       trilha: characterData.trilha,
       pontosEvolucao: characterData.pontosEvolucao,
+      tracoPositivo: characterData.tracoPositivo,
+      tracoNegativo: characterData.tracoNegativo,
+      personalidade: characterData.personalidade,
       tamanho: characterData.tamanho,
       peso: characterData.peso,
       attributes: attributesPayload,
@@ -2106,6 +2162,29 @@ export default function CharacterSheet({
                         ))}
                       </div>
                     </div>
+                    <div>
+                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
+                        Sentidos
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { key: 'visao', label: 'Visão' },
+                          { key: 'audicao', label: 'Audição' },
+                          { key: 'olfato', label: 'Olfato' },
+                        ].map((sense) => (
+                          <div key={sense.key}>
+                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">{sense.label}</div>
+                            <input
+                              type="text"
+                              value={characterData[sense.key as 'visao' | 'audicao' | 'olfato']}
+                              disabled={!isEditing}
+                              onChange={(e) => updateField(sense.key, e.target.value)}
+                              className="w-full h-9 px-2 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="lg:col-span-2 space-y-3 min-w-0">
@@ -2132,6 +2211,17 @@ export default function CharacterSheet({
                             value={characterData.tracoNegativo}
                             disabled={!isEditing}
                             onChange={(e) => updateField('tracoNegativo', e.target.value)}
+                            placeholder="—"
+                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
+                          />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Descrição livre</div>
+                          <input
+                            type="text"
+                            value={characterData.personalidade}
+                            disabled={!isEditing}
+                            onChange={(e) => updateField('personalidade', e.target.value)}
                             placeholder="—"
                             className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
                           />
@@ -3612,6 +3702,7 @@ export default function CharacterSheet({
                                     ecoar: characterData.singularidadesEcoar,
                                     marciais: characterData.singularidadesMarciais,
                                     raciais: characterData.singularidadesRaciais,
+                                    desvantagens: (characterData as { desvantagens?: string[] }).desvantagens ?? [],
                                   }}
                                   conditionalEnabledIdsByKind={{
                                     criacao: characterData.singularidadesCondicionaisCriacaoAtivas,

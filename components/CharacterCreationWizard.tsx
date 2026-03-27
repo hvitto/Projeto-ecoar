@@ -59,6 +59,10 @@ import {
   partitionSignedBonuses,
 } from '@/lib/characterBonuses'
 import {
+  anySelectedSingularityForbidsDisadvantage,
+  requirementsConflictWithSelection,
+} from '@/lib/creationSingularityDisadvantageConflict'
+import {
   pathBaseSingularities,
   getPathBaseSingularityByPathId,
   bruxarias,
@@ -1343,6 +1347,7 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
                   <CreationPointsStep
                     pontosCriacao={pontosCriacao}
                     onPointsChange={setPontosCriacao}
+                    singularidades={singularidades}
                     selectedDisadvantages={selectedDisadvantages}
                     onDisadvantagesChange={setSelectedDisadvantages}
                   />
@@ -1397,6 +1402,7 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
                     nivelAlma={nivelAlmaInicial}
                     activeSubStep={pcSubStep}
                     onSubStepChange={setPCSubStep}
+                    selectedDisadvantages={selectedDisadvantages}
                   />
                 )}
 
@@ -5745,6 +5751,7 @@ function PCSpendingStep({
   nivelAlma,
   activeSubStep,
   onSubStepChange,
+  selectedDisadvantages,
 }: {
   singularidades: string[]
   selectedEcoar: string
@@ -5782,6 +5789,7 @@ function PCSpendingStep({
   nivelAlma: number
   activeSubStep: 'singularidades' | 'traços' | 'escola-marcial'
   onSubStepChange: (subStep: 'singularidades' | 'traços' | 'escola-marcial') => void
+  selectedDisadvantages: string[]
 }) {
   return (
     <div className="space-y-6">
@@ -5818,6 +5826,7 @@ function PCSpendingStep({
             attributes={attributes}
             skills={skills}
             aptitudes={aptitudes}
+            selectedDisadvantages={selectedDisadvantages}
           />
         )}
 
@@ -5871,6 +5880,7 @@ function SingularitiesSpendingStep({
   attributes,
   skills,
   aptitudes,
+  selectedDisadvantages,
 }: {
   singularidades: string[]
   selectedEcoar: string
@@ -5901,6 +5911,7 @@ function SingularitiesSpendingStep({
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
+  selectedDisadvantages: string[]
 }) {
   const { getEcoarSingularityById } = useEcoarCatalogData()
   const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
@@ -5964,7 +5975,11 @@ function SingularitiesSpendingStep({
     } else {
       // Verifica requisitos (não pode ter desvantagens/singularidades conflitantes)
       if (isCreation && 'requirements' in singularity && singularity.requirements) {
-        const hasConflict = singularity.requirements.some((req: string) => singularidades.includes(req))
+        const hasConflict = requirementsConflictWithSelection(
+          singularity.requirements,
+          singularidades,
+          selectedDisadvantages,
+        )
         if (hasConflict) return
       }
       
@@ -6053,7 +6068,12 @@ function SingularitiesSpendingStep({
                     {categorySingularities.map((singularity) => {
                       const isSelected = singularidades.includes(singularity.id)
                       const canAfford = pontosDisponiveis >= singularity.cost
-                      const hasConflict = singularity.requirements?.some(req => singularidades.includes(req)) || false
+                      const hasConflict =
+                        requirementsConflictWithSelection(
+                          singularity.requirements,
+                          singularidades,
+                          selectedDisadvantages,
+                        )
                       const canSelect = canAfford && !hasConflict
                       
                       return (
@@ -7050,11 +7070,13 @@ function EcoarStep({
 function CreationPointsStep({
   pontosCriacao,
   onPointsChange,
+  singularidades,
   selectedDisadvantages,
   onDisadvantagesChange,
 }: {
   pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
   onPointsChange: (points: { obtidos: number; gastos: number; disponiveis: number }) => void
+  singularidades: string[]
   selectedDisadvantages?: string[]
   onDisadvantagesChange?: (disadvantages: string[]) => void
 }) {
@@ -7224,6 +7246,9 @@ function CreationPointsStep({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {categoryDisadvantages.map((disadvantage) => {
                     const isSelected = selectedDisadvantages?.includes(disadvantage.id) || false
+                    const blockedBySingularity =
+                      !isSelected &&
+                      anySelectedSingularityForbidsDisadvantage(singularidades, disadvantage.id)
                     return (
                       <DisadvantageCard
                         key={disadvantage.id}
@@ -7231,8 +7256,12 @@ function CreationPointsStep({
                         description={disadvantage.description}
                         pontosCriacao={disadvantage.pontosCriacao}
                         isSelected={isSelected}
+                        disabled={blockedBySingularity}
                         onClick={() => {
                           if (!onDisadvantagesChange) return
+                          if (!isSelected && anySelectedSingularityForbidsDisadvantage(singularidades, disadvantage.id)) {
+                            return
+                          }
                           const newDisadvantages = isSelected
                             ? selectedDisadvantages?.filter(id => id !== disadvantage.id) || []
                             : [...(selectedDisadvantages || []), disadvantage.id]

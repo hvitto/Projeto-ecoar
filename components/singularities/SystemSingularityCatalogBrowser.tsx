@@ -34,9 +34,16 @@ type SelectionByKind = {
   ecoar: string[]
   marciais: string[]
   raciais: string[]
+  /** IDs de desvantagens do livro (ex.: devagar); entram nos conflitos de singularidade de criação. */
+  desvantagens: string[]
 }
 
-type ConditionalEnabledByKind = SelectionByKind
+type ConditionalEnabledByKind = {
+  criacao: string[]
+  ecoar: string[]
+  marciais: string[]
+  raciais: string[]
+}
 
 export interface SystemSingularityCatalogBrowserContext {
   nivelAlma: number
@@ -70,8 +77,12 @@ function computeMissingRequirements(args: {
     const req = sing.requirements
     if (!('conflictWithIds' in req)) return missing
     const conflictWith = req.conflictWithIds ?? []
-    const hasConflict = conflictWith.some((id) => selectedIdsByKind.criacao.includes(id))
-    if (hasConflict) missing.push('Conflita com singularidades selecionadas')
+    const criacao = selectedIdsByKind.criacao ?? []
+    const desvantagens = selectedIdsByKind.desvantagens ?? []
+    const hasConflict = conflictWith.some(
+      (id) => criacao.includes(id) || desvantagens.includes(id),
+    )
+    if (hasConflict) missing.push('Conflita com escolhas atuais (singularidades/desvantagens)')
     return missing
   }
 
