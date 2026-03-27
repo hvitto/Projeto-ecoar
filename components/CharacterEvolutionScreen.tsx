@@ -7,7 +7,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import { getSkillDice } from '@/lib/calculations'
 import { getRaceById } from '@/data/races'
-import { getRacialSingularitiesByRaceId, getRacialSingularityById } from '@/data/racialSingularities'
+import {
+  getRacialSingularitiesByRaceId,
+  getRacialSingularityById,
+  pruneRacialSingularitiesToValidRequirements,
+} from '@/data/racialSingularities'
 import { getSkillsByCategory, getSkillById, type Skill } from '@/data/skills'
 import { aptitudes as aptitudesData, type Aptitude } from '@/data/aptitudes'
 import {
@@ -521,7 +525,12 @@ export default function CharacterEvolutionScreen({
       const has = prev.includes(id)
       if (has) {
         if (isBaselineLocked && !hasMasterOverride) return prev
-        return prev.filter((x) => x !== id)
+        const next = pruneRacialSingularitiesToValidRequirements(prev.filter((x) => x !== id))
+        if (!hasMasterOverride) {
+          const baselineInPrev = Array.from(baselineRacialSet).filter((b) => prev.includes(b))
+          if (!baselineInPrev.every((b) => next.includes(b))) return prev
+        }
+        return next
       }
       const sing = getRacialSingularityById(id)
       if (!sing) return prev

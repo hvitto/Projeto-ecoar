@@ -103,15 +103,41 @@ function normalizeBonusesFromCreation(s: { bonuses?: any; penalties?: any }): Si
 }
 
 function normalizeBonusesFromEcoar(sing: EcoarSingularity): SimpleBonusesAggregate {
-  if (!sing.bonuses) return emptyBonuses
   const out: SimpleBonusesAggregate = {
-    attributes: { ...(sing.bonuses.attributes ?? {}) },
-    skills: { ...(sing.bonuses.skills ?? {}) },
-    corpo: typeof sing.bonuses.corpo === 'number' ? sing.bonuses.corpo : 0,
-    mente: typeof sing.bonuses.mente === 'number' ? sing.bonuses.mente : 0,
-    folego: typeof sing.bonuses.folego === 'number' ? sing.bonuses.folego : 0,
-    mana: typeof sing.bonuses.mana === 'number' ? sing.bonuses.mana : 0,
+    attributes: {},
+    skills: {},
+    corpo: 0,
+    mente: 0,
+    folego: 0,
+    mana: 0,
   }
+
+  const bonuses = sing.bonuses
+  if (bonuses) {
+    if (bonuses.attributes) out.attributes = { ...out.attributes, ...bonuses.attributes }
+    if (bonuses.skills) out.skills = { ...out.skills, ...bonuses.skills }
+    if (typeof bonuses.corpo === 'number') out.corpo += bonuses.corpo
+    if (typeof bonuses.mente === 'number') out.mente += bonuses.mente
+    if (typeof bonuses.folego === 'number') out.folego += bonuses.folego
+    if (typeof bonuses.mana === 'number') out.mana += bonuses.mana
+  }
+
+  const penalties = sing.penalties
+  if (penalties?.attributes) {
+    for (const [k, v] of Object.entries(penalties.attributes)) {
+      out.attributes[k] = (out.attributes[k] ?? 0) + v
+    }
+  }
+
+  const hasAny =
+    Object.keys(out.attributes).length > 0 ||
+    Object.keys(out.skills).length > 0 ||
+    out.corpo !== 0 ||
+    out.mente !== 0 ||
+    out.folego !== 0 ||
+    out.mana !== 0
+
+  if (!hasAny) return emptyBonuses
   return out
 }
 

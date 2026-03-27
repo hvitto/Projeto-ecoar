@@ -741,3 +741,20 @@ export function getRacialSingularitiesByRaceId(raceId: string): RacialSingularit
 export function getRacialSingularityById(id: string): RacialSingularity | undefined {
   return racialSingularities.find((s) => s.id === id)
 }
+
+/** Remove ids inválidos ou desconhecidos até todos os `requirements` estarem satisfeitos no próprio conjunto (cadeias e AND). */
+export function pruneRacialSingularitiesToValidRequirements(selectedIds: string[]): string[] {
+  let current = [...selectedIds]
+  let changed = true
+  while (changed) {
+    changed = false
+    const next = current.filter((sid) => {
+      const sing = getRacialSingularityById(sid)
+      if (!sing) return false
+      return (sing.requirements ?? []).every((reqId) => current.includes(reqId))
+    })
+    if (next.length !== current.length) changed = true
+    current = next
+  }
+  return current
+}

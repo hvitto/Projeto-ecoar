@@ -29,7 +29,11 @@ import MartialSchoolCard from '@/components/ui/MartialSchoolCard'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
-import { getRacialSingularitiesByRaceId, getRacialSingularityById } from '@/data/racialSingularities'
+import {
+  getRacialSingularitiesByRaceId,
+  getRacialSingularityById,
+  pruneRacialSingularitiesToValidRequirements,
+} from '@/data/racialSingularities'
 import { paths, getPathById, Path } from '@/data/paths'
 import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
 import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
@@ -44,7 +48,16 @@ import type { EcoarSingularity } from '@/data/ecoarSingularities'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice } from '@/lib/calculations'
+import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
+import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
+import { buildSystemSingularities } from '@/lib/systemSingularities'
+import {
+  aggregateBookDisadvantagePenalties,
+  aggregateSingularityInputFromCharacterData,
+  CHARACTER_ATTRIBUTE_KEYS,
+  computeEffectiveAttributeRows,
+  partitionSignedBonuses,
+} from '@/lib/characterBonuses'
 import {
   pathBaseSingularities,
   getPathBaseSingularityByPathId,
@@ -131,6 +144,9 @@ interface CharacterCreationData {
   // Step 11 (complemento): singularidades marciais e raciais
   singularidadesMarciais?: string[]
   singularidadesRaciais?: string[]
+
+  /** IDs de desvantagens do livro (ex.: antipatico). */
+  desvantagens?: string[]
   
   // Step 12: Creation Points
   pontosCriacao: {
@@ -167,6 +183,7 @@ interface CharacterCreationWizardProps {
 }
 
 export default function CharacterCreationWizard({ onComplete, initialData }: CharacterCreationWizardProps) {
+  const { ecoarSingularities } = useEcoarCatalogData()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -297,6 +314,8 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     if (initialData.tracoPositivo) setTracoPositivo(initialData.tracoPositivo)
     if (initialData.tracoNegativo) setTracoNegativo(initialData.tracoNegativo)
     if (initialData.personalidade) setPersonalidade(initialData.personalidade)
+    if (Array.isArray((initialData as { desvantagens?: string[] }).desvantagens))
+      setSelectedDisadvantages((initialData as { desvantagens: string[] }).desvantagens)
 
     // Initialize equipment (catálogo + linhas livres ou legado só com arrays)
     const cat = initialData.itensCatalogo
@@ -514,6 +533,64 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
 
   const equipmentSaldoRestante = equipmentOrcamentoCeros - equipmentGastoCeros
 
+  const singularidadesMarciaisFiltered = useMemo(() => {
+    if (!selectedEscolaMarcial) return [] as string[]
+    const school = getMartialSchoolDataById(selectedEscolaMarcial)
+    if (!school) return []
+    return singularidades.filter((s) => school.singularities.some((sing) => sing.id === s))
+  }, [singularidades, selectedEscolaMarcial])
+
+  const systemSingularities = useMemo(() => buildSystemSingularities(ecoarSingularities), [ecoarSingularities])
+  const systemSingularityById = useMemo(() => {
+    const map = new globalThis.Map<string, (typeof systemSingularities)[number]>()
+    for (const s of systemSingularities) map.set(s.id, s)
+    return map
+  }, [systemSingularities])
+
+  const singularityBonusesCreation = useMemo(
+    () =>
+      aggregateSimpleBonuses({
+        ...aggregateSingularityInputFromCharacterData({
+          singularidades,
+          singularidadesEcoar,
+          singularidadesMarciais: singularidadesMarciaisFiltered,
+          singularidadesRaciais,
+          singularidadesCondicionaisCriacaoAtivas: [],
+          singularidadesCondicionaisAtivas: [],
+          singularidadesCondicionaisMarciaisAtivas: [],
+          singularidadesCondicionaisRaciaisAtivas: [],
+        }),
+        getSystemSingularityById: (id) => systemSingularityById.get(id),
+      }),
+    [
+      singularidades,
+      singularidadesEcoar,
+      singularidadesMarciaisFiltered,
+      singularidadesRaciais,
+      systemSingularityById,
+    ],
+  )
+
+  const bookDisadvantageCreation = useMemo(
+    () => aggregateBookDisadvantagePenalties(selectedDisadvantages),
+    [selectedDisadvantages],
+  )
+
+  const effectiveAttributesCreation = useMemo(() => {
+    const attrsOnly = Object.fromEntries(
+      CHARACTER_ATTRIBUTE_KEYS.map((k) => [k, { nivel: attributes[k as keyof typeof attributes] ?? 0 }]),
+    ) as Record<string, { nivel?: number | string }>
+    const bookAttr = bookDisadvantageCreation.attributes as Partial<
+      Record<(typeof CHARACTER_ATTRIBUTE_KEYS)[number], number>
+    >
+    return computeEffectiveAttributeRows(attrsOnly, singularityBonusesCreation, {}, bookAttr)
+  }, [attributes, singularityBonusesCreation, bookDisadvantageCreation])
+
+  const signedSingularityEffects = useMemo(
+    () => partitionSignedBonuses(singularityBonusesCreation),
+    [singularityBonusesCreation],
+  )
+
   const mergedEquipamentosLista = useMemo(
     () => [
       ...itensCatalogo.filter((i) => i.kind !== 'weapon').map((i) => i.displayLine),
@@ -609,6 +686,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
             })
           : [],
         singularidadesRaciais,
+        desvantagens: selectedDisadvantages,
         pontosCriacao,
         nome,
         backstory,
@@ -643,6 +721,7 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
     selectedEcoar,
     singularidadesEcoar,
     singularidadesRaciais,
+    selectedDisadvantages,
     pontosCriacao,
     nome,
     backstory,
@@ -1417,26 +1496,59 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                     </div>
                   </div>
                 )}
-                {/* Atributos */}
-                {Object.keys(attributes).length > 0 && Object.values(attributes).some(v => v > 0) && (
+                {/* Atributos (nível armazenado + efetivo com singularidades) */}
+                {Object.keys(attributes).length > 0 &&
+                  CHARACTER_ATTRIBUTE_KEYS.some(
+                    (k) =>
+                      (attributes[k as keyof typeof attributes] ?? 0) > 0 ||
+                      (effectiveAttributesCreation[k]?.singularityBonus ?? 0) !== 0 ||
+                      (effectiveAttributesCreation[k]?.bookDisadvantageBonus ?? 0) !== 0,
+                  ) && (
                   <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
                     <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
                       <Zap className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
                       Atributos
                     </div>
+                    <p className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-2">
+                      Número principal = base (raça/escola + pontos). Linha &quot;Efetivo&quot; inclui singularidades e desvantagens do livro.
+                    </p>
                     <div className="grid grid-cols-2 gap-1.5 text-xs">
-                      {Object.entries(attributes).map(([attr, value]) => {
-                        if (value === 0) return null
-                        const modifier = getAttributeModifier(value)
-                        const label = attr === 'carisma' ? 'Car' : attr === 'finesse' ? 'Fin' : attr === 'forca' ? 'For' : attr === 'inteligencia' ? 'Int' : attr === 'percepcao' ? 'Per' : attr === 'vitalidade' ? 'Vit' : 'Von'
+                      {CHARACTER_ATTRIBUTE_KEYS.map((attr) => {
+                        const value = attributes[attr as keyof typeof attributes] ?? 0
+                        const eff = effectiveAttributesCreation[attr]
+                        if (value === 0 && (eff?.singularityBonus ?? 0) === 0 && (eff?.bookDisadvantageBonus ?? 0) === 0) return null
+                        const storedMod = getAttributeModifier(value)
+                        const label =
+                          attr === 'carisma'
+                            ? 'Car'
+                            : attr === 'finesse'
+                              ? 'Fin'
+                              : attr === 'forca'
+                                ? 'For'
+                                : attr === 'inteligencia'
+                                  ? 'Int'
+                                  : attr === 'percepcao'
+                                    ? 'Per'
+                                    : attr === 'vitalidade'
+                                      ? 'Vit'
+                                      : 'Von'
                         return (
                           <SummaryItem
                             key={attr}
                             label={label}
                             value={
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{value}</span>
-                                <span className="text-ecoar-teal/70 dark:text-ecoar-teal-400">({modifier >= 0 ? '+' : ''}{modifier})</span>
+                              <div className="flex flex-col items-end gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{value}</span>
+                                  <span className="text-ecoar-teal/70 dark:text-ecoar-teal-400">
+                                    ({formatModifier(storedMod)})
+                                  </span>
+                                </div>
+                                {((eff?.singularityBonus ?? 0) !== 0 || (eff?.bookDisadvantageBonus ?? 0) !== 0) && (
+                                  <span className="text-[10px] text-ecoar-teal-600 dark:text-ecoar-teal-400 leading-tight text-right">
+                                    Efetivo {eff.effectiveLevel} {formatModifier(eff.effectiveMod)}
+                                  </span>
+                                )}
                               </div>
                             }
                           />
@@ -1460,13 +1572,21 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                         .map(([skillId, skill]) => {
                           const skillData = getSkillById(skillId)
                           if (!skillData) return null
+                          const skBonus =
+                            (singularityBonusesCreation.skills[skillId] ?? 0) +
+                            (bookDisadvantageCreation.skills[skillId] ?? 0)
                           return (
                             <SummaryItem
                               key={skillId}
                               label={skillData.name}
                               value={
-                                <div className="flex items-center gap-1.5 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                                   <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">Nv.{skill.level}</span>
+                                  {skBonus !== 0 && (
+                                    <span className="text-[10px] px-1 py-0.5 rounded bg-ecoar-teal/15 text-ecoar-teal-700 dark:text-ecoar-teal-300 border border-ecoar-teal/25">
+                                      bônus {formatModifier(skBonus)}
+                                    </span>
+                                  )}
                                   {skill.specialization && (
                                     <span className="text-ecoar-magenta/70 dark:text-ecoar-magenta-400 text-[10px]">Esp.</span>
                                   )}
@@ -1553,6 +1673,79 @@ export default function CharacterCreationWizard({ onComplete, initialData }: Cha
                           />
                         )
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Efeitos numéricos agregados (singularidades): bônus e desvantagens */}
+                {(Object.keys(signedSingularityEffects.bonusAttributes).length > 0 ||
+                  Object.keys(signedSingularityEffects.penaltyAttributes).length > 0 ||
+                  Object.keys(signedSingularityEffects.bonusSkills).length > 0 ||
+                  Object.keys(signedSingularityEffects.penaltySkills).length > 0 ||
+                  singularityBonusesCreation.corpo !== 0 ||
+                  singularityBonusesCreation.mente !== 0 ||
+                  singularityBonusesCreation.folego !== 0 ||
+                  singularityBonusesCreation.mana !== 0) && (
+                  <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
+                    <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
+                      <Sparkles className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
+                      Singularidades: efeitos numéricos
+                    </div>
+                    <div className="space-y-2 text-[10px]">
+                      {(Object.keys(signedSingularityEffects.bonusAttributes).length > 0 ||
+                        Object.keys(signedSingularityEffects.bonusSkills).length > 0 ||
+                        singularityBonusesCreation.corpo > 0 ||
+                        singularityBonusesCreation.mente > 0 ||
+                        singularityBonusesCreation.folego > 0 ||
+                        singularityBonusesCreation.mana > 0) && (
+                        <div className="p-2 rounded border border-ecoar-teal/25 bg-ecoar-teal/5 dark:bg-ecoar-teal-900/10">
+                          <div className="font-semibold text-ecoar-teal-800 dark:text-ecoar-teal-300 mb-1">Bônus</div>
+                          <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/80">
+                            {Object.entries(signedSingularityEffects.bonusAttributes).map(([k, v]) => (
+                              <li key={`ba-${k}`}>
+                                Atributo {k}: +{v}
+                              </li>
+                            ))}
+                            {Object.entries(signedSingularityEffects.bonusSkills).map(([id, v]) => (
+                              <li key={`bs-${id}`}>
+                                {getSkillById(id)?.name ?? id}: +{v}
+                              </li>
+                            ))}
+                            {singularityBonusesCreation.corpo > 0 && <li>Corpo: +{singularityBonusesCreation.corpo}</li>}
+                            {singularityBonusesCreation.mente > 0 && <li>Mente: +{singularityBonusesCreation.mente}</li>}
+                            {singularityBonusesCreation.folego > 0 && <li>Fôlego: +{singularityBonusesCreation.folego}</li>}
+                            {singularityBonusesCreation.mana > 0 && <li>Mana: +{singularityBonusesCreation.mana}</li>}
+                          </ul>
+                        </div>
+                      )}
+                      {(Object.keys(signedSingularityEffects.penaltyAttributes).length > 0 ||
+                        Object.keys(signedSingularityEffects.penaltySkills).length > 0 ||
+                        singularityBonusesCreation.corpo < 0 ||
+                        singularityBonusesCreation.mente < 0 ||
+                        singularityBonusesCreation.folego < 0 ||
+                        singularityBonusesCreation.mana < 0) && (
+                        <div className="p-2 rounded border border-ecoar-magenta/30 bg-ecoar-magenta/5 dark:bg-ecoar-magenta-900/15">
+                          <div className="font-semibold text-ecoar-magenta-800 dark:text-ecoar-magenta-300 mb-1">
+                            Desvantagens (singularidades)
+                          </div>
+                          <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/80">
+                            {Object.entries(signedSingularityEffects.penaltyAttributes).map(([k, v]) => (
+                              <li key={`pa-${k}`}>
+                                Atributo {k}: {v}
+                              </li>
+                            ))}
+                            {Object.entries(signedSingularityEffects.penaltySkills).map(([id, v]) => (
+                              <li key={`ps-${id}`}>
+                                {getSkillById(id)?.name ?? id}: {v}
+                              </li>
+                            ))}
+                            {singularityBonusesCreation.corpo < 0 && <li>Corpo: {singularityBonusesCreation.corpo}</li>}
+                            {singularityBonusesCreation.mente < 0 && <li>Mente: {singularityBonusesCreation.mente}</li>}
+                            {singularityBonusesCreation.folego < 0 && <li>Fôlego: {singularityBonusesCreation.folego}</li>}
+                            {singularityBonusesCreation.mana < 0 && <li>Mana: {singularityBonusesCreation.mana}</li>}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -6349,7 +6542,9 @@ function RacialSingularitiesTab({
     if (!singularity) return
     const isSelected = singularidadesRaciais.includes(id)
     if (isSelected) {
-      onSingularidadesRaciaisChange(singularidadesRaciais.filter((s) => s !== id))
+      onSingularidadesRaciaisChange(
+        pruneRacialSingularitiesToValidRequirements(singularidadesRaciais.filter((s) => s !== id)),
+      )
       return
     }
     const hasRequirements = (singularity.requirements ?? []).every((reqId) => singularidadesRaciais.includes(reqId))
@@ -7145,6 +7340,9 @@ function BackgroundStep({
   )
 }
 
+/* FinalReviewVisualizer / FinalReviewStep não são montados no fluxo atual (o passo 7 usa só BackgroundStep).
+ * A revisão com bônus de singularidades está na coluna lateral "Resumo". Se estes componentes voltarem ao fluxo,
+ * reutilize a mesma agregação (aggregateSimpleBonuses / computeEffectiveAttributeRows) que o Resumo. */
 // Final Review Visualizer (Read-only)
 function FinalReviewVisualizer({
   data,

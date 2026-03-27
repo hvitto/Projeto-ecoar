@@ -19,6 +19,22 @@ export interface EquipmentDetailSection {
   body: string
 }
 
+/** Atributos de personagem usados em bônus mecânicos de equipamento. */
+export type MechanicalAttributeKey =
+  | 'carisma'
+  | 'finesse'
+  | 'forca'
+  | 'inteligencia'
+  | 'percepcao'
+  | 'vitalidade'
+  | 'vontade'
+
+/** Bônus numéricos opcionais somados na ficha quando o item está equipado. */
+export type MechanicalBonuses = {
+  attributes?: Partial<Record<MechanicalAttributeKey, number>>
+  skills?: Record<string, number>
+}
+
 export interface WeaponCatalogEntry {
   id: string
   kind: 'weapon'
@@ -43,6 +59,7 @@ export interface WeaponCatalogEntry {
   technology?: string
   flavor?: string
   detailSections?: EquipmentDetailSection[]
+  mechanicalBonuses?: MechanicalBonuses
 }
 
 export type VestuarioTabId = 'armaduras' | 'capacetes' | 'acessorios'
@@ -93,6 +110,7 @@ export interface ArmorCatalogEntry {
   propriedades: string[]
   flavor: string
   detailSections?: EquipmentDetailSection[]
+  mechanicalBonuses?: MechanicalBonuses
 }
 
 export interface UtilityCatalogEntry {
@@ -106,6 +124,7 @@ export interface UtilityCatalogEntry {
   effect?: string
   flavor?: string
   detailSections?: EquipmentDetailSection[]
+  mechanicalBonuses?: MechanicalBonuses
 }
 
 export type CatalogEntry = WeaponCatalogEntry | ArmorCatalogEntry | UtilityCatalogEntry

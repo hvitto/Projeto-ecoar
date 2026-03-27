@@ -32,9 +32,16 @@ import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
+import {
+  aggregateBookDisadvantagePenalties,
+  aggregateSingularityInputFromCharacterData,
+  CHARACTER_ATTRIBUTE_KEYS,
+  computeEffectiveAttributeRows,
+} from '@/lib/characterBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
 import { aggregateRacialRulesBySelectedIds } from '@/lib/racialRules'
+import { getRacialSingularityById, pruneRacialSingularitiesToValidRequirements } from '@/data/racialSingularities'
 import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorCatalogEntry,
@@ -42,6 +49,7 @@ import {
   type ArmorResistanceValues,
   type CatalogEntry,
   type CatalogOwnedItem,
+  type UtilityCatalogEntry,
   type WeaponCatalogEntry,
 } from '@/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
@@ -216,7 +224,9 @@ export default function CharacterSheet({
     singularidadesCondicionaisCriacaoAtivas: [] as string[],
     singularidadesMarciais: [] as string[],
     singularidadesCondicionaisMarciaisAtivas: [] as string[],
+    singularidadesCondicionaisRaciaisAtivas: [] as string[],
     singularidadesRaciais: [] as string[],
+    desvantagens: [] as string[],
   })
 
   const { user } = useAuth()
@@ -264,6 +274,55 @@ export default function CharacterSheet({
     })
     return map
   }, [utilities])
+
+  /** Soma `mechanicalBonuses` de armas/armaduras/utilitários atualmente equipados. */
+  const equipmentMechanicalBonuses = useMemo(() => {
+    const sumAttr: Record<string, number> = {}
+    const sumSkills: Record<string, number> = {}
+    const add = (
+      entry:
+        | {
+            mechanicalBonuses?: { attributes?: Record<string, number>; skills?: Record<string, number> }
+          }
+        | undefined,
+    ) => {
+      if (!entry?.mechanicalBonuses) return
+      for (const [k, v] of Object.entries(entry.mechanicalBonuses.attributes ?? {})) {
+        sumAttr[k] = (sumAttr[k] ?? 0) + v
+      }
+      for (const [k, v] of Object.entries(entry.mechanicalBonuses.skills ?? {})) {
+        sumSkills[k] = (sumSkills[k] ?? 0) + v
+      }
+    }
+    const findOwned = (instanceId: string) =>
+      characterData.itensCatalogo.find((i) => i.instanceId === instanceId)
+    for (const slot of [characterData.equippedWeapons?.slot1, characterData.equippedWeapons?.slot2]) {
+      if (!slot?.instanceId) continue
+      const owned = findOwned(slot.instanceId)
+      if (owned?.kind === 'weapon') add(weaponCatalogById.get(String(owned.catalogId)) as WeaponCatalogEntry | undefined)
+    }
+    if (characterData.equippedArmor?.instanceId) {
+      const owned = findOwned(characterData.equippedArmor.instanceId)
+      if (owned?.kind === 'armor')
+        add(armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
+    }
+    for (const acc of characterData.equippedAccessories ?? []) {
+      const owned = findOwned(acc.instanceId)
+      if (!owned) continue
+      if (owned.kind === 'armor') add(armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
+      else if (owned.kind === 'utility')
+        add(utilityCatalogById.get(String(owned.catalogId)) as UtilityCatalogEntry | undefined)
+    }
+    return { attributes: sumAttr, skills: sumSkills }
+  }, [
+    armorCatalogById,
+    characterData.equippedAccessories,
+    characterData.equippedArmor,
+    characterData.equippedWeapons,
+    characterData.itensCatalogo,
+    utilityCatalogById,
+    weaponCatalogById,
+  ])
 
   const skillsByNormalizedName = useMemo(() => {
     const map = new Map<string, (typeof skillsDefinitions)[number]>()
@@ -476,8 +535,14 @@ export default function CharacterSheet({
         if (Array.isArray((initialData as any).singularidadesCondicionaisMarciaisAtivas)) {
           updated.singularidadesCondicionaisMarciaisAtivas = (initialData as any).singularidadesCondicionaisMarciaisAtivas
         }
+        if (Array.isArray((initialData as any).singularidadesCondicionaisRaciaisAtivas)) {
+          updated.singularidadesCondicionaisRaciaisAtivas = (initialData as any).singularidadesCondicionaisRaciaisAtivas
+        }
         if (initialData.singularidadesRaciais) {
           updated.singularidadesRaciais = initialData.singularidadesRaciais
+        }
+        if (Array.isArray((initialData as any).desvantagens)) {
+          updated.desvantagens = (initialData as any).desvantagens
         }
         
         // Initialize size and weight from initialData (convert string to number if needed)
@@ -779,14 +844,31 @@ export default function CharacterSheet({
             }
           }
 
+          const nextCondRacial = prev.singularidadesCondicionaisRaciaisAtivas.filter((it) => it !== id)
           return {
             ...prev,
             pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
             singularidadesRaciais: [...prev.singularidadesRaciais, id],
+            singularidadesCondicionaisRaciaisAtivas: nextCondRacial,
           }
         }
 
         // Unselect: refund + clear conditional.
+        if (kind === 'racial') {
+          const prevRacial = prev.singularidadesRaciais
+          const nextRacial = pruneRacialSingularitiesToValidRequirements(prevRacial.filter((it) => it !== id))
+          const removed = prevRacial.filter((x) => !nextRacial.includes(x))
+          const totalRefund = removed.reduce((sum, rid) => sum + (getRacialSingularityById(rid)?.cost ?? 0), 0)
+          const nextAtuaisRacial = totalRefund > 0 ? currentAtuais + totalRefund : currentAtuais
+          const nextCondRacial = prev.singularidadesCondicionaisRaciaisAtivas.filter((cid) => !removed.includes(cid))
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuaisRacial },
+            singularidadesRaciais: nextRacial,
+            singularidadesCondicionaisRaciaisAtivas: nextCondRacial,
+          }
+        }
+
         if (kind === 'criacao') {
           const nextSelected = prev.singularidades.filter((it) => it !== id)
           const nextCond = prev.singularidadesCondicionaisCriacaoAtivas.filter((it) => it !== id)
@@ -820,11 +902,7 @@ export default function CharacterSheet({
           }
         }
 
-        return {
-          ...prev,
-          pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
-          singularidadesRaciais: prev.singularidadesRaciais.filter((it) => it !== id),
-        }
+        return prev
       })
     },
     [canEditSheet],
@@ -863,6 +941,16 @@ export default function CharacterSheet({
             singularidadesCondicionaisMarciaisAtivas: enabled
               ? [...prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id), id]
               : prev.singularidadesCondicionaisMarciaisAtivas.filter((it) => it !== id),
+          }
+        }
+
+        if (kind === 'racial') {
+          if (!prev.singularidadesRaciais.includes(id)) return prev
+          return {
+            ...prev,
+            singularidadesCondicionaisRaciaisAtivas: enabled
+              ? [...prev.singularidadesCondicionaisRaciaisAtivas.filter((it) => it !== id), id]
+              : prev.singularidadesCondicionaisRaciaisAtivas.filter((it) => it !== id),
           }
         }
 
@@ -1157,18 +1245,7 @@ export default function CharacterSheet({
   const singularityBonuses = useMemo(
     () =>
       aggregateSimpleBonuses({
-        selectedSingularityIdsByKind: {
-          criacao: characterData.singularidades,
-          ecoar: characterData.singularidadesEcoar,
-          marciais: characterData.singularidadesMarciais,
-          raciais: characterData.singularidadesRaciais,
-        },
-        conditionalEnabledIdsByKind: {
-          criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
-          ecoar: characterData.singularidadesCondicionaisAtivas,
-          marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
-          raciais: [],
-        },
+        ...aggregateSingularityInputFromCharacterData(characterData),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
     [
@@ -1178,10 +1255,35 @@ export default function CharacterSheet({
       characterData.singularidadesCondicionaisAtivas,
       characterData.singularidadesMarciais,
       characterData.singularidadesCondicionaisMarciaisAtivas,
+      characterData.singularidadesCondicionaisRaciaisAtivas,
       characterData.singularidadesRaciais,
       systemSingularityById,
     ]
   )
+
+  const bookDisadvantageBonuses = useMemo(
+    () => aggregateBookDisadvantagePenalties((characterData as { desvantagens?: string[] }).desvantagens ?? []),
+    [(characterData as { desvantagens?: string[] }).desvantagens],
+  )
+
+  /** Nível armazenado na ficha já inclui raça e escola marcial (criação); singularidades, desvantagens do livro e equipamento somam para mod efetivo. */
+  const effectiveAttributesByKey = useMemo(() => {
+    const attrsOnly = Object.fromEntries(
+      CHARACTER_ATTRIBUTE_KEYS.map((k) => {
+        const row = characterData[k as keyof typeof characterData] as { nivel?: number | string } | undefined
+        return [k, { nivel: row?.nivel }]
+      }),
+    ) as Record<string, { nivel?: number | string }>
+    const bookAttr = bookDisadvantageBonuses.attributes as Partial<
+      Record<(typeof CHARACTER_ATTRIBUTE_KEYS)[number], number>
+    >
+    return computeEffectiveAttributeRows(
+      attrsOnly,
+      singularityBonuses,
+      equipmentMechanicalBonuses.attributes as Record<string, number>,
+      bookAttr,
+    )
+  }, [characterData, singularityBonuses, equipmentMechanicalBonuses.attributes, bookDisadvantageBonuses])
 
   const racialRules = useMemo(
     () =>
@@ -1212,20 +1314,30 @@ export default function CharacterSheet({
     const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
     const sizeWeightPenalty = -(sizeModifier + weightModifier) + racialRules.dodgeBonus
 
-    const atencaoBonus = singularityBonuses.skills.atencao ?? 0
-    const raciocinioBonus = singularityBonuses.skills.raciocinio ?? 0
-    const reflexosBonus = singularityBonuses.skills.reflexos ?? 0
-    const composturaBonus = singularityBonuses.skills.compostura ?? 0
+    const eqSkills = equipmentMechanicalBonuses.skills
+    const book = bookDisadvantageBonuses
+    const atencaoBonus =
+      (singularityBonuses.skills.atencao ?? 0) + (eqSkills.atencao ?? 0) + (book.skills.atencao ?? 0)
+    const raciocinioBonus =
+      (singularityBonuses.skills.raciocinio ?? 0) + (eqSkills.raciocinio ?? 0) + (book.skills.raciocinio ?? 0)
+    const reflexosBonus =
+      (singularityBonuses.skills.reflexos ?? 0) + (eqSkills.reflexos ?? 0) + (book.skills.reflexos ?? 0)
+    const composturaBonus =
+      (singularityBonuses.skills.compostura ?? 0) + (eqSkills.compostura ?? 0) + (book.skills.compostura ?? 0)
 
-    // Apply simple attribute bonuses from selected passivas/condicionais.
+    // Apply simple attribute bonuses from selected passivas/condicionais + equipamento + desvantagens do livro.
     // This keeps underlying base stats intact while still making the ficha behave consistently.
-    const percepcaoAttrBonus = singularityBonuses.attributes.percepcao ?? 0
-    const vitalidadeAttrBonus = singularityBonuses.attributes.vitalidade ?? 0
-    const vontadeAttrBonus = singularityBonuses.attributes.vontade ?? 0
-    const corpoBonus = singularityBonuses.corpo ?? 0
-    const menteBonus = singularityBonuses.mente ?? 0
-    const folegoBonus = singularityBonuses.folego ?? 0
-    const manaBonus = singularityBonuses.mana ?? 0
+    const eqAttr = equipmentMechanicalBonuses.attributes
+    const percepcaoAttrBonus =
+      (singularityBonuses.attributes.percepcao ?? 0) + (eqAttr.percepcao ?? 0) + (book.attributes.percepcao ?? 0)
+    const vitalidadeAttrBonus =
+      (singularityBonuses.attributes.vitalidade ?? 0) + (eqAttr.vitalidade ?? 0) + (book.attributes.vitalidade ?? 0)
+    const vontadeAttrBonus =
+      (singularityBonuses.attributes.vontade ?? 0) + (eqAttr.vontade ?? 0) + (book.attributes.vontade ?? 0)
+    const corpoBonus = (singularityBonuses.corpo ?? 0) + (book.corpo ?? 0)
+    const menteBonus = (singularityBonuses.mente ?? 0) + (book.mente ?? 0)
+    const folegoBonus = (singularityBonuses.folego ?? 0) + (book.folego ?? 0)
+    const manaBonus = (singularityBonuses.mana ?? 0) + (book.mana ?? 0)
     const nivelPoder = getSoulLevelByPontosEvolucao(characterData.pontosEvolucao.max).nivelPoder
 
     const percepcaoEffective = percepcaoLevel + percepcaoAttrBonus
@@ -1269,6 +1381,9 @@ export default function CharacterSheet({
     racialRules.initiativeBonus,
     racialRules.composturaBonus,
     racialRules.visionAttentionPenalty,
+    equipmentMechanicalBonuses.attributes,
+    equipmentMechanicalBonuses.skills,
+    bookDisadvantageBonuses,
   ])
 
   // Níveis automáticos a partir dos Pontos de Evolução acumulados (lado após '/')
@@ -1381,7 +1496,9 @@ export default function CharacterSheet({
       singularidadesCondicionaisCriacaoAtivas: characterData.singularidadesCondicionaisCriacaoAtivas,
       singularidadesMarciais: characterData.singularidadesMarciais,
       singularidadesCondicionaisMarciaisAtivas: characterData.singularidadesCondicionaisMarciaisAtivas,
+      singularidadesCondicionaisRaciaisAtivas: characterData.singularidadesCondicionaisRaciaisAtivas,
       singularidadesRaciais: characterData.singularidadesRaciais,
+      desvantagens: (characterData as { desvantagens?: string[] }).desvantagens ?? [],
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
       equippedWeapons: characterData.equippedWeapons,
@@ -2058,7 +2175,7 @@ export default function CharacterSheet({
                 {attributes.map((attr) => {
                   const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
                   const nivel = typeof attrData.nivel === 'string' ? parseInt(attrData.nivel) || 0 : attrData.nivel
-                  const mod = attrData.mod || 0
+                  const eff = effectiveAttributesByKey[attr.key as keyof typeof effectiveAttributesByKey]
                   return (
                     <div
                       key={`totem-${attr.key}`}
@@ -2082,10 +2199,25 @@ export default function CharacterSheet({
                           className="w-full h-8 text-center text-[11px] font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/85 dark:bg-ecoar-dark-700 border border-slate-300/80 dark:border-ecoar-light-900/25 rounded-md focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors disabled:opacity-60"
                         />
                       </div>
-                      <div className="mt-1.5 rounded-md border border-slate-300/70 dark:border-ecoar-light-900/20 bg-slate-100/70 dark:bg-ecoar-dark-700/50 h-6 flex items-center justify-center">
+                      <div className="mt-1.5 rounded-md border border-slate-300/70 dark:border-ecoar-light-900/20 bg-slate-100/70 dark:bg-ecoar-dark-700/50 min-h-6 flex flex-col items-center justify-center py-0.5 px-1">
                         <span className="text-[11px] font-semibold text-ecoar-teal-700 dark:text-ecoar-teal-300">
-                          Mod {formatModifier(mod)}
+                          Mod {formatModifier(eff.effectiveMod)}
                         </span>
+                        {eff.singularityBonus !== 0 && (
+                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                            sing. {formatModifier(eff.singularityBonus)}
+                          </span>
+                        )}
+                        {eff.bookDisadvantageBonus !== 0 && (
+                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                            livro {formatModifier(eff.bookDisadvantageBonus)}
+                          </span>
+                        )}
+                        {eff.equipmentBonus !== 0 && (
+                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                            equip. {formatModifier(eff.equipmentBonus)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )
@@ -2152,6 +2284,10 @@ export default function CharacterSheet({
                             const level = coerceInt(skillState?.level, 0)
                             const dice = getSkillDice(level)
                             const specId = skillState?.specialization ?? ''
+                            const skillSingBonus =
+                              (singularityBonuses.skills[skill.id] ?? 0) +
+                              (equipmentMechanicalBonuses.skills[skill.id] ?? 0) +
+                              (bookDisadvantageBonuses.skills[skill.id] ?? 0)
                             return (
                               <tr key={skill.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
                                 <td className="px-2 py-1.5 text-slate-900 dark:text-ecoar-light-900/90 whitespace-nowrap">{skill.name}</td>
@@ -2203,7 +2339,9 @@ export default function CharacterSheet({
                                     ))}
                                   </select>
                                 </td>
-                                <td className="px-1.5 py-1.5 text-center text-slate-500 dark:text-ecoar-light-900/55">—</td>
+                                <td className="px-1.5 py-1.5 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
+                                  {skillSingBonus === 0 ? '—' : formatModifier(skillSingBonus)}
+                                </td>
                               </tr>
                             )
                           })}
@@ -2233,7 +2371,7 @@ export default function CharacterSheet({
                   const nivel = typeof attrData.nivel === 'string' 
                     ? parseInt(attrData.nivel) || 0 
                     : attrData.nivel
-                  const mod = attrData.mod || 0
+                  const eff = effectiveAttributesByKey[attr.key as keyof typeof effectiveAttributesByKey]
                   
                   return (
                     <div key={attr.key} className="flex items-center justify-between px-2 py-2 border border-slate-200 dark:border-ecoar-light-900/15 rounded-md bg-slate-50/60 dark:bg-ecoar-dark-900/20 min-w-0">
@@ -2255,9 +2393,26 @@ export default function CharacterSheet({
                           }}
                           className="w-10 text-center text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border border-slate-300 dark:border-ecoar-light-900/25 rounded focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
                         />
-                        <span className="text-xs font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400 w-7 text-right">
-                          {formatModifier(mod)}
-                        </span>
+                        <div className="flex flex-col items-end min-w-[3rem]">
+                          <span className="text-xs font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
+                            {formatModifier(eff.effectiveMod)}
+                          </span>
+                          {eff.singularityBonus !== 0 && (
+                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                              sing. {formatModifier(eff.singularityBonus)}
+                            </span>
+                          )}
+                          {eff.bookDisadvantageBonus !== 0 && (
+                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                              livro {formatModifier(eff.bookDisadvantageBonus)}
+                            </span>
+                          )}
+                          {eff.equipmentBonus !== 0 && (
+                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
+                              equip. {formatModifier(eff.equipmentBonus)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -2466,6 +2621,8 @@ export default function CharacterSheet({
                       const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
                       const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
                       const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
+                      const effMod =
+                        effectiveAttributesByKey[apt.attribute]?.effectiveMod ?? attrMod
                       return (
                         <tr key={apt.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
                           <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90">
@@ -2489,7 +2646,7 @@ export default function CharacterSheet({
                             />
                           </td>
                           <td className="px-2 py-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                            {formatModifier(attrMod)}
+                            {formatModifier(effMod)}
                           </td>
                           <td className="px-2 py-2 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/85">
                             {getAptitudeDice(level)}
@@ -2561,6 +2718,8 @@ export default function CharacterSheet({
                     const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
                     const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
                     const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
+                    const effMod =
+                      effectiveAttributesByKey[apt.attribute]?.effectiveMod ?? attrMod
                     return (
                       <div key={apt.id} className="grid grid-cols-12 items-center gap-2 text-xs">
                         <div className="col-span-4 text-slate-700 dark:text-ecoar-light-900/85 truncate">{apt.name}</div>
@@ -2580,7 +2739,7 @@ export default function CharacterSheet({
                           className="col-span-2 w-full text-center px-1.5 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700"
                         />
                         <div className="col-span-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                          {formatModifier(attrMod)}
+                          {formatModifier(effMod)}
                         </div>
                         <div className="col-span-4 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/90">
                           {getAptitudeDice(level)}
@@ -2817,9 +2976,16 @@ export default function CharacterSheet({
               {activeSidebarTab === 'singularidades' && (
                 <div className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
                   <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                    {(Object.keys(singularityBonuses.attributes).length > 0 || Object.keys(singularityBonuses.skills).length > 0 || singularityBonuses.corpo !== 0 || singularityBonuses.mente !== 0 || singularityBonuses.folego !== 0 || singularityBonuses.mana !== 0) && (
+                    {(Object.keys(singularityBonuses.attributes).length > 0 ||
+                      Object.keys(singularityBonuses.skills).length > 0 ||
+                      singularityBonuses.corpo !== 0 ||
+                      singularityBonuses.mente !== 0 ||
+                      singularityBonuses.folego !== 0 ||
+                      singularityBonuses.mana !== 0 ||
+                      Object.keys(equipmentMechanicalBonuses.attributes).length > 0 ||
+                      Object.keys(equipmentMechanicalBonuses.skills).length > 0) && (
                       <p className="text-[11px] text-slate-600 dark:text-ecoar-light-900/65">
-                        Bônus simples ativos aplicados automaticamente na ficha.
+                        Bônus de singularidades, de equipamento (catálogo: mechanicalBonuses, quando o item está equipado) e penalidades de desvantagens do livro (lista salva em desvantagens) são aplicados automaticamente na ficha.
                       </p>
                     )}
                   </div>
@@ -2833,7 +2999,11 @@ export default function CharacterSheet({
                       Abrir singularidades em nova aba
                     </a>
                   )}
-                  <PlayerSingularitiesViewer characterData={characterData} compact />
+                  <PlayerSingularitiesViewer
+                    characterData={characterData}
+                    compact
+                    singularityBonuses={singularityBonuses}
+                  />
                 </div>
               )}
 
@@ -3447,7 +3617,7 @@ export default function CharacterSheet({
                                     criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
                                     ecoar: characterData.singularidadesCondicionaisAtivas,
                                     marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
-                                    raciais: [],
+                                    raciais: characterData.singularidadesCondicionaisRaciaisAtivas,
                                   }}
                                   saldoPe={characterData.pontosEvolucao.atual}
                                   context={{

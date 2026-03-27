@@ -8,6 +8,10 @@ import { getCreationSingularityById } from '@/data/creationSingularities'
 import { getSingularityById } from '@/data/singularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import { getRacialSingularityById } from '@/data/racialSingularities'
+import { getSkillById } from '@/data/skills'
+import { formatModifier } from '@/lib/calculations'
+import type { SingularitiesBonusAggregate } from '@/lib/singularityBonuses'
+import { partitionSignedBonuses } from '@/lib/characterBonuses'
 
 type PlayerSingularityTab = 'criacao' | 'ecoar' | 'marciais' | 'raciais'
 
@@ -15,9 +19,16 @@ interface Props {
   characterData: CharacterData
   initialTab?: PlayerSingularityTab
   compact?: boolean
+  /** Agregado da ficha (passivas/condicionais ativas); exibe bônus e desvantagens numéricas. */
+  singularityBonuses?: SingularitiesBonusAggregate | null
 }
 
-export default function PlayerSingularitiesViewer({ characterData, initialTab, compact }: Props) {
+export default function PlayerSingularitiesViewer({
+  characterData,
+  initialTab,
+  compact,
+  singularityBonuses,
+}: Props) {
   const { getEcoarSingularityById } = useEcoarCatalogData()
   const [tab, setTab] = useState<PlayerSingularityTab>(initialTab ?? 'criacao')
 
@@ -43,6 +54,14 @@ export default function PlayerSingularitiesViewer({ characterData, initialTab, c
     return parts.length ? parts.join(', ') : undefined
   }
 
+  const formatAttributePenaltiesFromSource = (penalties?: { attributes?: Record<string, number> }) => {
+    const attrs = penalties?.attributes
+    if (!attrs || Object.keys(attrs).length === 0) return null
+    return Object.entries(attrs)
+      .map(([k, v]) => `${k} ${formatModifier(v)}`)
+      .join(', ')
+  }
+
   const buttonBase =
     'flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors'
   const buttonActive =
@@ -50,8 +69,83 @@ export default function PlayerSingularitiesViewer({ characterData, initialTab, c
   const buttonIdle =
     'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10'
 
+  const signedEffects = useMemo(
+    () => (singularityBonuses ? partitionSignedBonuses(singularityBonuses) : null),
+    [singularityBonuses],
+  )
+
+  const hasNumericEffects =
+    singularityBonuses &&
+    signedEffects &&
+    (Object.keys(signedEffects.bonusAttributes).length > 0 ||
+      Object.keys(signedEffects.penaltyAttributes).length > 0 ||
+      Object.keys(signedEffects.bonusSkills).length > 0 ||
+      Object.keys(signedEffects.penaltySkills).length > 0 ||
+      singularityBonuses.corpo !== 0 ||
+      singularityBonuses.mente !== 0 ||
+      singularityBonuses.folego !== 0 ||
+      singularityBonuses.mana !== 0)
+
   return (
     <div className="space-y-3">
+      {hasNumericEffects && singularityBonuses && signedEffects && (
+        <div className="rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/80 dark:bg-ecoar-dark-900/40 p-3 space-y-2 text-xs">
+          <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">Efeitos numéricos (singularidades)</div>
+          {(Object.keys(signedEffects.bonusAttributes).length > 0 ||
+            Object.keys(signedEffects.bonusSkills).length > 0 ||
+            singularityBonuses.corpo > 0 ||
+            singularityBonuses.mente > 0 ||
+            singularityBonuses.folego > 0 ||
+            singularityBonuses.mana > 0) && (
+            <div className="p-2 rounded border border-ecoar-teal/30 bg-ecoar-teal/5 dark:bg-ecoar-teal-900/15">
+              <div className="font-medium text-ecoar-teal-800 dark:text-ecoar-teal-300 mb-1">Bônus</div>
+              <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/85">
+                {Object.entries(signedEffects.bonusAttributes).map(([k, v]) => (
+                  <li key={`ba-${k}`}>
+                    Atributo {k}: {formatModifier(v)}
+                  </li>
+                ))}
+                {Object.entries(signedEffects.bonusSkills).map(([id, v]) => (
+                  <li key={`bs-${id}`}>
+                    {getSkillById(id)?.name ?? id}: {formatModifier(v)}
+                  </li>
+                ))}
+                {singularityBonuses.corpo > 0 && <li>Corpo: {formatModifier(singularityBonuses.corpo)}</li>}
+                {singularityBonuses.mente > 0 && <li>Mente: {formatModifier(singularityBonuses.mente)}</li>}
+                {singularityBonuses.folego > 0 && <li>Fôlego: {formatModifier(singularityBonuses.folego)}</li>}
+                {singularityBonuses.mana > 0 && <li>Mana: {formatModifier(singularityBonuses.mana)}</li>}
+              </ul>
+            </div>
+          )}
+          {(Object.keys(signedEffects.penaltyAttributes).length > 0 ||
+            Object.keys(signedEffects.penaltySkills).length > 0 ||
+            singularityBonuses.corpo < 0 ||
+            singularityBonuses.mente < 0 ||
+            singularityBonuses.folego < 0 ||
+            singularityBonuses.mana < 0) && (
+            <div className="p-2 rounded border border-ecoar-magenta/35 bg-ecoar-magenta/5 dark:bg-ecoar-magenta-900/15">
+              <div className="font-medium text-ecoar-magenta-800 dark:text-ecoar-magenta-300 mb-1">Desvantagens</div>
+              <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/85">
+                {Object.entries(signedEffects.penaltyAttributes).map(([k, v]) => (
+                  <li key={`pa-${k}`}>
+                    Atributo {k}: {formatModifier(v)}
+                  </li>
+                ))}
+                {Object.entries(signedEffects.penaltySkills).map(([id, v]) => (
+                  <li key={`ps-${id}`}>
+                    {getSkillById(id)?.name ?? id}: {formatModifier(v)}
+                  </li>
+                ))}
+                {singularityBonuses.corpo < 0 && <li>Corpo: {formatModifier(singularityBonuses.corpo)}</li>}
+                {singularityBonuses.mente < 0 && <li>Mente: {formatModifier(singularityBonuses.mente)}</li>}
+                {singularityBonuses.folego < 0 && <li>Fôlego: {formatModifier(singularityBonuses.folego)}</li>}
+                {singularityBonuses.mana < 0 && <li>Mana: {formatModifier(singularityBonuses.mana)}</li>}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={`flex items-center gap-2 ${compact ? 'flex-wrap' : ''}`}>
         <button
           type="button"
@@ -145,19 +239,27 @@ export default function PlayerSingularitiesViewer({ characterData, initialTab, c
                     ? `Não pode possuir: ${sing.requirements.map((reqId) => resolveNameById(reqId)).join(', ')}`
                     : undefined
 
+                const penaltyLine = formatAttributePenaltiesFromSource(sing.penalties)
+
                 return (
-                  <SingularityCard
-                    key={id}
-                    name={sing.name}
-                    description={sing.description}
-                    cost={sing.cost}
-                    isSelected={true}
-                    canAfford={true}
-                    canSelect={false}
-                    onClick={() => {}}
-                    variant="teal"
-                    requirementsText={restrictionsText}
-                  />
+                  <div key={id} className="space-y-1">
+                    <SingularityCard
+                      name={sing.name}
+                      description={sing.description}
+                      cost={sing.cost}
+                      isSelected={true}
+                      canAfford={true}
+                      canSelect={false}
+                      onClick={() => {}}
+                      variant="teal"
+                      requirementsText={restrictionsText}
+                    />
+                    {penaltyLine && (
+                      <p className="text-[11px] text-ecoar-magenta-700 dark:text-ecoar-magenta-300/90 pl-0.5">
+                        Penalidades (atributos): {penaltyLine}
+                      </p>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -183,22 +285,30 @@ export default function PlayerSingularitiesViewer({ characterData, initialTab, c
                   )
                 }
 
+                const penaltyLine = formatAttributePenaltiesFromSource(sing.penalties)
+
                 return (
-                  <SingularityCard
-                    key={id}
-                    name={sing.name}
-                    description={sing.description}
-                    cost={sing.cost}
-                    costLabel="PC"
-                    secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
-                    effects={sing.effects || undefined}
-                    isSelected={true}
-                    canAfford={true}
-                    canSelect={false}
-                    onClick={() => {}}
-                    variant="teal"
-                    requirementsText={getSimpleRequirementText(sing.requirements)}
-                  />
+                  <div key={id} className="space-y-1">
+                    <SingularityCard
+                      name={sing.name}
+                      description={sing.description}
+                      cost={sing.cost}
+                      costLabel="PC"
+                      secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
+                      effects={sing.effects || undefined}
+                      isSelected={true}
+                      canAfford={true}
+                      canSelect={false}
+                      onClick={() => {}}
+                      variant="teal"
+                      requirementsText={getSimpleRequirementText(sing.requirements)}
+                    />
+                    {penaltyLine && (
+                      <p className="text-[11px] text-ecoar-magenta-700 dark:text-ecoar-magenta-300/90 pl-0.5">
+                        Penalidades (atributos): {penaltyLine}
+                      </p>
+                    )}
+                  </div>
                 )
               })}
             </div>
