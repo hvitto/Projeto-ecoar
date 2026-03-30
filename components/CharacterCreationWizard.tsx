@@ -210,6 +210,24 @@ function martialSchoolCreationLabel(escolaMarcial: string | undefined): { name: 
   return null
 }
 
+/** Soma bônus de atributo da ficha resumida para várias escolas (ids do catálogo `martialSchoolData`). */
+function mergeMartialSchoolAttributeBonusesFromDataSchoolIds(schoolDataIds: string[]): Record<string, number> {
+  const merged: Record<string, number> = {}
+  const seen = new Set<string>()
+  for (const dataId of schoolDataIds) {
+    if (!dataId || seen.has(dataId)) continue
+    seen.add(dataId)
+    const uiId = MARTIAL_SCHOOL_DATA_ID_TO_UI_ID[dataId]
+    const sheet = uiId ? getMartialSchoolById(uiId) : getMartialSchoolById(dataId)
+    const attrs = sheet?.bonuses?.attributes
+    if (!attrs) continue
+    for (const [attr, v] of Object.entries(attrs)) {
+      merged[attr] = (merged[attr] || 0) + (v as number)
+    }
+  }
+  return merged
+}
+
 export default function CharacterCreationWizard({ onComplete, initialData, onGoToDashboard }: CharacterCreationWizardProps) {
   const { ecoarSingularities, getEcoarSingularityById } = useEcoarCatalogData()
   const router = useRouter()
@@ -287,20 +305,6 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
         setPathCacadaEnhancements([])
       }
       return id
-    })
-  }, [])
-
-  /** Troca escola: remove singularidades marciais incompatíveis (uma escola por personagem). */
-  const handleEscolaMarcialSelect = useCallback((nextId: string) => {
-    setSelectedEscolaMarcial(nextId)
-    setSingularidades((prev) => {
-      const resolvedNext = nextId ? resolveMartialSchoolDataId(nextId) : undefined
-      const nextSchool = resolvedNext ? getMartialSchoolDataById(resolvedNext) : null
-      return prev.filter((sId) => {
-        if (!getMartialSchoolSingularityById(sId)) return true
-        if (!nextSchool) return false
-        return nextSchool.singularities.some((sing) => sing.id === sId)
-      })
     })
   }, [])
 
@@ -529,17 +533,26 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRaca])
 
-  // Apply martial school bonuses when school is selected (ids do catálogo vs ficha resumida)
+  // Bônus marciais: soma das escolas com pelo menos uma singularidade comprada; senão, preview da escola em foco
   useEffect(() => {
-    const resolved = selectedEscolaMarcial ? resolveMartialSchoolDataId(selectedEscolaMarcial) : undefined
-    const uiId = resolved ? MARTIAL_SCHOOL_DATA_ID_TO_UI_ID[resolved] : undefined
-    const school = selectedEscolaMarcial
-      ? uiId
+    const schoolIdsFromPurchases = new Set<string>()
+    singularidades.forEach((sid) => {
+      const m = getMartialSchoolSingularityById(sid)
+      if (m?.schoolId) schoolIdsFromPurchases.add(m.schoolId)
+    })
+
+    let newBonuses: Record<string, number> = {}
+    if (schoolIdsFromPurchases.size > 0) {
+      newBonuses = mergeMartialSchoolAttributeBonusesFromDataSchoolIds(Array.from(schoolIdsFromPurchases))
+    } else if (selectedEscolaMarcial) {
+      const resolved = resolveMartialSchoolDataId(selectedEscolaMarcial)
+      const uiId = resolved ? MARTIAL_SCHOOL_DATA_ID_TO_UI_ID[resolved] : undefined
+      const school = uiId
         ? getMartialSchoolById(uiId)
         : getMartialSchoolById(selectedEscolaMarcial)
-      : null
-    const newBonuses = school?.bonuses?.attributes || {}
-    
+      newBonuses = school?.bonuses?.attributes || {}
+    }
+
     setAttributes(prevAttrs => {
       const updated = { ...prevAttrs }
       
@@ -564,7 +577,7 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
     
     setMartialSchoolBonuses(newBonuses)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEscolaMarcial])
+  }, [singularidades, selectedEscolaMarcial])
 
   // Recalculate attribute points whenever bonuses change
   // This ensures that bonuses don't consume free attribute points
@@ -804,7 +817,17 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
         nivelTrilha,
         pontosEvolucao: { atual: pontosEvolucao, max: pontosEvolucao },
         raca: selectedRaca,
-        escolaMarcial: selectedEscolaMarcial,
+        escolaMarcial: (() => {
+          const fromSings = Array.from(
+            new Set(
+              singularidades
+                .map((s) => getMartialSchoolSingularityById(s)?.schoolId)
+                .filter((id): id is string => Boolean(id)),
+            ),
+          ).sort()
+          if (fromSings.length > 0) return fromSings[0]
+          return resolveMartialSchoolDataId(selectedEscolaMarcial) ?? selectedEscolaMarcial
+        })(),
         localizacao: selectedLocalizacao,
         attributes,
         skills,
@@ -817,12 +840,7 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
         singularidades,
         ecoar: selectedEcoar,
         singularidadesEcoar,
-        singularidadesMarciais: selectedEscolaMarcial
-          ? singularidades.filter((s) => {
-              const school = getMartialSchoolDataByIdResolved(selectedEscolaMarcial)
-              return school?.singularities.some((sing) => sing.id === s)
-            })
-          : [],
+        singularidadesMarciais: singularidades.filter((s) => Boolean(getMartialSchoolSingularityById(s))),
         singularidadesRaciais,
         desvantagens: selectedDisadvantages,
         pontosCriacao,
@@ -1410,7 +1428,7 @@ export default function CharacterCreationWizard({ onComplete, initialData, onGoT
                     skills={skills}
                     aptitudes={aptitudes}
                     selectedEscolaMarcial={selectedEscolaMarcial}
-                    onEscolaMarcialSelect={handleEscolaMarcialSelect}
+                    onEscolaMarcialSelect={setSelectedEscolaMarcial}
                     selectedRaca={selectedRaca}
                     singularidadesMarciais={singularidades.filter(s => {
                       const school = getMartialSchoolDataByIdResolved(selectedEscolaMarcial)
@@ -6141,6 +6159,7 @@ function SingularitiesSpendingStep({
           <MartialSingularitiesTab
             selectedEscolaMarcial={selectedEscolaMarcial}
             onEscolaMarcialSelect={onEscolaMarcialSelect}
+            todasSingularidades={singularidades}
             singularidadesMarciais={singularidadesMarciais}
             onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
             pontosDisponiveis={pontosDisponiveis}
@@ -6400,6 +6419,7 @@ function EcoarSingularitiesList({
 function MartialSingularitiesTab({
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
+  todasSingularidades,
   singularidadesMarciais,
   onSingularidadesMarciaisChange,
   pontosDisponiveis,
@@ -6411,6 +6431,8 @@ function MartialSingularitiesTab({
 }: {
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
+  /** Lista completa de singularidades (criação + marciais de todas as escolas). */
+  todasSingularidades: string[]
   singularidadesMarciais: string[]
   onSingularidadesMarciaisChange: (ids: string[]) => void
   pontosDisponiveis: number
@@ -6429,7 +6451,7 @@ function MartialSingularitiesTab({
 
     // Verifica singularidade anterior
     if (singularity.requirements.previous) {
-      if (!singularidadesMarciais.includes(singularity.requirements.previous)) {
+      if (!todasSingularidades.includes(singularity.requirements.previous)) {
         const prevSing = school?.singularities.find(s => s.id === singularity.requirements.previous)
         missingReqs.push(`Requer: ${prevSing?.name || 'Singularidade anterior'}`)
       }
@@ -6477,7 +6499,7 @@ function MartialSingularitiesTab({
     }
 
     return { valid: missingReqs.length === 0, missingReqs }
-  }, [singularidadesMarciais, nivelAlma, attributes, skills, aptitudes, school])
+  }, [singularidadesMarciais, todasSingularidades, nivelAlma, attributes, skills, aptitudes, school])
 
   const toggleSingularity = (id: string) => {
     if (!school) return
@@ -6516,7 +6538,8 @@ function MartialSingularitiesTab({
                 Singularidades Marciais
               </h3>
               <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50">
-                Escolha sua escola marcial para comprar singularidades com Pontos de Criação
+                Você pode comprar singularidades de várias escolas. Escolha uma escola, gaste PC e volte aqui para
+                adicionar outra — nada é apagado ao trocar de escola.
               </p>
             </div>
           </div>
@@ -6526,7 +6549,9 @@ function MartialSingularitiesTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allMartialSchools.map((schoolItem, index) => (
+          {allMartialSchools.map((schoolItem, index) => {
+            const purchasedHere = schoolItem.singularities.filter((s) => todasSingularidades.includes(s.id)).length
+            return (
             <motion.button
               key={schoolItem.id}
               initial={{ opacity: 0, y: 20 }}
@@ -6537,6 +6562,11 @@ function MartialSingularitiesTab({
               whileTap={{ scale: 0.98 }}
               className="relative p-4 rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-teal-400 dark:hover:border-ecoar-teal-500/30 transition-all text-left"
             >
+              {purchasedHere > 0 && (
+                <span className="absolute top-3 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ecoar-teal/20 text-ecoar-teal-700 dark:text-ecoar-teal-400 border border-ecoar-teal/30">
+                  {purchasedHere} sing.
+                </span>
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h4 className="font-bold text-lg mb-1 text-slate-900 dark:text-ecoar-light-900/90">
@@ -6558,7 +6588,8 @@ function MartialSingularitiesTab({
                 </div>
               </div>
             </motion.button>
-          ))}
+            )
+          })}
         </div>
       </div>
     )
@@ -6596,7 +6627,8 @@ function MartialSingularitiesTab({
             Trocar escola marcial
           </span>
           <span className="text-xs text-slate-500 dark:text-ecoar-light-900/55 pl-6 max-w-md">
-            Cada personagem tem uma escola marcial. Ao trocar, as singularidades marciais já escolhidas são removidas.
+            Volta à grade para escolher outra escola e comprar mais singularidades. O que você já comprou em outras
+            escolas continua valendo e segue contando no total de PC.
           </span>
         </button>
       </div>
