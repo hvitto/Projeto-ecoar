@@ -49,6 +49,8 @@ import {
   type ArmorResistanceValues,
   type CatalogEntry,
   type CatalogOwnedItem,
+  type EquippedWeaponSlotId,
+  type EquippedWeaponState,
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
 } from '@/types/equipment'
@@ -56,7 +58,7 @@ import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrow
 import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
 import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
-import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
+import EquippedWeaponSlotPanel from '@/components/character/EquippedWeaponSlotPanel'
 import {
   catalogDisplayLine,
   formatCerosDisplay,
@@ -93,24 +95,6 @@ const isAttributeStateKey = (key: string): key is AttributeStateKey => {
     default:
       return false
   }
-}
-
-const normalizeAttackTestText = (input: string): string => {
-  return input
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-const ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL: Record<string, AttributeStateKey> = {
-  carisma: 'carisma',
-  finesse: 'finesse',
-  forca: 'forca',
-  inteligencia: 'inteligencia',
-  percepcao: 'percepcao',
-  vitalidade: 'vitalidade',
-  vontade: 'vontade',
 }
 
 /** Labels do passo físico do wizard — mod. numérico = índice relativo a "Médio". */
@@ -166,23 +150,6 @@ interface CharacterSheetProps {
   onBackToDashboard?: () => void
   onOpenEvolution?: () => void
   onCharacterSaved?: (saved: any) => void
-}
-
-type EquippedWeaponSlotId = 'slot1' | 'slot2'
-
-type EquippedWeaponOverrides = {
-  attackText?: string
-  rangeText?: string
-  damageText?: string
-  extrasText?: string
-}
-
-type EquippedWeaponState = {
-  instanceId: string
-  attackBonus?: number
-  critBonus?: number
-  damageBonus?: number
-  overrides?: EquippedWeaponOverrides
 }
 
 type EquippedArmorState = {
@@ -390,23 +357,6 @@ export default function CharacterSheet({
     utilityCatalogById,
     weaponCatalogById,
   ])
-
-  const skillsByNormalizedName = useMemo(() => {
-    const map = new Map<string, (typeof skillsDefinitions)[number]>()
-    skillsDefinitions.forEach((skill) => {
-      map.set(normalizeAttackTestText(skill.name), skill)
-    })
-    return map
-  }, [])
-
-  const aptitudesByNormalizedLabel = useMemo(() => {
-    const map = new Map<string, (typeof aptitudesDefinitions)[number]>()
-    aptitudesDefinitions.forEach((apt) => {
-      map.set(normalizeAttackTestText(apt.name), apt)
-      map.set(normalizeAttackTestText(apt.id), apt)
-    })
-    return map
-  }, [])
 
   useEffect(() => {
     initialDataRef.current = initialData
@@ -3032,54 +2982,27 @@ export default function CharacterSheet({
                   ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
                   : undefined
                 const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
-                const properties = entry?.properties ?? []
-
-                const readByPrefix = (prefix: string): string => {
-                  const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
-                  if (!hit) return '—'
-                  const parts = hit.split(':')
-                  return (parts.slice(1).join(':').trim() || hit).replace(/^[+-]\s*/, (m) => m.trim())
-                }
-
                 return (
                   <motion.div
                     key={slotId}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: slotId === 'slot1' ? 0.38 : 0.42 }}
-                    className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
+                    className="overflow-hidden"
                   >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                        {slotLabel}
-                      </h3>
-                      <span className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60">
-                        {entry?.category ?? '—'}
-                      </span>
-                    </div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-3">
-                      {entry?.name ?? 'Não equipada'}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Ataque</div>
-                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Ataque')}</div>
-                      </div>
-                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Alcance</div>
-                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Alcance')}</div>
-                      </div>
-                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Dano</div>
-                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">{readByPrefix('Dano')}</div>
-                      </div>
-                      <div className="p-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/70 dark:bg-ecoar-dark-900/20">
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Propriedades</div>
-                        <div className="font-semibold text-slate-800 dark:text-ecoar-light-900/90">
-                          {properties.length > 0 ? properties.join(' | ') : '—'}
-                        </div>
-                      </div>
-                    </div>
+                    <EquippedWeaponSlotPanel
+                      variant="sheet"
+                      slotId={slotId}
+                      slotLabel={slotLabel}
+                      slotState={slotState}
+                      owned={owned}
+                      entry={entry}
+                      characterData={characterData}
+                      isEditing={isEditing}
+                      showEditControls={false}
+                      onSetSlot={setEquippedWeaponSlot}
+                      onToggleEquipInstance={toggleEquipWeaponInstance}
+                    />
                   </motion.div>
                 )
               })}
@@ -3419,7 +3342,7 @@ export default function CharacterSheet({
                                 Armas equipadas (1 e 2)
                               </div>
                               <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                                Layout em estilo ficha (Ataque, Alcance, Dano, Extras e Propriedades).
+                                Dados do catálogo (incl. base de dados quando disponível).
                               </div>
                             </div>
                             {(['slot1', 'slot2'] as EquippedWeaponSlotId[]).map((slotId) => {
@@ -3429,333 +3352,21 @@ export default function CharacterSheet({
                                 ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
                                 : undefined
                               const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
-                              const properties = entry?.properties ?? []
-
-                              const readNumber = (prefix: string): number | null => {
-                                const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
-                                if (!hit) return null
-                                const m = hit.match(/(-?\d+)/)
-                                if (!m) return null
-                                const n = parseInt(m[1], 10)
-                                return Number.isFinite(n) ? n : null
-                              }
-
-                              const readText = (prefix: string): string | null => {
-                                const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))
-                                return hit ? hit : null
-                              }
-
-                              const baseCrit = readNumber('Acerto Crítico')
-                              const baseTargets = readNumber('Alvos')
-                              const baseMaxDamage = readNumber('Dano máximo')
-                              const baseReload = readText('Recarga')
-                              const baseCapacity = readText('Capacidade')
-
-                              const attackBonus = slotState?.attackBonus ?? 0
-
-                              const attackAutoText = (() => {
-                                const raw = entry?.attackTest
-                                if (!raw || typeof raw !== 'string') return null
-
-                                // Expected shape: "<Atributo> + <Habilidade> (<Especialização>)"
-                                const normalized = normalizeAttackTestText(raw)
-                                const match = normalized.match(/^(.+?)\s*\+\s*([^(]+?)\s*\(([^)]+)\)\s*$/)
-                                if (!match) return raw
-
-                                const attrNorm = match[1].trim()
-                                const skillNameNorm = match[2].trim()
-                                const specLabelNorm = match[3].trim()
-
-                                const attributeKey = ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL[attrNorm]
-                                if (!attributeKey) return raw
-
-                                const attrModRaw = (characterData as any)?.[attributeKey]?.mod
-                                const attrMod = typeof attrModRaw === 'number' ? attrModRaw : parseInt(String(attrModRaw ?? 0), 10) || 0
-
-                                const skillDef = skillsByNormalizedName.get(skillNameNorm)
-
-                                let diceText: string | null = null
-                                if (skillDef) {
-                                  const specializationId =
-                                    skillDef.specializations.find((sp) => normalizeAttackTestText(sp.name) === specLabelNorm)?.id ??
-                                    skillDef.specializations.find((sp) => normalizeAttackTestText(sp.id) === specLabelNorm)?.id
-
-                                  const skillState = characterData.skills?.[skillDef.id]
-                                  const levelRaw = skillState?.level
-                                  const level = typeof levelRaw === 'number' ? levelRaw : parseInt(String(levelRaw ?? 0), 10) || 0
-
-                                  const specializationMatches = specializationId
-                                    ? !skillState?.specialization || skillState.specialization === specializationId
-                                    : true
-
-                                  if (skillState && specializationMatches) {
-                                    diceText = getSkillDice(level)
-                                  }
-                                }
-
-                                if (!diceText) {
-                                  const aptitudeDef = aptitudesByNormalizedLabel.get(specLabelNorm)
-                                  const aptId = aptitudeDef?.id
-                                  const aptLevelRaw = aptId ? characterData.aptitudes?.[aptId] : 0
-                                  const aptLevel =
-                                    typeof aptLevelRaw === 'number' ? aptLevelRaw : parseInt(String(aptLevelRaw ?? 0), 10) || 0
-                                  diceText = getAptitudeDice(aptLevel)
-                                }
-
-                                if (!diceText) return null
-
-                                return `${diceText} ${attrMod >= 0 ? '+' : '-'} ${Math.abs(attrMod)}`
-                              })()
-
-                              const attackOverrideText = slotState?.overrides?.attackText?.trim()
-                              const attackBase =
-                                attackOverrideText && attackOverrideText.length > 0
-                                  ? attackOverrideText
-                                  : attackAutoText ?? entry?.attackTest ?? '—'
-
-                              const attackText =
-                                attackBase !== '—' && attackBonus !== 0
-                                  ? `${attackBase} ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`
-                                  : attackBase
-
-                              const rangeText =
-                                slotState?.overrides?.rangeText ??
-                                (entry ? formatWeaponRangeDisplay(entry as WeaponCatalogEntry) : '—')
-                              const damageText =
-                                slotState?.overrides?.damageText ??
-                                (entry ? formatWeaponDamageDisplay(entry as WeaponCatalogEntry) : '—')
-                              const extrasOverride = slotState?.overrides?.extrasText?.trim()
-
-                              const critValue =
-                                baseCrit !== null ? baseCrit + (slotState?.critBonus ?? 0) : null
-                              const maxDamageValue =
-                                baseMaxDamage !== null ? baseMaxDamage + (slotState?.damageBonus ?? 0) : null
-
                               return (
-                                <div
+                                <EquippedWeaponSlotPanel
                                   key={slotId}
-                                  className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/40 space-y-2"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">
-                                        {slotLabel}
-                                      </div>
-                                      <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 break-words">
-                                        {entry?.name ?? owned?.nome ?? 'Nenhuma arma equipada'}
-                                      </div>
-                                    </div>
-                                    {slotState?.instanceId && (
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleEquipWeaponInstance(slotState.instanceId, false)}
-                                        disabled={!isEditing}
-                                        className="shrink-0 px-2 py-1 rounded-md text-[11px] border border-slate-200 dark:border-ecoar-light-900/20 disabled:opacity-60"
-                                      >
-                                        Desequipar
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  {!slotState?.instanceId ? (
-                                    <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                      Equipe uma arma no Inventário para ela aparecer aqui.
-                                    </div>
-                                  ) : !entry ? (
-                                    <div className="text-xs text-ecoar-magenta">
-                                      Não foi possível carregar os dados do catálogo para este item.
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <div className="grid grid-cols-12 gap-2 text-xs">
-                                        <div className="col-span-12">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Ataque
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
-                                            {attackText}
-                                          </div>
-                                          {isEditing && (
-                                            <div className="mt-1 grid grid-cols-12 gap-2">
-                                              <input
-                                                type="number"
-                                                disabled={!isEditing}
-                                                value={slotState.attackBonus ?? 0}
-                                                onChange={(e) => {
-                                                  const n = parseInt(e.target.value, 10)
-                                                  const nextBonus = Number.isFinite(n) ? n : 0
-                                                  setEquippedWeaponSlot(slotId, { ...slotState, attackBonus: nextBonus })
-                                                }}
-                                                className="col-span-4 px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                                                placeholder="Bônus"
-                                              />
-                                              <input
-                                                type="text"
-                                                disabled={!isEditing}
-                                                value={slotState.overrides?.attackText ?? ''}
-                                                onChange={(e) => {
-                                                  const v = e.target.value
-                                                  setEquippedWeaponSlot(slotId, {
-                                                    ...slotState,
-                                                    overrides: { ...(slotState.overrides ?? {}), attackText: v || undefined },
-                                                  })
-                                                }}
-                                                className="col-span-8 px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                                                placeholder="Override do ataque (opcional)"
-                                              />
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="col-span-6">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Categoria
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
-                                            {entry.category ?? '—'}
-                                          </div>
-                                        </div>
-                                        <div className="col-span-3">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Durabilidade
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90">{entry.durability ?? '—'}</div>
-                                        </div>
-                                        <div className="col-span-3">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Espaço
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90">{entry.space ?? '—'}</div>
-                                        </div>
-
-                                        <div className="col-span-6">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Alcance
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">{rangeText}</div>
-                                          {isEditing && (
-                                            <input
-                                              type="text"
-                                              disabled={!isEditing}
-                                              value={slotState.overrides?.rangeText ?? ''}
-                                              onChange={(e) => {
-                                                const v = e.target.value
-                                                setEquippedWeaponSlot(slotId, {
-                                                  ...slotState,
-                                                  overrides: { ...(slotState.overrides ?? {}), rangeText: v || undefined },
-                                                })
-                                              }}
-                                              className="mt-1 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                                              placeholder="Override do alcance (opcional)"
-                                            />
-                                          )}
-                                        </div>
-                                        <div className="col-span-6">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Dano
-                                          </div>
-                                          <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">{damageText}</div>
-                                          {isEditing && (
-                                            <input
-                                              type="text"
-                                              disabled={!isEditing}
-                                              value={slotState.overrides?.damageText ?? ''}
-                                              onChange={(e) => {
-                                                const v = e.target.value
-                                                setEquippedWeaponSlot(slotId, {
-                                                  ...slotState,
-                                                  overrides: { ...(slotState.overrides ?? {}), damageText: v || undefined },
-                                                })
-                                              }}
-                                              className="mt-1 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                                              placeholder="Override do dano (opcional)"
-                                            />
-                                          )}
-                                        </div>
-
-                                        <div className="col-span-12">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Extras
-                                          </div>
-                                          <div className="grid grid-cols-12 gap-2">
-                                            <div className="col-span-6 sm:col-span-3">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">
-                                                Acerto Crítico
-                                              </div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
-                                                {extrasOverride ? '—' : critValue !== null ? String(critValue) : '—'}
-                                              </div>
-                                            </div>
-                                            <div className="col-span-6 sm:col-span-3">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Alvos</div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
-                                                {extrasOverride ? '—' : baseTargets !== null ? String(baseTargets) : '—'}
-                                              </div>
-                                            </div>
-                                            <div className="col-span-6 sm:col-span-3">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Dano Máximo</div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90">
-                                                {extrasOverride ? '—' : maxDamageValue !== null ? String(maxDamageValue) : '—'}
-                                              </div>
-                                            </div>
-                                            <div className="col-span-6 sm:col-span-3">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Munição</div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
-                                                {entry.ammoCategory ?? '—'}
-                                              </div>
-                                            </div>
-                                          </div>
-                                          <div className="mt-2 grid grid-cols-12 gap-2">
-                                            <div className="col-span-6">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Recarga</div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
-                                                {extrasOverride ? '—' : baseReload ?? entry.reloadNotes ?? '—'}
-                                              </div>
-                                            </div>
-                                            <div className="col-span-6">
-                                              <div className="text-slate-700 dark:text-ecoar-light-900/75">Capacidade</div>
-                                              <div className="text-slate-900 dark:text-ecoar-light-900/90 break-words">
-                                                {extrasOverride ? '—' : baseCapacity ?? (entry.capacity ? `Capacidade: ${entry.capacity}` : '—')}
-                                              </div>
-                                            </div>
-                                          </div>
-                                          {isEditing && (
-                                            <input
-                                              type="text"
-                                              disabled={!isEditing}
-                                              value={slotState.overrides?.extrasText ?? ''}
-                                              onChange={(e) => {
-                                                const v = e.target.value
-                                                setEquippedWeaponSlot(slotId, {
-                                                  ...slotState,
-                                                  overrides: { ...(slotState.overrides ?? {}), extrasText: v || undefined },
-                                                })
-                                              }}
-                                              className="mt-2 w-full px-2 py-1 rounded-md border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-[11px] text-slate-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                                              placeholder="Override de extras (opcional, texto livre)"
-                                            />
-                                          )}
-                                        </div>
-
-                                        <div className="col-span-12">
-                                          <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/65">
-                                            Propriedades
-                                          </div>
-                                          <div className="flex flex-wrap gap-1.5 mt-1">
-                                            {(entry.properties ?? []).map((p) => (
-                                              <span
-                                                key={p}
-                                                className="px-2 py-1 rounded-full text-[11px] bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-800 dark:text-ecoar-light-900/80 border border-slate-200 dark:border-ecoar-light-900/15"
-                                              >
-                                                {p}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
+                                  variant="panel"
+                                  slotId={slotId}
+                                  slotLabel={slotLabel}
+                                  slotState={slotState}
+                                  owned={owned}
+                                  entry={entry}
+                                  characterData={characterData}
+                                  isEditing={isEditing}
+                                  showEditControls={isEditing}
+                                  onSetSlot={setEquippedWeaponSlot}
+                                  onToggleEquipInstance={toggleEquipWeaponInstance}
+                                />
                               )
                             })}
                             <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">

@@ -181,6 +181,23 @@ export interface CatalogOwnedItem {
   displayLine: string
 }
 
+export type EquippedWeaponSlotId = 'slot1' | 'slot2'
+
+export type EquippedWeaponOverrides = {
+  attackText?: string
+  rangeText?: string
+  damageText?: string
+  extrasText?: string
+}
+
+export type EquippedWeaponState = {
+  instanceId: string
+  attackBonus?: number
+  critBonus?: number
+  damageBonus?: number
+  overrides?: EquippedWeaponOverrides
+}
+
 export interface CostMultiplierRow {
   group: string
   reclusa: string
