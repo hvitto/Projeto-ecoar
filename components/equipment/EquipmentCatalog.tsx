@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, BookOpen, Settings2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Plus } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import { useEquipmentCatalog } from '@/contexts/EquipmentCatalogContext'
@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getAccessToken } from '@/lib/auth/authService'
 import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
 import CatalogItemEditModal from '@/components/admin/CatalogItemEditModal'
+import CreateEquipmentModal from '@/components/admin/CreateEquipmentModal'
 
 type AdminItem = {
   id: string
@@ -30,6 +31,7 @@ export default function EquipmentCatalog() {
     hint?: string
   }>(null)
   const [editingRow, setEditingRow] = useState<AdminItem | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   useEffect(() => {
     if (authLoading || !user || !getAccessToken()) {
@@ -138,14 +140,15 @@ export default function EquipmentCatalog() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {showAdminLink && (
-              <Link
-                href="/admin/equipamentos"
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 text-slate-600 dark:text-ecoar-light-900/70 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
+            {showAdminLink && canAdminUseEditor && (
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-ecoar-teal-500/35 bg-ecoar-teal-500/10 text-ecoar-teal-800 dark:text-ecoar-teal-300 hover:bg-ecoar-teal-500/18 dark:hover:bg-ecoar-teal-500/20"
               >
-                <Settings2 className="w-3.5 h-3.5" />
-                Gerenciar catálogo
-              </Link>
+                <Plus className="w-3.5 h-3.5" />
+                Criar novo equipamento
+              </button>
             )}
             <ThemeSwitcher />
           </div>
@@ -184,6 +187,28 @@ export default function EquipmentCatalog() {
           />
         </div>
       </div>
+
+      {createOpen && canAdminUseEditor && (
+        <CreateEquipmentModal
+          open
+          onClose={() => setCreateOpen(false)}
+          existingIds={adminData?.items.map((i) => i.id) ?? []}
+          onCreated={async () => {
+            const adminRes = await fetch('/api/equipment-catalog/admin', {
+              headers: { Authorization: `Bearer ${getAccessToken()}` },
+              cache: 'no-store',
+            })
+            if (!adminRes.ok) return
+            const data = (await adminRes.json()) as {
+              items: AdminItem[]
+              multiplierTables: CostMultiplierTable[]
+              schemaMissing?: boolean
+              hint?: string
+            }
+            setAdminData(data)
+          }}
+        />
+      )}
 
       {editingRow && canAdminUseEditor && (
         <CatalogItemEditModal

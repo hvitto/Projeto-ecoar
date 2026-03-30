@@ -738,6 +738,13 @@ export function getRacialSingularitiesByRaceId(raceId: string): RacialSingularit
   return racialSingularities.filter((s) => s.raceId === raceId)
 }
 
+/** Talentos raciais adquiríveis com PE na tela de evolução (exclui talentos exclusivos da criação). */
+export function getRacialSingularitiesByRaceIdForEvolution(raceId: string): RacialSingularity[] {
+  return racialSingularities.filter(
+    (s) => s.raceId === raceId && (s.acquisitionPhase ?? 'creation') === 'evolution'
+  )
+}
+
 export function getRacialSingularityById(id: string): RacialSingularity | undefined {
   return racialSingularities.find((s) => s.id === id)
 }

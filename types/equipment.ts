@@ -35,35 +35,6 @@ export type MechanicalBonuses = {
   skills?: Record<string, number>
 }
 
-export interface WeaponCatalogEntry {
-  id: string
-  kind: 'weapon'
-  name: string
-  macroSection: WeaponMacroSectionId
-  /** Classe de equipamento (ex.: Armas corpo-a-corpo). */
-  equipmentClass?: string
-  /** Categoria no livro (ex.: Lâminas Curtas). */
-  category?: string
-  durability?: string
-  space?: string
-  costLabel?: string
-  attackTest?: string
-  rangeNotes?: string
-  damageNotes?: string
-  classTraits?: string
-  properties?: string[]
-  ammoCategory?: string
-  ammoCostPerUnit?: string
-  reloadNotes?: string
-  capacity?: string
-  technology?: string
-  flavor?: string
-  detailSections?: EquipmentDetailSection[]
-  mechanicalBonuses?: MechanicalBonuses
-}
-
-export type VestuarioTabId = 'armaduras' | 'capacetes' | 'acessorios'
-
 export type ArmorResistanceKey =
   | 'contundente'
   | 'cortante'
@@ -94,6 +65,76 @@ export const ARMOR_RESISTANCE_KEYS: ArmorResistanceKey[] = [
   'magico',
   'toxico',
 ]
+
+/** Linha de dano por tipo (armas). */
+export interface WeaponDamageEntry {
+  type: ArmorResistanceKey
+  amount: number
+}
+
+/** Rótulos em PT-BR para tipos de dano / resistência (UI). */
+export const DAMAGE_TYPE_LABELS_PT: Record<ArmorResistanceKey, string> = {
+  contundente: 'Contundente',
+  cortante: 'Cortante',
+  perfurante: 'Perfurante',
+  balistico: 'Balístico',
+  esmagador: 'Esmagador',
+  explosivo: 'Explosivo',
+  ardente: 'Ardente',
+  congelante: 'Congelante',
+  eletrico: 'Elétrico',
+  corrosivo: 'Corrosivo',
+  magico: 'Mágico',
+  toxico: 'Tóxico',
+}
+
+export interface WeaponCatalogEntry {
+  id: string
+  kind: 'weapon'
+  name: string
+  macroSection: WeaponMacroSectionId
+  /** Classe de equipamento (ex.: Armas corpo-a-corpo). */
+  equipmentClass?: string
+  /** Categoria no livro (ex.: Lâminas Curtas). */
+  category?: string
+  durability?: string
+  space?: string
+  costLabel?: string
+  attackTest?: string
+  /** Evasão (ex.: teste de esquiva). */
+  evasionTest?: string
+  /** Legado: alcance num único texto; preferir os três campos de alcance abaixo. */
+  rangeNotes?: string
+  /** Desfavorável (perto), metros ou “—”. */
+  rangeDisadvantageNear?: string
+  /** Alcance efetivo (ex.: “0 a 1”). */
+  rangeEffective?: string
+  /** Desfavorável (longe). */
+  rangeDisadvantageFar?: string
+  /** Dano por tipo e quantidade (preferir em relação a texto livre). */
+  damageEntries?: WeaponDamageEntry[]
+  /** Legado: texto livre; usado na exibição se `damageEntries` estiver vazio. */
+  damageNotes?: string
+  /** Legado: traços da classe num único texto; preferir os três campos abaixo. */
+  classTraits?: string
+  /** Traços da classe — acerto crítico. */
+  classTraitCrit?: string
+  /** Traços da classe — alvos. */
+  classTraitTargets?: string
+  /** Traços da classe — dano máximo. */
+  classTraitMaxDamage?: string
+  properties?: string[]
+  ammoCategory?: string
+  ammoCostPerUnit?: string
+  reloadNotes?: string
+  capacity?: string
+  technology?: string
+  flavor?: string
+  detailSections?: EquipmentDetailSection[]
+  mechanicalBonuses?: MechanicalBonuses
+}
+
+export type VestuarioTabId = 'armaduras' | 'capacetes' | 'acessorios'
 
 export interface ArmorCatalogEntry {
   id: string

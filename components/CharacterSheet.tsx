@@ -56,6 +56,7 @@ import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrow
 import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
 import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
+import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
 import {
   catalogDisplayLine,
   formatCerosDisplay,
@@ -3517,8 +3518,12 @@ export default function CharacterSheet({
                                   ? `${attackBase} ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`
                                   : attackBase
 
-                              const rangeText = slotState?.overrides?.rangeText ?? entry?.rangeNotes ?? '—'
-                              const damageText = slotState?.overrides?.damageText ?? entry?.damageNotes ?? '—'
+                              const rangeText =
+                                slotState?.overrides?.rangeText ??
+                                (entry ? formatWeaponRangeDisplay(entry as WeaponCatalogEntry) : '—')
+                              const damageText =
+                                slotState?.overrides?.damageText ??
+                                (entry ? formatWeaponDamageDisplay(entry as WeaponCatalogEntry) : '—')
                               const extrasOverride = slotState?.overrides?.extrasText?.trim()
 
                               const critValue =

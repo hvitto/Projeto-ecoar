@@ -144,10 +144,14 @@ export function defaultMultiplierTables(): CostMultiplierTable[] {
 }
 
 function normalizeWeaponPayload(p: WeaponCatalogEntry): WeaponCatalogEntry {
+  const raw = p.damageEntries
+  const damageEntries =
+    Array.isArray(raw) && raw.length > 0 ? raw : undefined
   return {
     ...p,
     kind: 'weapon',
     properties: Array.isArray(p.properties) ? p.properties : [],
+    damageEntries,
   }
 }
 

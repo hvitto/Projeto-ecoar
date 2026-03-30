@@ -9,6 +9,7 @@ import {
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
 } from '@/types/equipment'
+import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
 
 type Entry = WeaponCatalogEntry | ArmorCatalogEntry | UtilityCatalogEntry
 
@@ -145,22 +146,36 @@ export default function CatalogItemCard({
         <div className="px-3 sm:px-4 pb-4 pt-0 pl-11 sm:pl-12 space-y-3 border-t border-slate-100 dark:border-ecoar-light-900/10">
           {isWeapon && (
             <>
-              <Field label="Teste de ataque" value={entry.attackTest} />
-              <Field label="Alcance" value={entry.rangeNotes} />
-              <Field label="Dano / tracos" value={entry.damageNotes} />
-              <Field label="Traços da classe" value={entry.classTraits} />
-              <Field label="Munição" value={entry.ammoCategory} />
-              <Field label="Custo munição" value={entry.ammoCostPerUnit} />
-              <Field label="Recarga" value={entry.reloadNotes} />
-              <Field label="Capacidade" value={entry.capacity} />
-              <Field label="Tecnologia" value={entry.technology} />
-              {entry.flavor && <p className="text-xs text-slate-600 dark:text-ecoar-light-900/65 italic">{entry.flavor}</p>}
+              <Field label="Testes de ataque" value={entry.attackTest} />
+              <Field label="Evasão" value={entry.evasionTest} />
+              <Field label="Alcance em metros" value={formatWeaponRangeDisplay(entry)} />
+              <Field label="Dano" value={formatWeaponDamageDisplay(entry)} />
+              {(() => {
+                const hasStructured =
+                  Boolean(entry.classTraitCrit?.trim()) ||
+                  Boolean(entry.classTraitTargets?.trim()) ||
+                  Boolean(entry.classTraitMaxDamage?.trim())
+                if (hasStructured) {
+                  return (
+                    <>
+                      <Field label="Acerto crítico" value={entry.classTraitCrit} />
+                      <Field label="Alvos" value={entry.classTraitTargets} />
+                      <Field label="Dano máximo" value={entry.classTraitMaxDamage} />
+                    </>
+                  )
+                }
+                const legacy = entry.classTraits?.trim()
+                return legacy ? <Field label="Traços da classe" value={legacy} /> : null
+              })()}
               {Array.isArray(entry.properties) && entry.properties.length > 0 && (
-                <ul className="text-xs list-disc pl-4 text-ecoar-dark-700 dark:text-ecoar-light-900/75 space-y-0.5">
-                  {entry.properties.map((p) => (
-                    <li key={p}>{p}</li>
-                  ))}
-                </ul>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-ecoar-light-900/50 mb-1">Propriedades</div>
+                  <ul className="text-xs list-disc pl-4 text-ecoar-dark-700 dark:text-ecoar-light-900/75 space-y-0.5">
+                    {entry.properties.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </>
           )}

@@ -2184,6 +2184,36 @@ export const getMartialSchoolDataById = (id: string): MartialSchoolData | undefi
   return martialSchoolData.find(school => school.id === id)
 }
 
+/** IDs usados em `martialSchools.ts` (ficha resumida) → IDs do catálogo `martialSchoolData`. */
+export const MARTIAL_SCHOOL_UI_ID_TO_DATA_ID: Record<string, string> = {
+  'doutores-praga': 'doutor-praga',
+  elementalistas: 'elementalista',
+  gravimagos: 'gravimago',
+  atiradores: 'atirador',
+  emboscadores: 'emboscadora',
+  guerreiros: 'guerreiro',
+}
+
+/** Inverso: catálogo de singularidades → id para bônus em `martialSchools`. */
+export const MARTIAL_SCHOOL_DATA_ID_TO_UI_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(MARTIAL_SCHOOL_UI_ID_TO_DATA_ID).map(([ui, data]) => [data, ui])
+) as Record<string, string>
+
+/** Aceita id do catálogo ou id legado da ficha resumida (ex.: elementalistas → elementalista). */
+export function resolveMartialSchoolDataId(id: string): string | undefined {
+  if (!id) return undefined
+  if (martialSchoolData.some((s) => s.id === id)) return id
+  const mapped = MARTIAL_SCHOOL_UI_ID_TO_DATA_ID[id]
+  if (mapped && martialSchoolData.some((s) => s.id === mapped)) return mapped
+  return undefined
+}
+
+export function getMartialSchoolDataByIdResolved(id: string): MartialSchoolData | undefined {
+  const resolved = resolveMartialSchoolDataId(id)
+  if (!resolved) return undefined
+  return getMartialSchoolDataById(resolved)
+}
+
 export const getMartialSchoolSingularityById = (id: string): MartialSchoolSingularity | undefined => {
   for (const school of martialSchoolData) {
     const singularity = school.singularities.find(s => s.id === id)

@@ -21,6 +21,26 @@ const detailSectionSchema = z.object({
   body: z.string(),
 })
 
+const armorResistanceKeyEnum = z.enum([
+  'contundente',
+  'cortante',
+  'perfurante',
+  'balistico',
+  'esmagador',
+  'explosivo',
+  'ardente',
+  'congelante',
+  'eletrico',
+  'corrosivo',
+  'magico',
+  'toxico',
+])
+
+const weaponDamageEntrySchema = z.object({
+  type: armorResistanceKeyEnum,
+  amount: z.coerce.number(),
+})
+
 const armorResistancesSchema = z.object({
   contundente: z.coerce.number(),
   cortante: z.coerce.number(),
@@ -48,9 +68,17 @@ const weaponCatalogEntrySchema = z
     space: z.string().optional(),
     costLabel: z.string().optional(),
     attackTest: z.string().optional(),
+    evasionTest: z.string().optional(),
     rangeNotes: z.string().optional(),
+    rangeDisadvantageNear: z.string().optional(),
+    rangeEffective: z.string().optional(),
+    rangeDisadvantageFar: z.string().optional(),
+    damageEntries: z.array(weaponDamageEntrySchema).optional(),
     damageNotes: z.string().optional(),
     classTraits: z.string().optional(),
+    classTraitCrit: z.string().optional(),
+    classTraitTargets: z.string().optional(),
+    classTraitMaxDamage: z.string().optional(),
     properties: z.array(z.string()).optional(),
     ammoCategory: z.string().optional(),
     ammoCostPerUnit: z.string().optional(),

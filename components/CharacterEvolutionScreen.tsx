@@ -9,6 +9,7 @@ import { getSkillDice } from '@/lib/calculations'
 import { getRaceById } from '@/data/races'
 import {
   getRacialSingularitiesByRaceId,
+  getRacialSingularitiesByRaceIdForEvolution,
   getRacialSingularityById,
   pruneRacialSingularitiesToValidRequirements,
 } from '@/data/racialSingularities'
@@ -23,11 +24,15 @@ import type { EcoarSingularity } from '@/data/ecoarSingularities'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import {
   getAllMartialSchools,
-  getMartialSchoolDataById,
+  getMartialSchoolDataByIdResolved,
+  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
+  resolveMartialSchoolDataId,
   type MartialSchoolSingularity,
 } from '@/data/martialSchoolSingularities'
 import { getMartialSchoolById } from '@/data/martialSchools'
+import { races } from '@/data/races'
 import SingularityCard from '@/components/ui/SingularityCard'
+import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 
 type EvolutionTab = 'tracos' | 'singularidades'
 type TraitsSubTab = 'atributos' | 'habilidades' | 'aptidoes'
@@ -78,7 +83,7 @@ export default function CharacterEvolutionScreen({
   onCancel,
   onSaved,
 }: CharacterEvolutionScreenProps) {
-  const { getEcoarSingularitiesByEcoarId, getEcoarSingularityById } = useEcoarCatalogData()
+  const { getEcoarSingularitiesByEcoarId, getEcoarSingularityById, playableEcoarTypes } = useEcoarCatalogData()
   const { user } = useAuth()
 
   const initialPontosEvolucao = initialCharacterData?.pontosEvolucao ?? { atual: 0, max: 0 }
@@ -94,13 +99,20 @@ export default function CharacterEvolutionScreen({
   const nivelPoder = soulLevel?.nivelPoder ?? 3
   const poderCapBase = Math.min(nivelPoder, 8)
 
-  const selectedRaca: string = initialCharacterData?.raca ?? ''
-  const selectedEscolaMarcial: string = initialCharacterData?.escolaMarcial ?? ''
-  const selectedEcoar: string = initialCharacterData?.ecoar ?? ''
+  const baselineEcoarId = initialCharacterData?.ecoar ?? ''
+  const baselineEscolaMarcialId = initialCharacterData?.escolaMarcial ?? ''
+  const baselineRacaId = initialCharacterData?.raca ?? ''
+
+  const [draftEcoar, setDraftEcoar] = useState<string>(() => initialCharacterData?.ecoar ?? '')
+  const [draftEscolaMarcial, setDraftEscolaMarcial] = useState<string>(() => {
+    const raw = initialCharacterData?.escolaMarcial ?? ''
+    return resolveMartialSchoolDataId(raw) ?? raw
+  })
+  const [draftRaca, setDraftRaca] = useState<string>(() => initialCharacterData?.raca ?? '')
 
   const raceBonuses = useMemo(() => {
-    if (!selectedRaca) return {} as Record<string, number>
-    const race = getRaceById(selectedRaca)
+    if (!draftRaca) return {} as Record<string, number>
+    const race = getRaceById(draftRaca)
     if (!race?.bonuses) return {} as Record<string, number>
 
     const manual = race.bonuses.attributes ?? {}
@@ -112,13 +124,16 @@ export default function CharacterEvolutionScreen({
     if (weightModifier !== 0) automatic.vitalidade = weightModifier
 
     return { ...manual, ...automatic }
-  }, [selectedRaca])
+  }, [draftRaca])
 
   const martialSchoolBonuses = useMemo(() => {
-    if (!selectedEscolaMarcial) return {} as Record<string, number>
-    const school = getMartialSchoolById(selectedEscolaMarcial)
+    if (!draftEscolaMarcial) return {} as Record<string, number>
+    const resolved = resolveMartialSchoolDataId(draftEscolaMarcial)
+    if (!resolved) return {} as Record<string, number>
+    const uiId = MARTIAL_SCHOOL_DATA_ID_TO_UI_ID[resolved]
+    const school = uiId ? getMartialSchoolById(uiId) : getMartialSchoolById(draftEscolaMarcial)
     return school?.bonuses?.attributes ?? {}
-  }, [selectedEscolaMarcial])
+  }, [draftEscolaMarcial])
 
   // Baseline (o que já existia quando abriu a tela)
   const baselineAttributes = useMemo<Record<AttributeKey, number>>(() => {
@@ -164,6 +179,11 @@ export default function CharacterEvolutionScreen({
   const baselineMartialSet = useMemo(() => new Set(baselineSingularidadesMarciais), [baselineSingularidadesMarciais])
   const baselineRacialSet = useMemo(() => new Set(baselineSingularidadesRaciais), [baselineSingularidadesRaciais])
 
+  const racialSingularitiesForEvolution = useMemo(
+    () => (draftRaca ? getRacialSingularitiesByRaceIdForEvolution(draftRaca) : []),
+    [draftRaca]
+  )
+
   // Draft (estado temporário)
   const [tab, setTab] = useState<EvolutionTab>('tracos')
   const [traitsSubTab, setTraitsSubTab] = useState<TraitsSubTab>('atributos')
@@ -178,6 +198,43 @@ export default function CharacterEvolutionScreen({
   const [draftSingularidadesEcoar, setDraftSingularidadesEcoar] = useState<string[]>(baselineSingularidadesEcoar)
   const [draftSingularidadesMarciais, setDraftSingularidadesMarciais] = useState<string[]>(baselineSingularidadesMarciais)
   const [draftSingularidadesRaciais, setDraftSingularidadesRaciais] = useState<string[]>(baselineSingularidadesRaciais)
+
+  const handleDraftEcoarChange = useCallback(
+    (next: string) => {
+      setDraftEcoar(next)
+      setDraftSingularidadesEcoar((prev) => {
+        if (!next) return [...baselineSingularidadesEcoar]
+        const allowed = new Set(getEcoarSingularitiesByEcoarId(next).map((s) => s.id))
+        return prev.filter((id) => allowed.has(id))
+      })
+    },
+    [getEcoarSingularitiesByEcoarId, baselineSingularidadesEcoar]
+  )
+
+  const handleDraftEscolaMarcialChange = useCallback(
+    (next: string) => {
+      setDraftEscolaMarcial(next)
+      setDraftSingularidadesMarciais((prev) => {
+        if (!next) return [...baselineSingularidadesMarciais]
+        const school = getMartialSchoolDataByIdResolved(next)
+        const allowed = new Set(school?.singularities.map((s) => s.id) ?? [])
+        return prev.filter((id) => allowed.has(id))
+      })
+    },
+    [baselineSingularidadesMarciais]
+  )
+
+  const handleDraftRacaChange = useCallback(
+    (next: string) => {
+      setDraftRaca(next)
+      setDraftSingularidadesRaciais((prev) => {
+        if (!next) return [...baselineSingularidadesRaciais]
+        const filtered = prev.filter((id) => getRacialSingularityById(id)?.raceId === next)
+        return pruneRacialSingularitiesToValidRequirements(filtered)
+      })
+    },
+    [baselineSingularidadesRaciais]
+  )
 
   const [selectedSkillCategory, setSelectedSkillCategory] = useState<Skill['category']>('combate')
   const hasMasterOverride = isTableGmEditor
@@ -243,12 +300,12 @@ export default function CharacterEvolutionScreen({
 
   const costSingularidadesEcoarPE = useMemo(() => {
     const map = new Map<string, number>()
-    getEcoarSingularitiesByEcoarId(selectedEcoar).forEach((s) => map.set(s.id, s.cost))
+    getEcoarSingularitiesByEcoarId(draftEcoar).forEach((s) => map.set(s.id, s.cost))
     return draftSingularidadesEcoar.reduce((sum, id) => {
       if (baselineEcoarSet.has(id)) return sum
       return sum + (map.get(id) ?? 0)
     }, 0)
-  }, [baselineEcoarSet, draftSingularidadesEcoar, selectedEcoar])
+  }, [baselineEcoarSet, draftSingularidadesEcoar, draftEcoar])
 
   const costSingularidadesMarciaisPE = useMemo(() => {
     // Index global por id para não depender do school selecionado.
@@ -263,12 +320,12 @@ export default function CharacterEvolutionScreen({
   }, [baselineMartialSet, draftSingularidadesMarciais])
   const costSingularidadesRaciaisPE = useMemo(() => {
     const map = new Map<string, number>()
-    getRacialSingularitiesByRaceId(selectedRaca).forEach((s) => map.set(s.id, s.cost))
+    getRacialSingularitiesByRaceId(draftRaca).forEach((s) => map.set(s.id, s.cost))
     return draftSingularidadesRaciais.reduce((sum, id) => {
       if (baselineRacialSet.has(id)) return sum
       return sum + (map.get(id) ?? 0)
     }, 0)
-  }, [baselineRacialSet, draftSingularidadesRaciais, selectedRaca])
+  }, [baselineRacialSet, draftSingularidadesRaciais, draftRaca])
 
   const totalCostPE = useMemo(() => {
     return (
@@ -336,10 +393,21 @@ export default function CharacterEvolutionScreen({
     })
     if (hasSkillDiff) return true
 
+    if (draftEcoar !== baselineEcoarId) return true
+    if (
+      (resolveMartialSchoolDataId(draftEscolaMarcial) ?? draftEscolaMarcial) !==
+      (resolveMartialSchoolDataId(baselineEscolaMarcialId) ?? baselineEscolaMarcialId)
+    )
+      return true
+    if (draftRaca !== baselineRacaId) return true
+
     return false
   }, [
     baselineAptitudes,
     baselineAttributes,
+    baselineEcoarId,
+    baselineEscolaMarcialId,
+    baselineRacaId,
     baselineSkills,
     baselineSingularidadesCriacao,
     baselineSingularidadesEcoar,
@@ -347,6 +415,9 @@ export default function CharacterEvolutionScreen({
     baselineSingularidadesRaciais,
     draftAptitudes,
     draftAttributes,
+    draftEcoar,
+    draftEscolaMarcial,
+    draftRaca,
     draftSkills,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
@@ -411,7 +482,13 @@ export default function CharacterEvolutionScreen({
       if (!singularity.requirements) return { valid: true, missingReqs }
 
       if (singularity.requirements.previous) {
-        if (!current.singularidadesEcoar.includes(singularity.requirements.previous)) {
+        if (
+          !isEcoarPreviousRequirementMet(
+            singularity.requirements.previous,
+            current.singularidadesEcoar,
+            draftEcoar
+          )
+        ) {
           missingReqs.push(`Requer anterior: ${singularity.requirements.previous}`)
         }
       }
@@ -445,7 +522,7 @@ export default function CharacterEvolutionScreen({
 
       return { valid: missingReqs.length === 0, missingReqs }
     },
-    [nivelAlma]
+    [nivelAlma, draftEcoar]
   )
 
   const toggleEcoarSingularity = (id: string) => {
@@ -484,7 +561,7 @@ export default function CharacterEvolutionScreen({
         return prev.filter((x) => x !== id)
       }
 
-      const school = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
+      const school = draftEscolaMarcial ? getMartialSchoolDataByIdResolved(draftEscolaMarcial) : null
       const sing: MartialSchoolSingularity | undefined = school?.singularities.find((s) => s.id === id)
       if (!sing) return prev
 
@@ -554,6 +631,9 @@ export default function CharacterEvolutionScreen({
 
     const updated = {
       ...initialCharacterData,
+      ecoar: draftEcoar,
+      escolaMarcial: resolveMartialSchoolDataId(draftEscolaMarcial) ?? draftEscolaMarcial,
+      raca: draftRaca,
       pontosEvolucao: {
         ...initialPontosEvolucao,
         atual: hasMasterOverride
@@ -582,6 +662,9 @@ export default function CharacterEvolutionScreen({
     draftAttributes,
     draftSkills,
     draftAptitudes,
+    draftEcoar,
+    draftEscolaMarcial,
+    draftRaca,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
@@ -925,10 +1008,12 @@ export default function CharacterEvolutionScreen({
     )
   }
 
+  const selectEvolutionClass =
+    'w-full max-w-lg px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-700 text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30'
+
   const renderSingularitiesTab = () => {
-    const canShowMartial = !!selectedEscolaMarcial
-    const martialSchool = selectedEscolaMarcial ? getMartialSchoolDataById(selectedEscolaMarcial) : null
-    const ecoarSingularities = selectedEcoar ? getEcoarSingularitiesByEcoarId(selectedEcoar) : []
+    const martialSchool = draftEscolaMarcial ? getMartialSchoolDataByIdResolved(draftEscolaMarcial) : null
+    const ecoarSingularities = draftEcoar ? getEcoarSingularitiesByEcoarId(draftEcoar) : []
 
     return (
       <div className="space-y-5">
@@ -1006,9 +1091,29 @@ export default function CharacterEvolutionScreen({
 
         {singSubTab === 'ecoa' && (
           <div className="space-y-4">
-            {!selectedEcoar ? (
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="text-sm text-slate-600">Este personagem não tem `Ecoar` selecionado.</div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Tipo de Ecoar</label>
+              <select
+                value={draftEcoar}
+                onChange={(e) => handleDraftEcoarChange(e.target.value)}
+                className={selectEvolutionClass}
+              >
+                <option value="">Selecione um Ecoar…</option>
+                {playableEcoarTypes.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
+                Você pode definir ou alterar aqui, mesmo que não tenha escolhido na criação. Ao trocar o Ecoar, singularidades incompatíveis saem do rascunho.
+              </p>
+            </div>
+            {!draftEcoar ? (
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                  Escolha um Ecoar acima para listar e comprar singularidades com PE.
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1052,9 +1157,31 @@ export default function CharacterEvolutionScreen({
 
         {singSubTab === 'marciais' && (
           <div className="space-y-4">
-            {!canShowMartial || !martialSchool ? (
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="text-sm text-slate-600">Este personagem não tem `Escola Marcial` selecionada.</div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Escola marcial</label>
+              <select
+                value={draftEscolaMarcial}
+                onChange={(e) => handleDraftEscolaMarcialChange(e.target.value)}
+                className={selectEvolutionClass}
+              >
+                <option value="">Selecione uma escola…</option>
+                {getAllMartialSchools().map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
+                Pode escolher agora mesmo que não tenha definido na criação. Ao trocar a escola, singularidades marciais incompatíveis saem do rascunho.
+              </p>
+            </div>
+            {!draftEscolaMarcial || !martialSchool ? (
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                  {draftEscolaMarcial
+                    ? 'Escola não encontrada no catálogo. Escolha outra opção.'
+                    : 'Escolha uma escola marcial acima para listar e comprar singularidades com PE.'}
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1115,13 +1242,39 @@ export default function CharacterEvolutionScreen({
 
         {singSubTab === 'raciais' && (
           <div className="space-y-4">
-            {!selectedRaca ? (
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                <div className="text-sm text-slate-600">Este personagem não tem `Raça` selecionada.</div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Raça</label>
+              <select
+                value={draftRaca}
+                onChange={(e) => handleDraftRacaChange(e.target.value)}
+                className={selectEvolutionClass}
+              >
+                <option value="">Selecione uma raça…</option>
+                {races.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
+                Pode definir ou alterar aqui, mesmo que não tenha escolhido na criação. Ao trocar a raça, singularidades raciais incompatíveis saem do rascunho. Bônus de atributos da raça passam a valer nos traços desta sessão.
+              </p>
+            </div>
+            {!draftRaca ? (
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                  Escolha uma raça acima para listar e comprar singularidades raciais com PE.
+                </div>
+              </div>
+            ) : racialSingularitiesForEvolution.length === 0 ? (
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                  Nenhuma singularidade racial disponível para compra com PE nesta evolução para esta raça.
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {getRacialSingularitiesByRaceId(selectedRaca).map((sing) => {
+                {racialSingularitiesForEvolution.map((sing) => {
                   const isSelected = draftSingularidadesRaciais.includes(sing.id)
                   const isBaselineLocked = baselineRacialSet.has(sing.id)
                   const hasRequirements = (sing.requirements ?? []).every((reqId) => draftSingularidadesRaciais.includes(reqId))

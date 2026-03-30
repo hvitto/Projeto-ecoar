@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed:catalog": "tsx scripts/seed-equipment-catalog.ts",
-    "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts"
+    "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts",
+    "seed:system": "tsx scripts/seed-system-singularities.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

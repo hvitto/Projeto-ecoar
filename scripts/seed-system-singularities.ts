@@ -1,6 +1,9 @@
 /**
- * Backfill de singularidades de Criação e Marciais no catálogo unificado.
+ * Backfill de singularidades de Criação, Marciais e Raciais no catálogo unificado.
  * Uso: npx tsx scripts/seed-system-singularities.ts
+ *
+ * Garante a constraint `system_type` com `racial` (equivalente a scripts/migrations/006_add_racial_system_type.sql)
+ * para bases que só aplicaram a 005.
  */
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
@@ -99,6 +102,16 @@ async function ensureGroup(sql: any, groupId: string, systemType: 'criacao' | 'm
   `
 }
 
+/** Bases antigas só tinham CHECK (ecoar, criacao, marcial); singularidades raciais precisam de racial. */
+async function ensureSystemTypeConstraintAllowsRacial(sql: ReturnType<typeof neon>) {
+  await sql`ALTER TABLE ecoar_singularities DROP CONSTRAINT IF EXISTS ecoar_singularities_system_type_check`
+  await sql`
+    ALTER TABLE ecoar_singularities
+    ADD CONSTRAINT ecoar_singularities_system_type_check
+    CHECK (system_type IN ('ecoar', 'criacao', 'marcial', 'racial'))
+  `
+}
+
 async function main() {
   loadEnvFiles()
   const connectionString = process.env.DATABASE_URL
@@ -107,6 +120,8 @@ async function main() {
     process.exit(1)
   }
   const sql = neon(connectionString)
+
+  await ensureSystemTypeConstraintAllowsRacial(sql)
 
   await ensureGroup(sql, 'sistema-criacao', 'criacao', 'Criação')
   for (const school of getAllMartialSchools()) {
@@ -305,6 +320,14 @@ async function main() {
     `
   }
 
+  const summary = (await sql`
+    SELECT system_type, COUNT(*)::int AS n
+    FROM ecoar_singularities
+    WHERE is_active = true
+    GROUP BY system_type
+    ORDER BY system_type
+  `) as Array<{ system_type: string; n: number }>
+  console.log('Resumo por system_type (ativas):', Object.fromEntries(summary.map((r) => [r.system_type, r.n])))
   console.log('Backfill de singularidades de Criação, Marciais e Raciais concluído.')
 }
 

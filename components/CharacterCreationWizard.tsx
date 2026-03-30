@@ -46,6 +46,7 @@ import { locations, getLocationById, getLocationsByNation, getAllNations, Locati
 import type { Ecoar } from '@/data/ecoar'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
+import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
 import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
@@ -6210,9 +6211,15 @@ function EcoarSingularitiesList({
       return { valid: true, missingReqs: [] }
     }
 
-    // Verifica singularidade anterior
+    // Verifica singularidade anterior (ou ID do tipo de Ecoar, ex.: vampiro)
     if (singularity.requirements.previous) {
-      if (!singularidadesEcoar.includes(singularity.requirements.previous)) {
+      if (
+        !isEcoarPreviousRequirementMet(
+          singularity.requirements.previous,
+          singularidadesEcoar,
+          selectedEcoar
+        )
+      ) {
         const prevSing = getEcoarSingularityById(singularity.requirements.previous!)
         missingReqs.push(`Requer: ${prevSing?.name || 'Singularidade anterior'}`)
       }
@@ -6260,7 +6267,7 @@ function EcoarSingularitiesList({
     }
 
     return { valid: missingReqs.length === 0, missingReqs }
-  }, [singularidadesEcoar, nivelAlma, attributes, skills, aptitudes])
+  }, [singularidadesEcoar, selectedEcoar, nivelAlma, attributes, skills, aptitudes])
 
   // Gera texto descritivo dos requisitos não atendidos
   const getRequirementText = useCallback((singularity: EcoarSingularity): string | undefined => {
