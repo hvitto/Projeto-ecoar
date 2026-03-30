@@ -103,7 +103,7 @@ async function ensureGroup(sql: any, groupId: string, systemType: 'criacao' | 'm
 }
 
 /** Bases antigas só tinham CHECK (ecoar, criacao, marcial); singularidades raciais precisam de racial. */
-async function ensureSystemTypeConstraintAllowsRacial(sql: ReturnType<typeof neon>) {
+async function ensureSystemTypeConstraintAllowsRacial(sql: any) {
   await sql`ALTER TABLE ecoar_singularities DROP CONSTRAINT IF EXISTS ecoar_singularities_system_type_check`
   await sql`
     ALTER TABLE ecoar_singularities
