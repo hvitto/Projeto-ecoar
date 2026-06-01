@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
+import { dbRequiredResponse, emptyListWhenDbUnavailable } from '@/lib/api/databaseGuard'
 import { generateInviteToken, generateInviteCode } from '@/lib/tables/invite'
 import type { GameTable, CreateTableBody } from '@/types/tables'
 
@@ -38,6 +39,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
+  const empty = emptyListWhenDbUnavailable()
+  if (empty) return empty
+
   try {
     const rows = (await sql`
       SELECT gt.id, gt.gm_user_id, gt.name, gt.cover_image_url, gt.next_session_at, gt.description,
@@ -71,6 +75,9 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
+
+  const dbRequired = dbRequiredResponse('Não é possível criar mesa sem banco de dados.')
+  if (dbRequired) return dbRequired
 
   try {
     const body = (await request.json()) as CreateTableBody

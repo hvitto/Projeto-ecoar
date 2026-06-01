@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { Crown, UserPlus, User, LogOut, Home } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import { useApp } from '@/contexts/AppContext'
@@ -13,6 +14,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps) {
+  const router = useRouter()
   const appContext = useApp()
   const { user, logout } = useAuth()
   const handleNewCharacterFn = onNewCharacter || appContext.onNewCharacter
@@ -21,14 +23,15 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
     if (handleNewCharacterFn) {
       handleNewCharacterFn()
     } else {
-      // Fallback: clear localStorage and reload
-      try {
-        localStorage.removeItem('ecoar-character')
-        window.location.href = '/'
-      } catch (e) {
-        console.error('Error clearing localStorage:', e)
-        window.location.href = '/'
-      }
+      router.push('/personagens/novo')
+    }
+  }
+
+  const handleGoToDashboard = () => {
+    if (onGoToDashboard) {
+      onGoToDashboard()
+    } else {
+      router.push('/personagens')
     }
   }
 
@@ -42,7 +45,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
         <div className="flex items-center justify-between">
           {/* Logo/Brand */}
           <motion.button
-            onClick={onGoToDashboard || handleNewCharacter}
+            onClick={handleGoToDashboard}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-fast cursor-pointer"
@@ -58,12 +61,12 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-2.5">
-            {user && onGoToDashboard && (
+            {user && (
               <Button
                 variant="ghost"
                 size="sm"
                 leftIcon={Home}
-                onClick={onGoToDashboard}
+                onClick={handleGoToDashboard}
               >
                 Dashboard
               </Button>

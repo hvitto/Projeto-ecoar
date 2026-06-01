@@ -33,7 +33,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Carregar usuário atual ao montar
   useEffect(() => {
     loadCurrentUser()
   }, [])
@@ -109,7 +108,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null)
     } catch (error) {
       console.error('Logout error:', error)
-      // Mesmo com erro, limpar estado local
       setUser(null)
     }
   }, [])

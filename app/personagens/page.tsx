@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import CharacterDashboardPage from '@/features/character/pages/CharacterDashboardPage'
 
 export default function PersonagensPage() {
-  redirect('/?view=dashboard')
+  return <CharacterDashboardPage />
 }

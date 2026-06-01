@@ -2,6 +2,14 @@ import { config } from '@/lib/config'
 import type { GameTable, GameTableWithMembers, CreateTableBody, JoinTableBody } from '@/types/tables'
 import type { CharacterWithMetadata } from '@/types/auth'
 
+const OFFLINE_TABLES_MSG = 'Mesas online desativadas no modo demonstração.'
+
+function assertTablesOnline(): void {
+  if (config.OFFLINE_DEMO_MODE) {
+    throw new Error(OFFLINE_TABLES_MSG)
+  }
+}
+
 function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null
   try {
@@ -23,6 +31,7 @@ async function request(path: string, options: RequestInit & { token?: string | n
 }
 
 export async function getUserTables(): Promise<GameTable[]> {
+  if (config.OFFLINE_DEMO_MODE) return []
   const res = await request(config.API.ENDPOINTS.TABLES)
   if (!res.ok) {
     if (res.status === 401) return []
@@ -32,6 +41,7 @@ export async function getUserTables(): Promise<GameTable[]> {
 }
 
 export async function createTable(body: CreateTableBody): Promise<GameTable> {
+  assertTablesOnline()
   const res = await request(config.API.ENDPOINTS.TABLES, { method: 'POST', body: JSON.stringify(body) })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -41,6 +51,7 @@ export async function createTable(body: CreateTableBody): Promise<GameTable> {
 }
 
 export async function getTable(tableId: string): Promise<GameTableWithMembers> {
+  assertTablesOnline()
   const res = await request(`${config.API.ENDPOINTS.TABLES}/${tableId}`)
   if (!res.ok) {
     if (res.status === 404) throw new Error('Mesa não encontrada')
@@ -50,6 +61,7 @@ export async function getTable(tableId: string): Promise<GameTableWithMembers> {
 }
 
 export async function joinTable(body: JoinTableBody): Promise<{ success: boolean; tableId: string; alreadyMember?: boolean }> {
+  assertTablesOnline()
   const res = await request(config.API.ENDPOINTS.TABLES_JOIN, { method: 'POST', body: JSON.stringify(body) })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -66,6 +78,7 @@ export interface TableCharacterItem {
 }
 
 export async function getTableCharacters(tableId: string): Promise<TableCharacterItem[]> {
+  assertTablesOnline()
   const res = await request(`${config.API.ENDPOINTS.TABLES}/${tableId}/characters`)
   if (!res.ok) {
     if (res.status === 404) throw new Error('Mesa não encontrada')
@@ -75,6 +88,7 @@ export async function getTableCharacters(tableId: string): Promise<TableCharacte
 }
 
 export async function setMyTableCharacter(tableId: string, characterId: string | null): Promise<void> {
+  assertTablesOnline()
   const res = await request(`${config.API.ENDPOINTS.TABLES}/${tableId}/members/me/character`, {
     method: 'PUT',
     body: JSON.stringify({ characterId }),

@@ -59,6 +59,13 @@ import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatal
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
 import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
 import EquippedWeaponSlotPanel from '@/components/character/EquippedWeaponSlotPanel'
+import { SheetNotesSection } from '@/components/sheet/sections'
+import { useCharacterSheetState } from '@/features/character/hooks/useCharacterSheetState'
+import { useEquipmentOnSheet } from '@/features/character/hooks/useEquipmentOnSheet'
+import type {
+  CharacterAptitudesState,
+  CharacterSkillState,
+} from '@/features/character/hooks/sheetInitialState'
 import {
   catalogDisplayLine,
   formatCerosDisplay,
@@ -152,13 +159,6 @@ interface CharacterSheetProps {
   onCharacterSaved?: (saved: any) => void
 }
 
-type EquippedArmorState = {
-  instanceId: string
-}
-
-type CharacterSkillState = Record<string, { level: number; specialization?: string }>
-type CharacterAptitudesState = Record<string, number>
-
 export default function CharacterSheet({
   initialData,
   canEdit,
@@ -168,83 +168,7 @@ export default function CharacterSheet({
   onCharacterSaved,
 }: CharacterSheetProps) {
   const { getEcoarSingularityById, ecoarSingularities } = useEcoarCatalogData()
-  const [characterData, setCharacterData] = useState({
-    // Basic Info
-    pontosEvolucao: { atual: 0, max: 0 },
-    nome: '',
-    localizacao: '',
-    moeda: '',
-    raca: '',
-    trilha: '',
-    
-    // Personality
-    tracoPositivo: '',
-    tracoNegativo: '',
-    personalidade: '',
-    peso: 0,
-    tamanho: 0,
-    
-    // Movements
-    terrestre: '',
-    aquatico: '',
-    aereo: '',
-    
-    // Limits
-    corpo: { atual: 9, max: 9 },
-    mente: { atual: 9, max: 9 },
-    folego: { atual: 0, max: 0 },
-    mana: { atual: 0, max: 0 },
-    
-    // Attributes
-    carisma: { nivel: 0, mod: 0 },
-    finesse: { nivel: 0, mod: 0 },
-    forca: { nivel: 0, mod: 0 },
-    inteligencia: { nivel: 0, mod: 0 },
-    percepcao: { nivel: 0, mod: 0 },
-    vitalidade: { nivel: 0, mod: 0 },
-    vontade: { nivel: 0, mod: 0 },
-    
-    // Senses
-    visao: '',
-    audicao: '',
-    olfato: '',
-    
-    // Common Tests
-    arredores: '',
-    iniciativa: '',
-    esquiva: '',
-    coragem: '',
-    
-    // Equipment & Notes
-    equipamentos: '',
-    saldoMoedas: 0,
-    itensCatalogo: [] as CatalogOwnedItem[],
-    equippedWeapons: {
-      slot1: undefined as EquippedWeaponState | undefined,
-      slot2: undefined as EquippedWeaponState | undefined,
-    },
-    /** Peças de armadura (não acessório) equipadas — pode haver várias. */
-    equippedArmors: [] as EquippedArmorState[],
-    equippedAccessories: [] as EquippedArmorState[],
-    hasVestuarioEquipState: false,
-    skills: {} as CharacterSkillState,
-    aptitudes: {} as CharacterAptitudesState,
-    equipamentosLivresText: '',
-    armasLivresText: '',
-    espacos: '',
-    anotacoes: '',
-
-    // Singularities (IDs selected in the wizard)
-    singularidades: [] as string[],
-    singularidadesEcoar: [] as string[],
-    singularidadesCondicionaisAtivas: [] as string[],
-    singularidadesCondicionaisCriacaoAtivas: [] as string[],
-    singularidadesMarciais: [] as string[],
-    singularidadesCondicionaisMarciaisAtivas: [] as string[],
-    singularidadesCondicionaisRaciaisAtivas: [] as string[],
-    singularidadesRaciais: [] as string[],
-    desvantagens: [] as string[],
-  })
+  const { characterData, setCharacterData } = useCharacterSheetState()
 
   const { user } = useAuth()
   const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
@@ -268,95 +192,13 @@ export default function CharacterSheet({
     return Number.isFinite(n) ? n : 0
   }, [peToAdd])
 
-  const weaponCatalogById = useMemo(() => {
-    const map = new Map<string, WeaponCatalogEntry>()
-    ;(weapons ?? []).forEach((w: any) => {
-      if (w?.id) map.set(String(w.id), w as WeaponCatalogEntry)
-    })
-    return map
-  }, [weapons])
-
-  const armorCatalogById = useMemo(() => {
-    const map = new Map<string, CatalogEntry>()
-    ;(armor ?? []).forEach((a: any) => {
-      if (a?.id) map.set(String(a.id), a as CatalogEntry)
-    })
-    return map
-  }, [armor])
-
-  const utilityCatalogById = useMemo(() => {
-    const map = new Map<string, CatalogEntry>()
-    ;(utilities ?? []).forEach((u: any) => {
-      if (u?.id) map.set(String(u.id), u as CatalogEntry)
-    })
-    return map
-  }, [utilities])
-
-  const resolveCatalogEntryKind = useCallback(
-    (entry: CatalogEntry): CatalogOwnedItem['kind'] => {
-      // Runtime: payload do banco pode omitir `kind` no JSON; o union TS cobre todos os casos.
-      const raw = entry as { id: string; kind?: CatalogOwnedItem['kind'] }
-      if (raw.kind === 'weapon' || raw.kind === 'armor' || raw.kind === 'utility') {
-        return raw.kind
-      }
-      const id = String(raw.id)
-      if (weaponCatalogById.has(id)) return 'weapon'
-      if (armorCatalogById.has(id)) return 'armor'
-      if (utilityCatalogById.has(id)) return 'utility'
-      return 'utility'
-    },
-    [weaponCatalogById, armorCatalogById, utilityCatalogById],
-  )
-
-  /** Soma `mechanicalBonuses` de armas/armaduras/utilitários atualmente equipados. */
-  const equipmentMechanicalBonuses = useMemo(() => {
-    const sumAttr: Record<string, number> = {}
-    const sumSkills: Record<string, number> = {}
-    const add = (
-      entry:
-        | {
-            mechanicalBonuses?: { attributes?: Record<string, number>; skills?: Record<string, number> }
-          }
-        | undefined,
-    ) => {
-      if (!entry?.mechanicalBonuses) return
-      for (const [k, v] of Object.entries(entry.mechanicalBonuses.attributes ?? {})) {
-        sumAttr[k] = (sumAttr[k] ?? 0) + v
-      }
-      for (const [k, v] of Object.entries(entry.mechanicalBonuses.skills ?? {})) {
-        sumSkills[k] = (sumSkills[k] ?? 0) + v
-      }
-    }
-    const findOwned = (instanceId: string) =>
-      characterData.itensCatalogo.find((i) => i.instanceId === instanceId)
-    for (const slot of [characterData.equippedWeapons?.slot1, characterData.equippedWeapons?.slot2]) {
-      if (!slot?.instanceId) continue
-      const owned = findOwned(slot.instanceId)
-      if (owned?.kind === 'weapon') add(weaponCatalogById.get(String(owned.catalogId)) as WeaponCatalogEntry | undefined)
-    }
-    for (const arm of characterData.equippedArmors ?? []) {
-      if (!arm?.instanceId) continue
-      const owned = findOwned(arm.instanceId)
-      if (owned?.kind === 'armor')
-        add(armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
-    }
-    for (const acc of characterData.equippedAccessories ?? []) {
-      const owned = findOwned(acc.instanceId)
-      if (!owned) continue
-      if (owned.kind === 'armor') add(armorCatalogById.get(String(owned.catalogId)) as ArmorCatalogEntry | undefined)
-      else if (owned.kind === 'utility')
-        add(utilityCatalogById.get(String(owned.catalogId)) as UtilityCatalogEntry | undefined)
-    }
-    return { attributes: sumAttr, skills: sumSkills }
-  }, [
-    armorCatalogById,
-    characterData.equippedAccessories,
-    characterData.equippedArmors,
-    characterData.equippedWeapons,
-    characterData.itensCatalogo,
-    utilityCatalogById,
+  const {
     weaponCatalogById,
-  ])
+    armorCatalogById,
+    utilityCatalogById,
+    resolveCatalogEntryKind,
+    equipmentMechanicalBonuses,
+  } = useEquipmentOnSheet(characterData, weapons, armor, utilities)
 
   useEffect(() => {
     initialDataRef.current = initialData
@@ -3471,24 +3313,11 @@ export default function CharacterSheet({
               )}
             </motion.div>
 
-            {/* Anotações */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Anotações
-              </h3>
-              <textarea
-                value={characterData.anotacoes}
-                disabled={!isEditing}
-                onChange={(e) => updateField('anotacoes', e.target.value)}
-                placeholder="Anotações gerais..."
-                className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
-              />
-            </motion.div>
+            <SheetNotesSection
+              value={characterData.anotacoes}
+              isEditing={isEditing}
+              onChange={(value) => updateField('anotacoes', value)}
+            />
           </aside>
         </div>
           </div>

@@ -1,4 +1,4 @@
-// Configuração do sistema - app usa sempre API e banco de dados
+export const OFFLINE_DEMO_MODE = true // demo: localStorage, sem auth API
 
 function getApiBaseUrl(): string {
   const origin = typeof process.env.NEXT_PUBLIC_API_URL === 'string' && process.env.NEXT_PUBLIC_API_URL
@@ -9,10 +9,7 @@ function getApiBaseUrl(): string {
   return origin ? `${origin.replace(/\/$/, '')}/api` : '/api'
 }
 
-/**
- * Contas de teste (desenvolvimento). Senha comum: `demo123`.
- * Para o admin do catálogo no banco, use `EQUIPMENT_ADMIN_EMAILS=demo-admin@ecoar.test` (ou inclua na lista).
- */
+// contas demo — senha demo123 (fluxo API legado)
 export const DEMO_ACCOUNTS = [
   {
     id: 'demo',
@@ -80,16 +77,15 @@ export function getDemoAccountById(accountId: string | undefined | null) {
 }
 
 export const config = {
-  USE_LOCAL_STORAGE: false,
+  OFFLINE_DEMO_MODE,
+  USE_LOCAL_STORAGE: OFFLINE_DEMO_MODE,
 
-  // Chave usada no navegador para guardar o token JWT (sessão)
   STORAGE_KEYS: {
     USERS: 'ecoar-users',
     AUTH: 'ecoar-auth',
     CHARACTERS_PREFIX: 'ecoar-characters-',
   },
 
-  // Configurações de API
   API: {
     get BASE_URL() {
       return getApiBaseUrl()
@@ -106,14 +102,11 @@ export const config = {
     },
   },
 
-  // Validações
   VALIDATION: {
     MIN_PASSWORD_LENGTH: 6,
     EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    // Nome completo: mínimo 2 caracteres, máximo 100, pode conter espaços e acentos
     MIN_FULLNAME_LENGTH: 2,
     MAX_FULLNAME_LENGTH: 100,
-    // Nome de usuário: letras (maiúsculas e minúsculas), números, underscore e hífen
     USERNAME_REGEX: /^[a-zA-Z0-9_-]+$/,
     MIN_USERNAME_LENGTH: 3,
     MAX_USERNAME_LENGTH: 20,
@@ -121,7 +114,6 @@ export const config = {
 
   DEMO_ACCOUNTS,
 
-  /** Compatibilidade com código que só lia a primeira conta demo */
   DEMO_ACCOUNT: {
     email: DEMO_ACCOUNTS[0].email,
     password: DEMO_ACCOUNTS[0].password,

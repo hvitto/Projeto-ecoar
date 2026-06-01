@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
+import { sql, isDatabaseConfigured } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
+import { userFromLocalDemoId } from '@/lib/auth/localDemoUser'
 
 export async function GET(request: Request) {
   const auth = await getAuthFromRequest(request)
   if (!auth) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
+  if (!isDatabaseConfigured()) {
+    const localUser = userFromLocalDemoId(auth.userId)
+    if (localUser) {
+      return NextResponse.json({ user: localUser })
+    }
+    return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
   }
 
   try {

@@ -1,26 +1,29 @@
-// Serviço de autenticação via API (JWT no localStorage)
 import { config } from '@/lib/config'
 import { User, AuthResult } from '@/types/auth'
+import { isLocalDemoUserId } from '@/lib/auth/localDemoUser'
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 dias
 
-function getStoredToken(): string | null {
+function getStoredSession(): { token?: string; user?: User; expiresAt?: number } | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(config.STORAGE_KEYS.AUTH)
     if (!raw) return null
-    const session = JSON.parse(raw) as { token?: string; expiresAt?: number }
+    const session = JSON.parse(raw) as { token?: string; user?: User; expiresAt?: number }
     if (session.expiresAt != null && session.expiresAt < Date.now()) {
       localStorage.removeItem(config.STORAGE_KEYS.AUTH)
       return null
     }
-    return session.token ?? null
+    return session
   } catch {
     return null
   }
 }
 
-/** JWT atual (cliente) para chamadas `fetch` com `Authorization: Bearer`. */
+function getStoredToken(): string | null {
+  return getStoredSession()?.token ?? null
+}
+
 export function getAccessToken(): string | null {
   return getStoredToken()
 }
@@ -116,11 +119,15 @@ export const apiAuthService = {
     if (!token) return null
     const response = await request(config.API.ENDPOINTS.CURRENT_USER, { token })
     if (!response.ok) {
+      const cached = getStoredSession()?.user
+      if (cached && isLocalDemoUserId(cached.id)) return cached
       clearSession()
       return null
     }
     const data = await response.json().catch(() => ({}))
     if (data.user) return data.user
+    const cached = getStoredSession()?.user
+    if (cached && isLocalDemoUserId(cached.id)) return cached
     clearSession()
     return null
   },

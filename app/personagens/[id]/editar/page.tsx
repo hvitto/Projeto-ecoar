@@ -1,10 +1,23 @@
-import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import CharacterWizardPage from '@/features/character/pages/CharacterWizardPage'
 
-type EditarCharacterPageProps = {
+type PageProps = {
   params: Promise<{ id: string }>
 }
 
-export default async function EditarCharacterPage({ params }: EditarCharacterPageProps) {
+function WizardFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-0">
+      <div className="text-ecoar-dark-600 dark:text-ecoar-light-900/60">Carregando...</div>
+    </div>
+  )
+}
+
+export default async function EditarCharacterPage({ params }: PageProps) {
   const { id } = await params
-  redirect(`/?view=wizard&characterId=${encodeURIComponent(id)}`)
+  return (
+    <Suspense fallback={<WizardFallback />}>
+      <CharacterWizardPage characterId={id} />
+    </Suspense>
+  )
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
 import { CharacterData } from '@/types/auth'
+import { dbRequiredResponse, emptyListWhenDbUnavailable } from '@/lib/api/databaseGuard'
 
 function rowToCharacter(row: { id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }) {
   const data = (row.data as CharacterData) || {}
@@ -20,6 +21,9 @@ export async function GET(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
+
+  const empty = emptyListWhenDbUnavailable()
+  if (empty) return empty
 
   try {
     const rows = (await sql`
@@ -40,6 +44,9 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
+
+  const dbRequired = dbRequiredResponse('Não é possível criar ficha sem banco de dados.')
+  if (dbRequired) return dbRequired
 
   try {
     const body = (await request.json()) as CharacterData & { nome?: string }

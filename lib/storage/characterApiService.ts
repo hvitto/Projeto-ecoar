@@ -1,4 +1,3 @@
-// Serviço de personagens via API (usa token do localStorage)
 import { config } from '@/lib/config'
 import { CharacterData, CharacterWithMetadata } from '@/types/auth'
 
@@ -37,6 +36,7 @@ export async function getUserCharacters(_userId: string): Promise<CharacterWithM
   const res = await request(config.API.ENDPOINTS.CHARACTERS)
   if (!res.ok) {
     if (res.status === 401) return []
+    if (res.status === 503 || res.status === 500) return []
     throw new Error('Erro ao listar fichas')
   }
   const rows = (await res.json()) as Array<{ id: string; userId: string; name: string; createdAt: string; updatedAt: string; data: CharacterData }>

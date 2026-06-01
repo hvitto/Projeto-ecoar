@@ -1,10 +1,23 @@
-import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import CharacterEvolutionPage from '@/features/character/pages/CharacterEvolutionPage'
 
-type EvolucaoCharacterPageProps = {
+type PageProps = {
   params: Promise<{ id: string }>
 }
 
-export default async function EvolucaoCharacterPage({ params }: EvolucaoCharacterPageProps) {
+function EvolutionFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-0">
+      <div className="text-ecoar-dark-600 dark:text-ecoar-light-900/60">Carregando...</div>
+    </div>
+  )
+}
+
+export default async function EvolucaoCharacterPage({ params }: PageProps) {
   const { id } = await params
-  redirect(`/?view=evolution&characterId=${encodeURIComponent(id)}`)
+  return (
+    <Suspense fallback={<EvolutionFallback />}>
+      <CharacterEvolutionPage characterId={id} />
+    </Suspense>
+  )
 }

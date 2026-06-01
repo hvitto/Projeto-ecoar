@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Sans, DM_Serif_Display } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
-import LoginBackground from '@/components/LoginBackground'
+import LoginBackgroundLoader from '@/components/LoginBackgroundLoader'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -50,7 +50,7 @@ export default function RootLayout({
         />
       </head>
       <body className="h-[100dvh] overflow-hidden overflow-x-hidden flex flex-col font-body antialiased pb-[env(safe-area-inset-bottom)]">
-        <LoginBackground />
+        <LoginBackgroundLoader />
         <div className="relative z-10 flex-1 min-h-0 flex flex-col overflow-x-hidden">
           <Providers>
             {children}

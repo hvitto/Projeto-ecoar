@@ -11,7 +11,8 @@ import { CharacterWithMetadata } from '@/types/auth'
 import type { GameTable } from '@/types/tables'
 import CharacterCard from '@/components/ui/CharacterCard'
 import Button from '@/components/ui/Button'
-import { UserPlus, FileText, LogOut, Users, Plus, LogIn, Database, Sparkles } from 'lucide-react'
+import { UserPlus, FileText, LogOut, Users, Plus, LogIn, Database, Sparkles, AlertCircle } from 'lucide-react'
+import { isOfflineDemoMode } from '@/lib/auth/authService'
 import Header from './Header'
 
 interface CharacterDashboardProps {
@@ -49,7 +50,6 @@ export default function CharacterDashboard({
     }
   }, [user, loadTables])
 
-  // Carregar fichas do usuário
   useEffect(() => {
     if (user) {
       loadCharacters()
@@ -102,6 +102,8 @@ export default function CharacterDashboard({
     return null
   }
 
+  const showOfflineHint = isOfflineDemoMode()
+
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
       <div className="flex-shrink-0">
@@ -109,7 +111,6 @@ export default function CharacterDashboard({
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8">
-        {/* Header Section */}
         <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
@@ -143,6 +144,22 @@ export default function CharacterDashboard({
           </div>
         </motion.div>
 
+        {showOfflineHint && (
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
+            className="mb-6 flex gap-3 rounded-xl border border-ecoar-teal-500/25 bg-ecoar-teal-500/10 p-4 text-sm text-ecoar-teal-800 dark:text-ecoar-teal-200"
+            role="status"
+          >
+            <AlertCircle className="w-5 h-5 shrink-0 text-ecoar-teal-500" aria-hidden />
+            <p>
+              Modo demonstração: suas fichas são salvas <strong>só neste navegador</strong>. Mesas online e login real
+              estão desativados.
+            </p>
+          </motion.div>
+        )}
+
         <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/70 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -170,7 +187,7 @@ export default function CharacterDashboard({
           </div>
         </motion.section>
 
-        {/* Suas mesas */}
+        {!showOfflineHint && (
         <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900/90">
@@ -240,8 +257,8 @@ export default function CharacterDashboard({
             </motion.div>
           )}
         </motion.section>
+        )}
 
-        {/* Characters Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando fichas...</div>

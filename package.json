@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "seed:catalog": "tsx scripts/seed-equipment-catalog.ts",
     "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts",
     "seed:system": "tsx scripts/seed-system-singularities.ts"
@@ -35,6 +37,7 @@
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "tsx": "^4.21.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.6"
   }
 }

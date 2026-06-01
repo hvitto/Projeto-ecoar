@@ -22,12 +22,16 @@ First, install the dependencies:
 npm install
 ```
 
+### Modo demonstração
+
+`OFFLINE_DEMO_MODE` em [`lib/config.ts`](lib/config.ts): `true` = perfis demo + localStorage; `false` = auth API + Neon.
+
 ### Environment variables
 
-The app always uses the API and database. Create a `.env` file in the project root (never commit it) with:
+Copie [`.env.example`](.env.example) para **`.env.local`** na raiz do projeto (nunca commite esses arquivos).
 
-- **`DATABASE_URL`** (obrigatório) – Connection string PostgreSQL, ex.: Neon.
 - **`JWT_SECRET`** (obrigatório) – Chave para assinar os JWTs (ex.: `openssl rand -hex 32`).
+- **`DATABASE_URL`** (obrigatório em produção) – Connection string PostgreSQL, ex.: Neon.
 - **`NEXT_PUBLIC_API_URL`** – Em desenvolvimento pode omitir (usa a mesma origem). Em produção defina a URL pública do app (ex.: `https://seu-app.vercel.app`) para as chamadas à API.
 - **`RESEND_API_KEY`** – Chave da API do [Resend](https://resend.com) para envio de emails de confirmação (cadastro por email/senha).
 - **`EMAIL_FROM`** – Endereço remetente dos emails (ex.: `noreply@seudominio.com` ou use o domínio do Resend).
@@ -83,31 +87,58 @@ The character sheet includes:
 
 ## Tech Stack
 
-- **Next.js 14** - React framework
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **React** - UI library
+- **Next.js 16** - App Router, API routes
+- **React 18** - UI (componentes client/server)
+- **TypeScript** - `strict` mode
+- **Tailwind CSS** - Estilos
+- **Vitest** - Testes de hooks/lib
+
+## Rotas principais
+
+| Rota | Uso |
+|------|-----|
+| `/` | Login e registro |
+| `/personagens` | Dashboard de fichas |
+| `/personagens/novo` | Wizard de criação (`?step=`) |
+| `/personagens/[id]` | Ficha do personagem |
+| `/personagens/[id]/editar` | Wizard de edição |
+| `/personagens/[id]/evolucao` | Tela de evolução |
+| `/mesas/[id]` | Mesa (lista; ficha/wizard via rotas de personagem) |
+
+Bookmarks legados `/?view=...` redirecionam para `/personagens/*`.
+
+## Convenções de código
+
+- **UI:** preferir arquivos com até ~400 linhas; lógica pesada em `lib/` ou `features/*/hooks`.
+- **Domínio personagem:** `features/character/` (páginas, reducer do wizard, hooks da ficha).
+- **Wizard:** shell em `components/wizard/CharacterCreationWizard.tsx`; steps em `components/wizard/steps/`.
+- **Ficha:** shell em `components/CharacterSheet.tsx`; seções em `components/sheet/sections/` (extração incremental).
 
 ## Project Structure
 
 ```
 Projeto-ecoar/
 ├── app/
-│   ├── globals.css              # Global styles and Tailwind imports
-│   ├── layout.tsx               # Root layout component
-│   └── page.tsx                 # Main page with wizard/sheet routing
+│   ├── page.tsx                 # Auth (login/registro)
+│   ├── personagens/             # Fluxo de personagem
+│   └── mesas/                   # Mesas de jogo
 ├── components/
-│   ├── CharacterSheet.tsx       # Main character sheet component
-│   ├── CharacterCreationWizard.tsx  # Complete character creation wizard
-│   ├── Header.tsx               # Navigation header
-│   └── Footer.tsx               # Footer component
-├── data/                        # Game data (races, classes, skills, etc.)
-├── lib/
-│   └── calculations.ts          # Game calculation utilities
-├── package.json
-├── tailwind.config.js
-└── tsconfig.json
+│   ├── wizard/                  # Wizard fatiado (steps + shell)
+│   ├── sheet/sections/          # Seções da ficha
+│   └── CharacterSheet.tsx       # Shell da ficha
+├── features/character/          # Tipos, páginas, reducer, hooks
+├── data/                        # Dados estáticos do jogo
+├── lib/                         # Cálculos, API, auth
+└── package.json
 ```
+
+## Testes
+
+```bash
+npm test
+```
+
+Cobertura atual: reducer de navegação do wizard (`features/character/wizard/wizardReducer.test.ts`).
 
 ## Melhorias Implementadas
 

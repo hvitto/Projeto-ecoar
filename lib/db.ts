@@ -1,5 +1,9 @@
 import { neon } from '@neondatabase/serverless'
 
+export function isDatabaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim())
+}
+
 let _sql: ReturnType<typeof neon> | null = null
 
 function getSql(): ReturnType<typeof neon> {
