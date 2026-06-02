@@ -1,5 +1,5 @@
-import { sql } from '@/lib/db'
-import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+﻿import { sql } from '@/lib/db'
+import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
 import { equipmentCostMultiplierTables } from '@/data/equipment/costMultipliers'
 
 export const EQUIPMENT_MULTIPLIER_ROW_ID = 'default'

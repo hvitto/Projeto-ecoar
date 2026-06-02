@@ -1,4 +1,4 @@
-import type { ArmorCatalogEntry, CatalogEntry, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+﻿import type { ArmorCatalogEntry, CatalogEntry, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
 import { armorCatalog } from '@/data/equipment/armor'
 import { utilityCatalog } from '@/data/equipment/utilities'
 import { weaponCatalog } from '@/data/equipment/weapons'

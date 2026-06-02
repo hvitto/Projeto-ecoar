@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import type { CostMultiplierTable } from '@/types/equipment'
+import type { CostMultiplierTable } from '@/shared/types/equipment'
 import { equipmentStyleLabels } from '@/data/equipment/costMultipliers'
 
 const COLS = ['reclusa', 'vaporAlquimico', 'darenferrum', 'imaculada', 'paginas'] as const

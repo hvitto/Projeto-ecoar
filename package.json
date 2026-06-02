@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "analyze": "cross-env ANALYZE=true next build",
     "seed:catalog": "tsx scripts/seed-equipment-catalog.ts",
     "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts",
     "seed:system": "tsx scripts/seed-system-singularities.ts"
@@ -31,7 +32,9 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/three": "^0.170.0",
+    "@next/bundle-analyzer": "^16.1.6",
     "autoprefixer": "^10.4.16",
+    "cross-env": "^7.0.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.4.31",

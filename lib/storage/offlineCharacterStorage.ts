@@ -1,5 +1,5 @@
-import { config } from '@/lib/config'
-import type { CharacterData, CharacterWithMetadata } from '@/types/auth'
+﻿import { config } from '@/lib/config'
+import type { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
 
 function storageKey(userId: string): string {
   return `${config.STORAGE_KEYS.CHARACTERS_PREFIX}${userId}`

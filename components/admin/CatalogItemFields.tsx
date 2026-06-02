@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -12,9 +12,9 @@ import {
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
   type WeaponDamageEntry,
-} from '@/types/equipment'
-import { Textarea } from '@/components/ui'
-import { Input } from '@/components/ui'
+} from '@/shared/types/equipment'
+import { Textarea } from '@/shared/components/ui'
+import { Input } from '@/shared/components/ui'
 import {
   vestuarioTabLabels,
   vestuarioTabOrder,

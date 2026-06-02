@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
-import { CharacterData } from '@/types/auth'
+import { CharacterData } from '@/shared/types/auth'
 
 function rowToCharacter(row: { id: string; user_id: string; name: string; data: unknown; created_at: string; updated_at: string }) {
   const data = (row.data as CharacterData) || {}

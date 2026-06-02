@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { Save, X } from 'lucide-react'
-import type { CatalogEntry } from '@/types/equipment'
+import type { CatalogEntry } from '@/shared/types/equipment'
 import { parseCatalogPayload } from '@/lib/equipmentCatalogSchemas'
 import { getAccessToken } from '@/lib/auth/authService'
 import CatalogItemFields from '@/components/admin/CatalogItemFields'

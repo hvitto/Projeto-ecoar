@@ -1,5 +1,5 @@
-import { config } from '@/lib/config'
-import { User, AuthResult } from '@/types/auth'
+﻿import { config } from '@/lib/config'
+import { User, AuthResult } from '@/shared/types/auth'
 import { isLocalDemoUserId } from '@/lib/auth/localDemoUser'
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 dias

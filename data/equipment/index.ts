@@ -1,4 +1,4 @@
-export {
+﻿export {
   weaponCatalog,
   weaponMacroSectionOrder,
   weaponMacroSectionLabels,
@@ -8,7 +8,7 @@ export { equipmentCostMultiplierTables, equipmentStyleLabels } from './costMulti
 export { armorCatalog } from './armor'
 export { utilityCatalog } from './utilities'
 
-import type { ArmorCatalogEntry, UtilityCatalogEntry, VestuarioTabId } from '@/types/equipment'
+import type { ArmorCatalogEntry, UtilityCatalogEntry, VestuarioTabId } from '@/shared/types/equipment'
 import { armorCatalog } from './armor'
 import { utilityCatalog } from './utilities'
 

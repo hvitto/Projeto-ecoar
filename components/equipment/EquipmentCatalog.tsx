@@ -1,14 +1,14 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, Plus } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import { useEquipmentCatalog } from '@/contexts/EquipmentCatalogContext'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getAccessToken } from '@/lib/auth/authService'
-import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
 import CatalogItemEditModal from '@/components/admin/CatalogItemEditModal'
 import CreateEquipmentModal from '@/components/admin/CreateEquipmentModal'
 

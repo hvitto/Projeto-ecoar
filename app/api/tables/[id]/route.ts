@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
-import type { GameTable, TableMember } from '@/types/tables'
+import type { GameTable, TableMember } from '@/shared/types/tables'
 
 function rowToTable(row: {
   id: string

@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
-import type { JoinTableBody } from '@/types/tables'
+import type { JoinTableBody } from '@/shared/types/tables'
 
 export async function POST(request: Request) {
   const auth = await getAuthFromRequest(request)

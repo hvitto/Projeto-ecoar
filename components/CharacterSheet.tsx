@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Fragment, useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
@@ -24,7 +24,7 @@ import { aptitudes as aptitudesDefinitions } from '@/data/aptitudes'
 import { races, getRaceById } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
 import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
-import SingularityCard from '@/components/ui/SingularityCard'
+import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { getCreationSingularityById } from '@/data/creationSingularities'
 import { getSingularityById } from '@/data/singularities'
 import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
@@ -53,7 +53,7 @@ import {
   type EquippedWeaponState,
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
-} from '@/types/equipment'
+} from '@/shared/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
 import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
@@ -73,8 +73,8 @@ import {
   parseCostLabelToCeros,
 } from '@/lib/equipmentCost'
 import Header from './Header'
-import { useAuth } from '@/contexts/AuthContext'
-import { useEquipmentCatalog } from '@/contexts/EquipmentCatalogContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
+import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 
 const ATTRIBUTE_STATE_KEYS = [

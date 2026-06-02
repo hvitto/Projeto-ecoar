@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import type { ReactNode } from 'react'
 import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
@@ -14,7 +14,7 @@ import type {
   EquippedWeaponSlotId,
   EquippedWeaponState,
   WeaponCatalogEntry,
-} from '@/types/equipment'
+} from '@/shared/types/equipment'
 import type { AttackResolutionCharacterData } from '@/lib/equippedWeaponAttack'
 
 export type EquippedWeaponSlotPanelProps = {

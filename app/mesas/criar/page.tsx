@@ -1,12 +1,12 @@
-'use client'
+﻿'use client'
 
 import { useState, FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createTable } from '@/lib/storage/tablesApiService'
-import { Input } from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
+import { Input } from '@/shared/components/ui/Input'
+import Button from '@/shared/components/ui/Button'
 import { ArrowLeft } from 'lucide-react'
 import { fadeInUp } from '@/lib/motionVariants'
 

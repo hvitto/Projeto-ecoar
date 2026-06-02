@@ -1,5 +1,5 @@
-import { config } from '@/lib/config'
-import { CharacterData, CharacterWithMetadata } from '@/types/auth'
+﻿import { config } from '@/lib/config'
+import { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
 
 function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null

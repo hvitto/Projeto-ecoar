@@ -1,14 +1,14 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { staggerContainer, staggerItem } from '@/lib/motionVariants'
-import { Input } from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
+import { Input } from '@/shared/components/ui/Input'
+import Button from '@/shared/components/ui/Button'
 import AuthCard from './AuthCard'
 import { LogIn } from 'lucide-react'
-import { AuthError } from '@/types/auth'
+import { AuthError } from '@/shared/types/auth'
 import { DEMO_ACCOUNTS } from '@/lib/config'
 
 interface LoginFormProps {

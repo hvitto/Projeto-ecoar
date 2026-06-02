@@ -1,8 +1,8 @@
-import {
+﻿import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorResistanceValues,
   type CatalogEntry,
-} from '@/types/equipment'
+} from '@/shared/types/equipment'
 
 function zeroResistances(): ArmorResistanceValues {
   return ARMOR_RESISTANCE_KEYS.reduce((acc, key) => {

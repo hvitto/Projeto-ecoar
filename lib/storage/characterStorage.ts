@@ -1,5 +1,5 @@
-import { config } from '@/lib/config'
-import { CharacterData, CharacterWithMetadata } from '@/types/auth'
+﻿import { config } from '@/lib/config'
+import { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
 import * as characterApi from './characterApiService'
 import * as offlineCharacters from './offlineCharacterStorage'
 

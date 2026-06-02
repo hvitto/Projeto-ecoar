@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useCallback } from 'react'
 import { Sparkles, ArrowLeft } from 'lucide-react'
 import { saveCharacter } from '@/lib/storage/characterStorage'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import { getSkillDice } from '@/lib/calculations'
 import { getRaceById } from '@/data/races'
@@ -31,7 +31,7 @@ import {
 } from '@/data/martialSchoolSingularities'
 import { getMartialSchoolById } from '@/data/martialSchools'
 import { races } from '@/data/races'
-import SingularityCard from '@/components/ui/SingularityCard'
+import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 
 type EvolutionTab = 'tracos' | 'singularidades'

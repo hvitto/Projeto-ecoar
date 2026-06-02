@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import { motion } from 'framer-motion'
 import { ReactNode } from 'react'
 import { Crown } from 'lucide-react'
-import Card from '@/components/ui/Card'
+import Card from '@/shared/components/ui/Card'
 import { fadeInUp } from '@/lib/motionVariants'
 
 interface AuthCardProps {

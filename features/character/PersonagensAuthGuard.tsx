@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import { ReactNode, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 
 interface PersonagensAuthGuardProps {
   children: ReactNode

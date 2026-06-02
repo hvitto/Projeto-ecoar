@@ -110,8 +110,9 @@ Bookmarks legados `/?view=...` redirecionam para `/personagens/*`.
 ## Convenções de código
 
 - **UI:** preferir arquivos com até ~400 linhas; lógica pesada em `lib/` ou `features/*/hooks`.
+- **Transversal (2+ domínios):** `shared/components/ui`, `shared/contexts`, `shared/types`.
 - **Domínio personagem:** `features/character/` (páginas, reducer do wizard, hooks da ficha).
-- **Wizard:** shell em `components/wizard/CharacterCreationWizard.tsx`; steps em `components/wizard/steps/`.
+- **Wizard (ainda legado):** shell em `components/wizard/CharacterCreationWizard.tsx`; steps em `components/wizard/steps/`.
 - **Ficha:** shell em `components/CharacterSheet.tsx`; seções em `components/sheet/sections/` (extração incremental).
 
 ## Project Structure
@@ -122,13 +123,14 @@ Projeto-ecoar/
 │   ├── page.tsx                 # Auth (login/registro)
 │   ├── personagens/             # Fluxo de personagem
 │   └── mesas/                   # Mesas de jogo
-├── components/
-│   ├── wizard/                  # Wizard fatiado (steps + shell)
-│   ├── sheet/sections/          # Seções da ficha
-│   └── CharacterSheet.tsx       # Shell da ficha
-├── features/character/          # Tipos, páginas, reducer, hooks
-├── data/                        # Dados estáticos do jogo
-├── lib/                         # Cálculos, API, auth
+├── features/character/          # Páginas, reducer, hooks do personagem
+├── shared/
+│   ├── components/ui/           # Design system (Button, Card, …)
+│   ├── contexts/                # Auth, Theme, EquipmentCatalog, App
+│   └── types/                   # Tipos compartilhados
+├── components/                  # UI de domínio ainda em migração (wizard, ficha, …)
+├── data/                        # Dados estáticos do jogo (regras do livro)
+├── lib/                         # Infra (DB, auth) + regras com código
 └── package.json
 ```
 
@@ -144,7 +146,7 @@ Cobertura atual: reducer de navegação do wizard (`features/character/wizard/wi
 
 - ✅ Removido componente `CharacterCreation.tsx` não utilizado
 - ✅ Removidas dependências não utilizadas (`@tabler/icons-react`, `clsx`, `tailwind-merge`)
-- ✅ Removida pasta `contexts` vazia
+- ✅ Contextos globais em `shared/contexts/` (Auth, Theme, EquipmentCatalog, App)
 - ✅ Limpeza de arquivos lock duplicados
 - ✅ Adicionado botão de edição na ficha do personagem
 - ✅ Melhorada navegação com Header funcional

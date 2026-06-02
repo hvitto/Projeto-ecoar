@@ -1,13 +1,13 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getCharacter, saveCharacter } from '@/lib/storage/characterStorage'
 import { setMyTableCharacter } from '@/lib/storage/tablesApiService'
 import type { CharacterCreationData } from '@/components/wizard/CharacterCreationWizard'
-import type { CharacterWithMetadata } from '@/types/auth'
+import type { CharacterWithMetadata } from '@/shared/types/auth'
 import { useEffect } from 'react'
 
 interface CharacterWizardPageProps {

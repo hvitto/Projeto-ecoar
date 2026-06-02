@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -15,8 +15,8 @@ import {
   weaponMacroSectionLabels,
   weaponMacroSectionOrder,
 } from '@/data/equipment'
-import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
-import type { VestuarioTabId, WeaponMacroSectionId } from '@/types/equipment'
+import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
+import type { VestuarioTabId, WeaponMacroSectionId } from '@/shared/types/equipment'
 import { formatCerosDisplay, parseCostLabelToCeros } from '@/lib/equipmentCost'
 
 export type EquipmentCatalogBrowserMode = 'reference' | 'picker'

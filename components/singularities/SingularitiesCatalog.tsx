@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, Plus, Settings2 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getAccessToken } from '@/lib/auth/authService'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { ecoarTypes } from '@/data/ecoar'

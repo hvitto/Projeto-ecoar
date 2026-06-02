@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CharacterEvolutionScreen from '@/components/CharacterEvolutionScreen'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getCharacter } from '@/lib/storage/characterStorage'
-import type { CharacterWithMetadata } from '@/types/auth'
+import type { CharacterWithMetadata } from '@/shared/types/auth'
 
 interface CharacterEvolutionPageProps {
   characterId: string

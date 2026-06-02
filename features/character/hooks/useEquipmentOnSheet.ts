@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useMemo } from 'react'
 import type {
@@ -7,7 +7,7 @@ import type {
   CatalogOwnedItem,
   UtilityCatalogEntry,
   WeaponCatalogEntry,
-} from '@/types/equipment'
+} from '@/shared/types/equipment'
 import type { CharacterSheetState } from '@/features/character/hooks/sheetInitialState'
 
 export function useEquipmentOnSheet(

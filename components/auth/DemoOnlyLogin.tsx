@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { staggerContainer, staggerItem } from '@/lib/motionVariants'
-import Button from '@/components/ui/Button'
+import Button from '@/shared/components/ui/Button'
 import AuthCard from './AuthCard'
 import { DEMO_ACCOUNTS } from '@/lib/config'
 import { Sparkles } from 'lucide-react'

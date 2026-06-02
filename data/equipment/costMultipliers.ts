@@ -1,4 +1,4 @@
-import type { CostMultiplierRow, CostMultiplierTable } from '@/types/equipment'
+﻿import type { CostMultiplierRow, CostMultiplierTable } from '@/shared/types/equipment'
 
 /** Tabelas de multiplicador de custo por estilo (Reclusa, Vapor-Alquímico, etc.). Conferir PDF v0.6.3a em caso de dúvida. */
 export const equipmentCostMultiplierTables: CostMultiplierTable[] = [

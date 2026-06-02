@@ -1,3 +1,4 @@
+// Client Neon único. Não abrir outro sql nas features.
 import { neon } from '@neondatabase/serverless'
 
 export function isDatabaseConfigured(): boolean {

@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { hashPassword, signVerificationToken } from '@/lib/auth/jwt'
 import { config } from '@/lib/config'
-import { AuthError } from '@/types/auth'
+import { AuthError } from '@/shared/types/auth'
 import { sendVerificationEmail } from '@/lib/email/sendVerificationEmail'
 
 const EMAIL_REGEX = config.VALIDATION.EMAIL_REGEX

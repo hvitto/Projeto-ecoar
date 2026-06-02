@@ -1,4 +1,4 @@
-import type { CatalogOwnedItem } from '@/types/equipment'
+﻿import type { CatalogOwnedItem } from '@/shared/types/equipment'
 
 /** Payload completo da criação/edição de personagem (wizard). */
 export interface CharacterCreationData {

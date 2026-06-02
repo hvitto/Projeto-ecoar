@@ -1,6 +1,6 @@
-import { getDemoAccountById } from '@/lib/config'
+﻿import { getDemoAccountById } from '@/lib/config'
 import { OFFLINE_USER_PREFIX } from '@/lib/auth/offlineDemoAuthService'
-import type { User } from '@/types/auth'
+import type { User } from '@/shared/types/auth'
 
 const LOCAL_PREFIX = 'local-demo-'
 

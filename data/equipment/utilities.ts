@@ -1,4 +1,4 @@
-import type { UtilityCatalogEntry } from '@/types/equipment'
+﻿import type { UtilityCatalogEntry } from '@/shared/types/equipment'
 
 function util(entry: Omit<UtilityCatalogEntry, 'kind'>): UtilityCatalogEntry {
   return { kind: 'utility', ...entry }

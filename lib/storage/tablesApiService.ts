@@ -1,6 +1,6 @@
-import { config } from '@/lib/config'
-import type { GameTable, GameTableWithMembers, CreateTableBody, JoinTableBody } from '@/types/tables'
-import type { CharacterWithMetadata } from '@/types/auth'
+﻿import { config } from '@/lib/config'
+import type { GameTable, GameTableWithMembers, CreateTableBody, JoinTableBody } from '@/shared/types/tables'
+import type { CharacterWithMetadata } from '@/shared/types/auth'
 
 const OFFLINE_TABLES_MSG = 'Mesas online desativadas no modo demonstração.'
 

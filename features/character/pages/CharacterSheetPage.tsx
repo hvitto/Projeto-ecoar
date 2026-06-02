@@ -1,12 +1,12 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import CharacterSheet from '@/components/CharacterSheet'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { getCharacter } from '@/lib/storage/characterStorage'
 import { getTable, getTableCharacters } from '@/lib/storage/tablesApiService'
-import type { CharacterWithMetadata } from '@/types/auth'
+import type { CharacterWithMetadata } from '@/shared/types/auth'
 
 interface CharacterSheetPageProps {
   characterId: string

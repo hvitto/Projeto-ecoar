@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 import { Moon, Sun } from 'lucide-react'
-import { useTheme } from '@/contexts/ThemeContext'
+import { useTheme } from '@/shared/contexts/ThemeContext'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 

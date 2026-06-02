@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState } from 'react'
-import type { CharacterData } from '@/types/auth'
-import SingularityCard from '@/components/ui/SingularityCard'
+import type { CharacterData } from '@/shared/types/auth'
+import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { getCreationSingularityById } from '@/data/creationSingularities'
 import { getSingularityById } from '@/data/singularities'

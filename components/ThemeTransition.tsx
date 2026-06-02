@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef } from 'react'
-import { useTheme } from '@/contexts/ThemeContext'
+import { useTheme } from '@/shared/contexts/ThemeContext'
 
 export default function ThemeTransition() {
   const { theme } = useTheme()

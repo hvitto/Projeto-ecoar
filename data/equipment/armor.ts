@@ -1,4 +1,4 @@
-import { ARMOR_RESISTANCE_KEYS, type ArmorCatalogEntry, type ArmorResistanceValues } from '@/types/equipment'
+﻿import { ARMOR_RESISTANCE_KEYS, type ArmorCatalogEntry, type ArmorResistanceValues } from '@/shared/types/equipment'
 
 type ArmorSeedEntry = Omit<ArmorCatalogEntry, 'kind' | 'resistances' | 'defenseCritico' | 'esquiva' | 'furtividade' | 'propriedades' | 'flavor'> & {
   resistances?: Partial<ArmorResistanceValues>

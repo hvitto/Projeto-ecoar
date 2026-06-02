@@ -1,4 +1,4 @@
-import { DAMAGE_TYPE_LABELS_PT, type WeaponCatalogEntry } from '@/types/equipment'
+﻿import { DAMAGE_TYPE_LABELS_PT, type WeaponCatalogEntry } from '@/shared/types/equipment'
 
 function nonempty(s?: string): boolean {
   return s != null && String(s).trim() !== ''

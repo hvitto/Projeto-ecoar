@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { verifyPassword, signToken } from '@/lib/auth/jwt'
 import { config } from '@/lib/config'
-import { AuthError } from '@/types/auth'
+import { AuthError } from '@/shared/types/auth'
 
 const EMAIL_REGEX = config.VALIDATION.EMAIL_REGEX
 const MIN_PASSWORD = config.VALIDATION.MIN_PASSWORD_LENGTH

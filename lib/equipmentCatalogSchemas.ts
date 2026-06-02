@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/types/equipment'
+﻿import { z } from 'zod'
+import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
 
 const weaponMacroSectionId = z.enum([
   'intro',

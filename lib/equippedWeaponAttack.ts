@@ -1,7 +1,7 @@
-import { getSkillDice, getAptitudeDice } from '@/lib/calculations'
+﻿import { getSkillDice, getAptitudeDice } from '@/lib/calculations'
 import { skills as skillsDefinitions } from '@/data/skills'
 import { aptitudes as aptitudesDefinitions } from '@/data/aptitudes'
-import type { WeaponCatalogEntry } from '@/types/equipment'
+import type { WeaponCatalogEntry } from '@/shared/types/equipment'
 
 const ATTRIBUTE_STATE_KEYS = [
   'carisma',

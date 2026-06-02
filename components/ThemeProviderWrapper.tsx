@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { ThemeProvider } from '@/contexts/ThemeContext'
+import { ThemeProvider } from '@/shared/contexts/ThemeContext'
 import ThemeTransition from '@/components/ThemeTransition'
 
 export default function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {

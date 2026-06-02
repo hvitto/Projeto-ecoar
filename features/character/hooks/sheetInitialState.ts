@@ -1,4 +1,4 @@
-import type { CatalogOwnedItem } from '@/types/equipment'
+﻿import type { CatalogOwnedItem } from '@/shared/types/equipment'
 
 export type EquippedArmorState = { instanceId: string }
 export type CharacterSkillState = Record<string, { level: number; specialization?: string }>

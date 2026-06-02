@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Check, Pencil } from 'lucide-react'
@@ -8,7 +8,7 @@ import {
   type ArmorResistanceKey,
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
-} from '@/types/equipment'
+} from '@/shared/types/equipment'
 import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
 
 type Entry = WeaponCatalogEntry | ArmorCatalogEntry | UtilityCatalogEntry

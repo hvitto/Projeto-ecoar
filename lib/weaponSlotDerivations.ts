@@ -1,4 +1,4 @@
-import { DAMAGE_TYPE_LABELS_PT, type WeaponCatalogEntry } from '@/types/equipment'
+﻿import { DAMAGE_TYPE_LABELS_PT, type WeaponCatalogEntry } from '@/shared/types/equipment'
 
 function readPropertyNumber(properties: string[], prefix: string): number | null {
   const hit = properties.find((p) => p.toLowerCase().startsWith(prefix.toLowerCase()))

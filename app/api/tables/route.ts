@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { getAuthFromRequest } from '@/lib/auth/getAuthFromRequest'
 import { dbRequiredResponse, emptyListWhenDbUnavailable } from '@/lib/api/databaseGuard'
 import { generateInviteToken, generateInviteCode } from '@/lib/tables/invite'
-import type { GameTable, CreateTableBody } from '@/types/tables'
+import type { GameTable, CreateTableBody } from '@/shared/types/tables'
 
 function rowToTable(row: {
   id: string

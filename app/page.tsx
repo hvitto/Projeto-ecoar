@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import DemoOnlyLogin from '@/components/auth/DemoOnlyLogin'
 import LegacyViewRedirect from '@/features/character/LegacyViewRedirect'
 

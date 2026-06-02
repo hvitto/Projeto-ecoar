@@ -1,3 +1,4 @@
+// Dados estáticos do livro. Lógica em lib/, fetch em app/api.
 // Races data from Ecoar RPG
 
 export interface RaceImageHeroConfig {

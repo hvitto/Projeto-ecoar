@@ -1,3 +1,4 @@
+// API pública do módulo. Wizard ainda em components/wizard.
 export type { CharacterCreationData, WizardStepNavigationProps, CharacterFlowFromMesa } from './types'
 export {
   WIZARD_STEP_TITLES,

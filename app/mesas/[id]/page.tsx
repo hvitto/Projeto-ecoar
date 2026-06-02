@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { fadeInUp } from '@/lib/motionVariants'
 import {
   getTable,
@@ -13,10 +13,10 @@ import {
   type TableCharacterItem,
 } from '@/lib/storage/tablesApiService'
 import { getUserCharacters } from '@/lib/storage/characterStorage'
-import type { GameTableWithMembers } from '@/types/tables'
-import type { CharacterWithMetadata } from '@/types/auth'
+import type { GameTableWithMembers } from '@/shared/types/tables'
+import type { CharacterWithMetadata } from '@/shared/types/auth'
 import { ArrowLeft, Copy, UserPlus, FileText, Eye, Pencil } from 'lucide-react'
-import Button from '@/components/ui/Button'
+import Button from '@/shared/components/ui/Button'
 
 const POLL_INTERVAL_MS = 8000
 

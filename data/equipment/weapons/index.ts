@@ -1,4 +1,4 @@
-import type { WeaponCatalogEntry, WeaponMacroSectionId } from '@/types/equipment'
+﻿import type { WeaponCatalogEntry, WeaponMacroSectionId } from '@/shared/types/equipment'
 import { introAndMeleeWeapons } from './introAndMelee'
 import { rangedAndMagicWeapons } from './rangedAndMagic'
 import { municiadasWeapons } from './municiadas'

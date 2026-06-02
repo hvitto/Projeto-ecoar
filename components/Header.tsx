@@ -1,12 +1,12 @@
-'use client'
+﻿'use client'
 
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Crown, UserPlus, User, LogOut, Home } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
-import { useApp } from '@/contexts/AppContext'
-import { useAuth } from '@/contexts/AuthContext'
-import Button from '@/components/ui/Button'
+import { useApp } from '@/shared/contexts/AppContext'
+import { useAuth } from '@/shared/contexts/AuthContext'
+import Button from '@/shared/components/ui/Button'
 
 interface HeaderProps {
   onNewCharacter?: () => void

@@ -1,5 +1,5 @@
-import { config, getDemoAccountById } from '@/lib/config'
-import type { AuthResult, User } from '@/types/auth'
+﻿import { config, getDemoAccountById } from '@/lib/config'
+import type { AuthResult, User } from '@/shared/types/auth'
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
 export const OFFLINE_DEMO_TOKEN = 'offline-demo-session'
