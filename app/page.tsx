@@ -1,9 +1,10 @@
 ﻿'use client'
 
-import { useEffect, useRef, Suspense, useCallback } from 'react'
+import { useEffect, useRef, Suspense, useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import DemoOnlyLogin from '@/components/auth/DemoOnlyLogin'
+import LoginForm from '@/components/auth/LoginForm'
+import RegisterForm from '@/components/auth/RegisterForm'
 import LegacyViewRedirect from '@/features/character/LegacyViewRedirect'
 
 function HomeContent() {
@@ -11,6 +12,7 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const { isAuthenticated, isLoading } = useAuth()
   const hasInitialized = useRef(false)
+  const [authView, setAuthView] = useState<'login' | 'register'>('login')
 
   const requestedView = searchParams.get('view')
 
@@ -33,7 +35,7 @@ function HomeContent() {
     }
   }, [isAuthenticated, isLoading, requestedView, router])
 
-  const handleDemoSuccess = useCallback(() => {
+  const handleAuthSuccess = useCallback(() => {
     router.push('/personagens')
   }, [router])
 
@@ -67,7 +69,17 @@ function HomeContent() {
   return (
     <div className="flex-1 flex flex-col min-h-0 items-center justify-center px-3 py-4 sm:p-4 md:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="w-full max-w-md">
-        <DemoOnlyLogin onSuccess={handleDemoSuccess} />
+        {authView === 'login' ? (
+          <LoginForm
+            onSwitchToRegister={() => setAuthView('register')}
+            onSuccess={handleAuthSuccess}
+          />
+        ) : (
+          <RegisterForm
+            onSwitchToLogin={() => setAuthView('login')}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
       </div>
     </div>
   )

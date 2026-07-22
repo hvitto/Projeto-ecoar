@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
@@ -116,6 +116,10 @@ export function PCSpendingStep({
   singularidades,
   selectedEcoar,
   singularidadesEcoar,
+  disturbios,
+  onDisturbiosChange,
+  ecoarAcoes,
+  onEcoarAcoesChange,
   selectedTrilha,
   onTrilhaSelect,
   pathSingularityBase,
@@ -154,6 +158,10 @@ export function PCSpendingStep({
   singularidades: string[]
   selectedEcoar: string
   singularidadesEcoar: string[]
+  disturbios: import('@/data/disturbios').DisturbioOwnedEntry[]
+  onDisturbiosChange: (entries: import('@/data/disturbios').DisturbioOwnedEntry[]) => void
+  ecoarAcoes: string[]
+  onEcoarAcoesChange: (ids: string[]) => void
   selectedTrilha: string
   onTrilhaSelect: (id: string) => void
   pathSingularityBase: string
@@ -191,13 +199,16 @@ export function PCSpendingStep({
 }) {
   return (
     <div className="space-y-6">
-      {/* Content based on active sub-step */}
       <div>
         {activeSubStep === 'singularidades' && (
           <LazySingularitiesSpendingStep
             singularidades={singularidades}
             selectedEcoar={selectedEcoar}
             singularidadesEcoar={singularidadesEcoar}
+            disturbios={disturbios}
+            onDisturbiosChange={onDisturbiosChange}
+            ecoarAcoes={ecoarAcoes}
+            onEcoarAcoesChange={onEcoarAcoesChange}
             selectedTrilha={selectedTrilha}
             onTrilhaSelect={onTrilhaSelect}
             pathSingularityBase={pathSingularityBase}

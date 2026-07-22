@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Save, X } from 'lucide-react'
 import type { CatalogEntry } from '@/shared/types/equipment'
 import { parseCatalogPayload } from '@/lib/equipmentCatalogSchemas'
-import { getAccessToken } from '@/lib/auth/authService'
 import CatalogItemFields from '@/components/admin/CatalogItemFields'
 import { createDefaultCatalogEntry } from '@/lib/equipmentCatalogDefaults'
 
@@ -68,12 +67,11 @@ export default function CreateEquipmentModal({
       return
     }
 
-    const token = getAccessToken()
     const res = await fetch('/api/equipment-catalog/items', {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         id: v.data.id,

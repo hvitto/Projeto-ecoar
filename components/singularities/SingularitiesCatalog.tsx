@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ArrowLeft, BookOpen, Plus, Settings2 } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { getAccessToken } from '@/lib/auth/authService'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { ecoarTypes } from '@/data/ecoar'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
@@ -310,7 +309,7 @@ export default function SingularitiesCatalog() {
   const staticSystemRows = useMemo(() => getStaticSystemRows(), [])
 
   useEffect(() => {
-    if (authLoading || !user || !getAccessToken()) {
+    if (authLoading || !user) {
       setShowAdminLink(false)
       setAdminRows(null)
       setAdminNotice(null)
@@ -319,13 +318,13 @@ export default function SingularitiesCatalog() {
     let cancelled = false
     ;(async () => {
       const res = await fetch('/api/ecoar-catalog/admin/ping', {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        credentials: 'include',
         cache: 'no-store',
       })
       if (!cancelled) setShowAdminLink(res.ok)
       if (!res.ok) return
       const adminRes = await fetch('/api/ecoar-catalog/admin', {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        credentials: 'include',
         cache: 'no-store',
       })
       if (!adminRes.ok) return
@@ -619,15 +618,15 @@ export default function SingularitiesCatalog() {
                   const isCreate = !editing.id
                   const res = await fetch('/api/ecoar-catalog/admin', {
                     method: isCreate ? 'POST' : 'PUT',
+                    credentials: 'include',
                     headers: {
                       'Content-Type': 'application/json',
-                      Authorization: `Bearer ${getAccessToken()}`,
                     },
                     body: JSON.stringify(editing),
                   })
                   if (!res.ok) return
                   const adminRes = await fetch('/api/ecoar-catalog/admin', {
-                    headers: { Authorization: `Bearer ${getAccessToken()}` },
+                    credentials: 'include',
                     cache: 'no-store',
                   })
                   if (adminRes.ok) {

@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { verifyPassword, signToken } from '@/lib/auth/jwt'
+import { setSessionCookie } from '@/lib/auth/sessionCookie'
 import { config } from '@/lib/config'
 import { AuthError } from '@/shared/types/auth'
 
@@ -48,7 +49,9 @@ export async function POST(request: Request) {
       createdAt: row.created_at,
     }
     const token = await signToken({ userId: row.id })
-    return NextResponse.json({ success: true, user, token })
+    const response = NextResponse.json({ success: true, user })
+    setSessionCookie(response, token)
+    return response
   } catch (err) {
     console.error('Login error:', err)
     return NextResponse.json({ success: false, error: 'Erro ao fazer login' }, { status: 500 })

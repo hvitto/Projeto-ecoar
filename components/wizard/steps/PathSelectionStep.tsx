@@ -157,11 +157,18 @@ export function PathSelectionStep({
                     {path.name}
                   </h4>
                   <span className={`text-xs ${
-                    path.type === 'caçador'
-                      ? 'text-ecoar-teal'
-                      : 'text-ecoar-magenta'
+                    path.type === 'anti-cacada'
+                      ? 'text-ecoar-magenta'
+                      : 'text-ecoar-teal'
                   }`}>
-                    {path.type === 'caçador' ? 'Caçador' : 'Corrompido'}
+                    {{
+                      bruxaria: 'Bruxaria',
+                      cacada: 'Caçada',
+                      esperanca: 'Esperança',
+                      patronos: 'Patronos',
+                      violencia: 'Violência',
+                      'anti-cacada': 'Anti-Caçada',
+                    }[path.type]}
                   </span>
                 </div>
                 {isSelected && (

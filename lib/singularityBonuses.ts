@@ -1,23 +1,15 @@
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
 import type { SystemSingularity } from '@/lib/systemSingularities'
+import {
+  emptyNumericBonuses,
+  isConditionalEffectEnabled,
+  mergeNumericBonuses,
+  type SingularityNumericBonuses,
+} from '@/lib/singularityEffectChannels'
 
-export type SingularitiesBonusAggregate = {
-  attributes: Record<string, number>
-  skills: Record<string, number>
-  corpo: number
-  mente: number
-  folego: number
-  mana: number
-}
+export type SingularitiesBonusAggregate = SingularityNumericBonuses
 
-const EMPTY: SingularitiesBonusAggregate = {
-  attributes: {},
-  skills: {},
-  corpo: 0,
-  mente: 0,
-  folego: 0,
-  mana: 0,
-}
+const EMPTY = emptyNumericBonuses()
 
 type LegacyEcoarAggregateArgs = {
   selectedSingularityIds: string[]
@@ -31,37 +23,38 @@ type SystemAggregateArgs = {
     ecoar: string[]
     marciais: string[]
     raciais: string[]
+    path?: string[]
   }
   conditionalEnabledIdsByKind: {
     criacao: string[]
     ecoar: string[]
     marciais: string[]
     raciais: string[]
+    path?: string[]
   }
   getSystemSingularityById: (id: string) => SystemSingularity | undefined
+}
+
+function addBonusesToAggregate(out: SingularitiesBonusAggregate, add: SingularityNumericBonuses) {
+  mergeNumericBonuses(out, add)
 }
 
 export function aggregateSimpleBonuses(args: LegacyEcoarAggregateArgs): SingularitiesBonusAggregate
 export function aggregateSimpleBonuses(args: SystemAggregateArgs): SingularitiesBonusAggregate
 export function aggregateSimpleBonuses(args: LegacyEcoarAggregateArgs | SystemAggregateArgs): SingularitiesBonusAggregate {
-  const out: SingularitiesBonusAggregate = {
-    attributes: {},
-    skills: {},
-    corpo: 0,
-    mente: 0,
-    folego: 0,
-    mana: 0,
-  }
+  const out = emptyNumericBonuses()
 
-  // Legacy: Ecoar-only.
   if ('getEcoarSingularityById' in args) {
     const conditionalSet = new Set(args.conditionalEnabledIds)
     for (const id of args.selectedSingularityIds) {
       const sing = args.getEcoarSingularityById(id)
       if (!sing?.bonuses) continue
       const activationType = sing.activationType ?? 'complexa'
-      if (activationType === 'complexa' || activationType === 'ativa') continue
+      if (activationType === 'ativa') continue
       if (activationType === 'condicional' && !conditionalSet.has(id)) continue
+      if (activationType === 'complexa') {
+        // legado: só aplica se houver bônus estruturados (tratados como passivos)
+      }
 
       for (const [k, v] of Object.entries(sing.bonuses.attributes ?? {})) out.attributes[k] = (out.attributes[k] ?? 0) + v
       for (const [k, v] of Object.entries(sing.bonuses.skills ?? {})) out.skills[k] = (out.skills[k] ?? 0) + v
@@ -73,47 +66,58 @@ export function aggregateSimpleBonuses(args: LegacyEcoarAggregateArgs | SystemAg
     return out
   }
 
-  // System: Criação + Ecoar + Marciais.
   const systemArgs = args as SystemAggregateArgs
-  const conditionalEnabledSets: Record<'criacao' | 'ecoar' | 'marciais' | 'raciais', Set<string>> = {
+  const conditionalEnabledSets: Record<'criacao' | 'ecoar' | 'marciais' | 'raciais' | 'path', Set<string>> = {
     criacao: new Set(systemArgs.conditionalEnabledIdsByKind.criacao),
     ecoar: new Set(systemArgs.conditionalEnabledIdsByKind.ecoar),
     marciais: new Set(systemArgs.conditionalEnabledIdsByKind.marciais),
     raciais: new Set(systemArgs.conditionalEnabledIdsByKind.raciais),
+    path: new Set(systemArgs.conditionalEnabledIdsByKind.path ?? []),
   }
 
-  const addOne = (id: string, kind: 'criacao' | 'ecoar' | 'marciais' | 'raciais') => {
+  const addOne = (id: string, kind: 'criacao' | 'ecoar' | 'marciais' | 'raciais' | 'path') => {
     const sing = systemArgs.getSystemSingularityById(id)
     if (!sing) return
 
+    const channels = sing.effectChannels
+    if (channels) {
+      addBonusesToAggregate(out, channels.passivos)
+      for (const fx of channels.condicionais) {
+        if (!isConditionalEffectEnabled(fx.id, sing.id, conditionalEnabledSets[kind])) continue
+        addBonusesToAggregate(out, fx.bonuses)
+      }
+      return
+    }
+
     const activationType = sing.activationType ?? 'complexa'
-    if (activationType === 'complexa' || activationType === 'ativa') return
+    if (activationType === 'ativa') return
     if (activationType === 'condicional' && !conditionalEnabledSets[kind].has(id)) return
 
     const b = sing.bonusesSimpleExtracted
     if (!b) return
-    for (const [k, v] of Object.entries(b.attributes ?? {})) out.attributes[k] = (out.attributes[k] ?? 0) + v
-    for (const [k, v] of Object.entries(b.skills ?? {})) out.skills[k] = (out.skills[k] ?? 0) + v
-    out.corpo += typeof b.corpo === 'number' ? b.corpo : 0
-    out.mente += typeof b.mente === 'number' ? b.mente : 0
-    out.folego += typeof b.folego === 'number' ? b.folego : 0
-    out.mana += typeof b.mana === 'number' ? b.mana : 0
+    addBonusesToAggregate(out, {
+      attributes: b.attributes ?? {},
+      skills: b.skills ?? {},
+      corpo: b.corpo ?? 0,
+      mente: b.mente ?? 0,
+      folego: b.folego ?? 0,
+      mana: b.mana ?? 0,
+      attack: b.attack ?? 0,
+      damage: b.damage ?? 0,
+      penetration: b.penetration ?? 0,
+      crit: b.crit ?? 0,
+      maxDamage: b.maxDamage ?? 0,
+    })
   }
 
   for (const id of systemArgs.selectedSingularityIdsByKind.criacao) addOne(id, 'criacao')
   for (const id of systemArgs.selectedSingularityIdsByKind.ecoar) addOne(id, 'ecoar')
   for (const id of systemArgs.selectedSingularityIdsByKind.marciais) addOne(id, 'marciais')
   for (const id of systemArgs.selectedSingularityIdsByKind.raciais) addOne(id, 'raciais')
+  for (const id of systemArgs.selectedSingularityIdsByKind.path ?? []) addOne(id, 'path')
   return out
 }
 
 export function emptySingularityBonuses(): SingularitiesBonusAggregate {
-  return {
-    attributes: { ...EMPTY.attributes },
-    skills: { ...EMPTY.skills },
-    corpo: 0,
-    mente: 0,
-    folego: 0,
-    mana: 0,
-  }
+  return emptyNumericBonuses()
 }

@@ -1,33 +1,17 @@
 ﻿'use client'
 
-import { Fragment, useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { fadeInUp } from '@/lib/motionVariants'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
-  User, Sparkles, Shield, Heart, Brain, Zap, Eye, Navigation,
-  TrendingUp, Sword, BookOpen, Package, FileText, Target,
-  Waves, Wind, Edit, ExternalLink
+  Sparkles, Shield, Heart, Brain, Zap, Eye,
+  Sword, Edit,
 } from 'lucide-react'
 import {
   getAttributeModifier,
-  getSkillDice,
-  getAptitudeDice,
-  calculateCorpoMax,
-  calculateMenteMax,
-  calculateFolegoMax,
-  calculateManaMax,
+  calculateCharacterLimits,
   calculateCommonTests,
-  formatModifier,
 } from '@/lib/calculations'
 import { skills as skillsDefinitions } from '@/data/skills'
-import { aptitudes as aptitudesDefinitions } from '@/data/aptitudes'
-import { races, getRaceById } from '@/data/races'
-import { paths, getPathById } from '@/data/paths'
-import { locations, getLocationById, getLocationsByNation, getAllNations } from '@/data/locations'
-import SingularityCard from '@/shared/components/ui/SingularityCard'
-import { getCreationSingularityById } from '@/data/creationSingularities'
-import { getSingularityById } from '@/data/singularities'
-import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
+import { getRaceById } from '@/data/races'
 import { getPathLevelFromSoulLevel } from '@/data/pathSingularities'
 import { getSoulLevelByNivel, getSoulLevelByPontosEvolucao } from '@/data/soulLevels'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
@@ -54,12 +38,6 @@ import {
   type UtilityCatalogEntry,
   type WeaponCatalogEntry,
 } from '@/shared/types/equipment'
-import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
-import SystemSingularityCatalogBrowser from '@/components/singularities/SystemSingularityCatalogBrowser'
-import PlayerSingularitiesViewer from '@/components/singularities/PlayerSingularitiesViewer'
-import EquippedWeaponSlotPanel from '@/components/character/EquippedWeaponSlotPanel'
-import { SheetNotesSection } from '@/components/sheet/sections'
 import { useCharacterSheetState } from '@/features/character/hooks/useCharacterSheetState'
 import { useEquipmentOnSheet } from '@/features/character/hooks/useEquipmentOnSheet'
 import type {
@@ -76,6 +54,20 @@ import Header from './Header'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { saveCharacter } from '@/lib/storage/characterStorage'
+import CharacterSheetShell from '@/features/character/sheet/CharacterSheetShell'
+import { SheetLayoutProvider } from '@/features/character/sheet/SheetLayoutProvider'
+import { SheetRuntimeProvider, type SheetRuntimeValue } from '@/features/character/sheet/SheetRuntimeContext'
+import { BasicoTab } from '@/features/character/sheet/tabs/BasicoTab'
+import { EquipamentosTab } from '@/features/character/sheet/tabs/EquipamentosTab'
+import { SingularidadesKindTab } from '@/features/character/sheet/tabs/SingularidadesKindTab'
+import { renderBasicoWidget } from '@/features/character/sheet/widgets/renderBasicoWidget'
+import { renderEquipamentosWidget } from '@/features/character/sheet/widgets/renderEquipamentosWidget'
+import { renderSingularityWidget } from '@/features/character/sheet/widgets/renderSingularityWidgets'
+import {
+  normalizeSheetLayout,
+  type SheetLayout,
+  type SheetTabId,
+} from '@/features/character/sheet/sheetLayoutTypes'
 
 const ATTRIBUTE_STATE_KEYS = [
   'carisma',
@@ -154,6 +146,7 @@ interface CharacterSheetProps {
   initialData?: any
   canEdit?: boolean
   isTableGmEditor?: boolean
+  tableId?: string | null
   onBackToDashboard?: () => void
   onOpenEvolution?: () => void
   onCharacterSaved?: (saved: any) => void
@@ -163,15 +156,16 @@ export default function CharacterSheet({
   initialData,
   canEdit,
   isTableGmEditor = false,
+  tableId = null,
   onBackToDashboard,
   onOpenEvolution,
   onCharacterSaved,
 }: CharacterSheetProps) {
-  const { getEcoarSingularityById, ecoarSingularities } = useEcoarCatalogData()
+  const { ecoarSingularities } = useEcoarCatalogData()
   const { characterData, setCharacterData } = useCharacterSheetState()
 
   const { user } = useAuth()
-  const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
+  const { weapons, armor, utilities } = useEquipmentCatalog()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const hasMasterOverride = isTableGmEditor
@@ -180,11 +174,11 @@ export default function CharacterSheet({
   const initialDataRef = useRef<any>(initialData)
   const limitsAutoSaveTimeoutRef = useRef<number | null>(null)
   const userTriggeredLimitsRef = useRef(false)
+  const conditionalsAutoSaveTimeoutRef = useRef<number | null>(null)
+  const userTriggeredConditionalsRef = useRef(false)
 
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'singularidades' | 'equipamentos'>('equipamentos')
   const [equipmentSubTab, setEquipmentSubTab] = useState<'inventario' | 'equipados'>('inventario')
   const [equipmentPickerOpen, setEquipmentPickerOpen] = useState(false)
-  const [singularityPickerOpen, setSingularityPickerOpen] = useState(false)
   const [peToAdd, setPeToAdd] = useState<string>('')
 
   const peToAddNumber = useMemo(() => {
@@ -399,6 +393,15 @@ export default function CharacterSheet({
         if (initialData.singularidadesEcoar) {
           updated.singularidadesEcoar = initialData.singularidadesEcoar
         }
+        if (Array.isArray((initialData as any).disturbios)) {
+          updated.disturbios = (initialData as any).disturbios
+        }
+        if (Array.isArray((initialData as any).ecoarAcoes)) {
+          updated.ecoarAcoes = (initialData as any).ecoarAcoes
+        }
+        if ((initialData as any).pontosEcoar && typeof (initialData as any).pontosEcoar === 'object') {
+          updated.pontosEcoar = (initialData as any).pontosEcoar
+        }
         if (Array.isArray((initialData as any).singularidadesCondicionaisAtivas)) {
           updated.singularidadesCondicionaisAtivas = (initialData as any).singularidadesCondicionaisAtivas
         }
@@ -417,10 +420,30 @@ export default function CharacterSheet({
         if (initialData.singularidadesRaciais) {
           updated.singularidadesRaciais = initialData.singularidadesRaciais
         }
+        {
+          const pathIds = [
+            ...((Array.isArray((initialData as any).singularidadesPath)
+              ? (initialData as any).singularidadesPath
+              : []) as string[]),
+            ...((Array.isArray((initialData as any).pathCacadaPowers)
+              ? (initialData as any).pathCacadaPowers
+              : []) as string[]),
+            ...((Array.isArray((initialData as any).pathCacadaEnhancements)
+              ? (initialData as any).pathCacadaEnhancements
+              : []) as string[]),
+          ]
+          if (pathIds.length > 0) {
+            updated.singularidadesPath = Array.from(new Set(pathIds))
+          }
+        }
+        if (Array.isArray((initialData as any).singularidadesCondicionaisPathAtivas)) {
+          updated.singularidadesCondicionaisPathAtivas = (initialData as any).singularidadesCondicionaisPathAtivas
+        }
         if (Array.isArray((initialData as any).desvantagens)) {
           updated.desvantagens = (initialData as any).desvantagens
         }
-        
+        updated.sheetLayout = normalizeSheetLayout((initialData as any).sheetLayout)
+
         // Mod. tamanho/peso: número ou rótulo do wizard (ex.: "Médio" → 0)
         if (initialData.tamanho !== undefined && initialData.tamanho !== null) {
           const mod = modifierFromWizardSizeOrWeight(initialData.tamanho, 'tamanho')
@@ -673,7 +696,9 @@ export default function CharacterSheet({
               ? prev.singularidadesEcoar.includes(id)
               : kind === 'marcial'
                 ? prev.singularidadesMarciais.includes(id)
-                : prev.singularidadesRaciais.includes(id)
+                : kind === 'path'
+                  ? prev.singularidadesPath.includes(id)
+                  : prev.singularidadesRaciais.includes(id)
 
         if (selected && alreadySelected) return prev
         if (!selected && !alreadySelected) return prev
@@ -719,6 +744,16 @@ export default function CharacterSheet({
             }
           }
 
+          if (kind === 'path') {
+            const nextCond = prev.singularidadesCondicionaisPathAtivas.filter((it) => it !== id)
+            return {
+              ...prev,
+              pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+              singularidadesPath: [...prev.singularidadesPath, id],
+              singularidadesCondicionaisPathAtivas: nextCond,
+            }
+          }
+
           const nextCondRacial = prev.singularidadesCondicionaisRaciaisAtivas.filter((it) => it !== id)
           return {
             ...prev,
@@ -729,6 +764,15 @@ export default function CharacterSheet({
         }
 
         // Unselect: refund + clear conditional.
+        if (kind === 'path') {
+          return {
+            ...prev,
+            pontosEvolucao: { ...prev.pontosEvolucao, atual: nextAtuais },
+            singularidadesPath: prev.singularidadesPath.filter((it) => it !== id),
+            singularidadesCondicionaisPathAtivas: prev.singularidadesCondicionaisPathAtivas.filter((it) => it !== id),
+          }
+        }
+
         if (kind === 'racial') {
           const prevRacial = prev.singularidadesRaciais
           const nextRacial = pruneRacialSingularitiesToValidRequirements(prevRacial.filter((it) => it !== id))
@@ -829,10 +873,23 @@ export default function CharacterSheet({
           }
         }
 
+        if (kind === 'path') {
+          if (!prev.singularidadesPath.includes(id)) return prev
+          return {
+            ...prev,
+            singularidadesCondicionaisPathAtivas: enabled
+              ? [...prev.singularidadesCondicionaisPathAtivas.filter((it) => it !== id), id]
+              : prev.singularidadesCondicionaisPathAtivas.filter((it) => it !== id),
+          }
+        }
+
         return prev
       })
+      if (!isEditing) {
+        userTriggeredConditionalsRef.current = true
+      }
     },
-    [canEditSheet],
+    [canEditSheet, isEditing],
   )
 
   const removeSheetCatalogItem = useCallback((instanceId: string) => {
@@ -1141,6 +1198,8 @@ export default function CharacterSheet({
       characterData.singularidadesCondicionaisMarciaisAtivas,
       characterData.singularidadesCondicionaisRaciaisAtivas,
       characterData.singularidadesRaciais,
+      characterData.singularidadesPath,
+      characterData.singularidadesCondicionaisPathAtivas,
       systemSingularityById,
     ]
   )
@@ -1177,6 +1236,8 @@ export default function CharacterSheet({
       ),
     [characterData.singularidadesRaciais, characterData.pontosEvolucao.max],
   )
+
+  const limitsSyncedRef = useRef(false)
 
   const derivedValues = useMemo(() => {
     const percepcaoLevel = typeof characterData.percepcao.nivel === 'string' 
@@ -1227,16 +1288,21 @@ export default function CharacterSheet({
     const percepcaoEffective = percepcaoLevel + percepcaoAttrBonus
     const vitalidadeEffective = vitalidadeLevel + vitalidadeAttrBonus
     const vontadeEffective = vontadeLevel + vontadeAttrBonus
-    const corpoMaxBase = calculateCorpoMax(vitalidadeEffective, nivelPoder)
-    const menteMaxBase = calculateMenteMax(vontadeEffective, nivelPoder)
-    const corpoMax = corpoMaxBase + corpoBonus
-    const menteMax = menteMaxBase + menteBonus
+    const limits = calculateCharacterLimits({
+      vitalidade: vitalidadeEffective,
+      vontade: vontadeEffective,
+      nivelPoder,
+      corpoBonus,
+      menteBonus,
+      folegoBonus,
+      manaBonus,
+    })
 
     return {
-      corpoMax,
-      menteMax,
-      folegoMax: calculateFolegoMax(corpoMax) + folegoBonus,
-      manaMax: calculateManaMax(menteMax) + manaBonus,
+      corpoMax: limits.corpoMax,
+      menteMax: limits.menteMax,
+      folegoMax: limits.folegoMax,
+      manaMax: limits.manaMax,
       commonTests: calculateCommonTests(
         percepcaoEffective,
         vontadeEffective,
@@ -1268,6 +1334,40 @@ export default function CharacterSheet({
     equipmentMechanicalBonuses.attributes,
     equipmentMechanicalBonuses.skills,
     bookDisadvantageBonuses,
+  ])
+
+  useEffect(() => {
+    if (limitsSyncedRef.current) return
+
+    const limitKeys = ['corpo', 'mente', 'folego', 'mana'] as const
+    const hasAnyPersistedLimit = limitKeys.some((key) => {
+      const initial = initialDataRef.current?.[key]
+      return (
+        initial &&
+        typeof initial === 'object' &&
+        Number.isFinite((initial as { max?: number }).max) &&
+        ((initial as { max?: number }).max ?? 0) > 0
+      )
+    })
+
+    if (hasAnyPersistedLimit) {
+      limitsSyncedRef.current = true
+      return
+    }
+
+    limitsSyncedRef.current = true
+    setCharacterData((prev) => ({
+      ...prev,
+      corpo: { atual: derivedValues.corpoMax, max: derivedValues.corpoMax },
+      mente: { atual: derivedValues.menteMax, max: derivedValues.menteMax },
+      folego: { atual: derivedValues.folegoMax, max: derivedValues.folegoMax },
+      mana: { atual: derivedValues.manaMax, max: derivedValues.manaMax },
+    }))
+  }, [
+    derivedValues.corpoMax,
+    derivedValues.menteMax,
+    derivedValues.folegoMax,
+    derivedValues.manaMax,
   ])
 
   // Níveis automáticos a partir dos Pontos de Evolução acumulados (lado após '/')
@@ -1379,13 +1479,20 @@ export default function CharacterSheet({
       backstory: characterData.anotacoes,
       singularidades: characterData.singularidades,
       singularidadesEcoar: characterData.singularidadesEcoar,
+      disturbios: characterData.disturbios,
+      ecoarAcoes: characterData.ecoarAcoes,
+      pontosEcoar: characterData.pontosEcoar,
       singularidadesCondicionaisAtivas: characterData.singularidadesCondicionaisAtivas,
       singularidadesCondicionaisCriacaoAtivas: characterData.singularidadesCondicionaisCriacaoAtivas,
       singularidadesMarciais: characterData.singularidadesMarciais,
       singularidadesCondicionaisMarciaisAtivas: characterData.singularidadesCondicionaisMarciaisAtivas,
       singularidadesCondicionaisRaciaisAtivas: characterData.singularidadesCondicionaisRaciaisAtivas,
       singularidadesRaciais: characterData.singularidadesRaciais,
+      singularidadesPath: characterData.singularidadesPath,
+      singularidadesCondicionaisPathAtivas: characterData.singularidadesCondicionaisPathAtivas,
+      pathCacadaPowers: characterData.singularidadesPath,
       desvantagens: (characterData as { desvantagens?: string[] }).desvantagens ?? [],
+      sheetLayout: characterData.sheetLayout,
       saldoMoedas: characterData.saldoMoedas,
       moeda: formatCerosDisplay(characterData.saldoMoedas),
       equippedWeapons: characterData.equippedWeapons,
@@ -1545,7 +1652,49 @@ export default function CharacterSheet({
     characterData.mana.atual,
     derivedValues.corpoMax,
     derivedValues.menteMax,
+    derivedValues.folegoMax,
+    derivedValues.manaMax,
     handleAutoSaveLimits,
+  ])
+
+  useEffect(() => {
+    if (isEditing) return
+    if (!userTriggeredConditionalsRef.current) return
+    userTriggeredConditionalsRef.current = false
+
+    if (conditionalsAutoSaveTimeoutRef.current) {
+      clearTimeout(conditionalsAutoSaveTimeoutRef.current)
+      conditionalsAutoSaveTimeoutRef.current = null
+    }
+
+    conditionalsAutoSaveTimeoutRef.current = window.setTimeout(async () => {
+      if (!user || !initialDataRef.current?.id) return
+      try {
+        const payload = buildFullPayload()
+        const saved = await saveCharacter(user.id, payload as any)
+        initialDataRef.current = saved.data
+        onCharacterSaved?.(saved)
+      } catch (e) {
+        console.error('Erro ao salvar condicionais:', e)
+      }
+    }, 600)
+
+    return () => {
+      if (conditionalsAutoSaveTimeoutRef.current) {
+        clearTimeout(conditionalsAutoSaveTimeoutRef.current)
+        conditionalsAutoSaveTimeoutRef.current = null
+      }
+    }
+  }, [
+    isEditing,
+    characterData.singularidadesCondicionaisAtivas,
+    characterData.singularidadesCondicionaisCriacaoAtivas,
+    characterData.singularidadesCondicionaisMarciaisAtivas,
+    characterData.singularidadesCondicionaisRaciaisAtivas,
+    characterData.singularidadesCondicionaisPathAtivas,
+    buildFullPayload,
+    onCharacterSaved,
+    user,
   ])
 
   const attributes = [
@@ -1756,1572 +1905,224 @@ export default function CharacterSheet({
     return { crit, esquiva, furtividade }
   }, [equippedMainArmorEntries, equippedAccessoryEntries])
 
+  const markLimitsUserTriggered = useCallback(() => {
+    userTriggeredLimitsRef.current = true
+  }, [])
+
+  const handleLayoutChange = useCallback((layout: SheetLayout) => {
+    setCharacterData((prev) => ({ ...prev, sheetLayout: layout }))
+  }, [setCharacterData])
+
+  const handlePersistLayout = useCallback(
+    async (layout: SheetLayout) => {
+      setCharacterData((prev) => ({ ...prev, sheetLayout: layout }))
+      if (!user || !initialDataRef.current?.id) return
+      try {
+        const payload = { ...buildFullPayload(), sheetLayout: layout }
+        const saved = await saveCharacter(user.id, payload as any)
+        initialDataRef.current = saved.data
+        onCharacterSaved?.(saved)
+      } catch (e) {
+        console.error('Erro ao salvar layout da ficha:', e)
+      }
+    },
+    [buildFullPayload, onCharacterSaved, setCharacterData, user],
+  )
+
+  const sheetRuntimeValue = useMemo<SheetRuntimeValue>(() => ({
+    characterData,
+    setCharacterData,
+    updateField,
+    isEditing,
+    canEditSheet,
+    hasMasterOverride,
+    handleStartEdit,
+    handleSaveEdit,
+    handleCancelEdit,
+    isSaving,
+    onOpenEvolution,
+    peToAdd,
+    setPeToAdd,
+    peToAddNumber,
+    nivelAlma,
+    nivelPoder,
+    nivelTrilha,
+    derivedValues,
+    effectiveAttributesByKey,
+    singularityBonuses,
+    equipmentMechanicalBonuses,
+    bookDisadvantageBonuses,
+    attributes,
+    activeSkillCategory,
+    setActiveSkillCategory: setActiveSkillCategory as (v: string) => void,
+    skillCategoryKeys: skillCategoryKeys as string[],
+    categoryLabels,
+    skillsByCategory: skillsByCategory as SheetRuntimeValue['skillsByCategory'],
+    coerceInt,
+    markLimitsUserTriggered,
+    commonTests: derivedValues.commonTests,
+    equipmentSpaces,
+    equipmentSubTab,
+    setEquipmentSubTab,
+    equipmentPickerOpen,
+    setEquipmentPickerOpen,
+    toggleEquipWeaponInstance,
+    toggleEquipArmorInstance,
+    toggleEquipAccessoryInstance,
+    findEquippedSlotForInstance,
+    isArmorCatalogItem,
+    isAccessoryCatalogItem,
+    setEquippedWeaponSlot,
+    removeSheetCatalogItem,
+    handleEquipmentCatalogPick,
+    applyRaceBonuses,
+    weaponCatalogById,
+    armorCatalogById: armorCatalogById as Map<string, ArmorCatalogEntry>,
+    utilityCatalogById: utilityCatalogById as Map<string, UtilityCatalogEntry>,
+    totalResistances,
+    totalArmorStats,
+    equippedMainArmorEntries,
+    equippedAccessoryEntries,
+    equippedUtilityEntries,
+    characterId: initialDataRef.current?.id ? String(initialDataRef.current.id) : undefined,
+    tableId,
+  }), [
+    characterData,
+    setCharacterData,
+    isEditing,
+    canEditSheet,
+    hasMasterOverride,
+    handleStartEdit,
+    handleSaveEdit,
+    handleCancelEdit,
+    isSaving,
+    onOpenEvolution,
+    peToAdd,
+    peToAddNumber,
+    nivelAlma,
+    nivelPoder,
+    nivelTrilha,
+    derivedValues,
+    effectiveAttributesByKey,
+    singularityBonuses,
+    equipmentMechanicalBonuses,
+    bookDisadvantageBonuses,
+    attributes,
+    activeSkillCategory,
+    skillCategoryKeys,
+    categoryLabels,
+    skillsByCategory,
+    coerceInt,
+    markLimitsUserTriggered,
+    equipmentSpaces,
+    equipmentSubTab,
+    equipmentPickerOpen,
+    toggleEquipWeaponInstance,
+    toggleEquipArmorInstance,
+    toggleEquipAccessoryInstance,
+    findEquippedSlotForInstance,
+    isArmorCatalogItem,
+    isAccessoryCatalogItem,
+    setEquippedWeaponSlot,
+    removeSheetCatalogItem,
+    handleEquipmentCatalogPick,
+    weaponCatalogById,
+    armorCatalogById,
+    utilityCatalogById,
+    totalResistances,
+    totalArmorStats,
+    equippedMainArmorEntries,
+    equippedAccessoryEntries,
+    equippedUtilityEntries,
+    tableId,
+  ])
+
+  const renderActiveTab = useCallback(
+    (tabId: SheetTabId) => {
+      if (tabId === 'basico') {
+        return <BasicoTab renderWidget={renderBasicoWidget} />
+      }
+      if (tabId === 'equipamentos') {
+        return <EquipamentosTab renderWidget={renderEquipamentosWidget} />
+      }
+      return (
+        <SingularidadesKindTab
+          tabId={tabId}
+          renderWidget={(id) =>
+            renderSingularityWidget(tabId, id, {
+              onToggleConditional: (kind, id, enabled) =>
+                handleToggleConditionalSystemSingularity({ kind, id, enabled }),
+            })
+          }
+        />
+      )
+    },
+    [handleToggleConditionalSystemSingularity],
+  )
+
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
       <div className="flex-shrink-0">
         <Header onGoToDashboard={onBackToDashboard} />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-        <div className="py-4 px-2 sm:px-3 md:px-4">
-          <div className="max-w-[1920px] mx-auto">
-            {/* Cabeçalho da ficha (estilo “ficha”, com edição inline) */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.35 }}
-              className="bg-white dark:bg-ecoar-dark-800/60 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg shadow-sm overflow-hidden mb-4"
-            >
-              <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-slate-50/60 dark:bg-ecoar-dark-900/30 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                    Ficha de personagem
-                  </div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90 truncate">
-                    {characterData.nome?.trim() ? characterData.nome : 'Sem nome'}
-                  </div>
-                </div>
-
-                {canEditSheet && !isEditing && (
-                  <button
-                    type="button"
-                    onClick={handleStartEdit}
-                    className="shrink-0 px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 flex items-center gap-2 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20"
-                    title="Editar personagem"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span className="text-sm font-medium">Editar</span>
-                  </button>
-                )}
-                {canEditSheet && isEditing && (
-                  <div className="shrink-0 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveEdit}
-                      disabled={isSaving}
-                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 disabled:opacity-60"
-                      title="Salvar alterações"
-                    >
-                      Salvar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                      className="px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-ecoar-light-900/70 rounded-lg transition-all duration-200 border border-slate-200/70 dark:border-slate-700/40 disabled:opacity-60"
-                      title="Cancelar"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-3 sm:p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-start">
-                  <div className="lg:col-span-3 space-y-3 min-w-0">
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Nome do personagem
-                      </div>
-                      <input
-                        type="text"
-                        value={characterData.nome}
-                        onChange={(e) => updateField('nome', e.target.value)}
-                        disabled={!isEditing}
-                        placeholder="Nome do Personagem"
-                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                      />
+        <SheetLayoutProvider
+          key={String(initialData?.id ?? 'new')}
+          initialLayout={normalizeSheetLayout(initialData?.sheetLayout ?? characterData.sheetLayout)}
+          onLayoutChange={handleLayoutChange}
+          onPersist={handlePersistLayout}
+        >
+          <SheetRuntimeProvider value={sheetRuntimeValue}>
+            <CharacterSheetShell
+              headerSlot={
+                <div className="flex items-center justify-between gap-3 rounded-sm border border-slate-300/70 bg-white px-3 py-2.5 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-800/80">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-ecoar-light-900/50">
+                      Ficha de personagem
                     </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Imagem do personagem
-                      </div>
-                      <div className="h-[142px] rounded-md border border-dashed border-slate-300 dark:border-ecoar-light-900/25 bg-slate-50/70 dark:bg-ecoar-dark-900/20 flex items-center justify-center text-xs text-slate-500 dark:text-ecoar-light-900/55">
-                        Placeholder
-                      </div>
+                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
+                      {characterData.nome?.trim() ? characterData.nome : 'Sem nome'}
                     </div>
                   </div>
-
-                  <div className="lg:col-span-4 space-y-3 min-w-0">
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Raça
-                      </div>
-                      <select
-                        value={characterData.raca}
-                        disabled={!isEditing}
-                        onChange={(e) => {
-                          updateField('raca', e.target.value)
-                          applyRaceBonuses(e.target.value)
-                        }}
-                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                      >
-                        <option value="">Selecione uma Raça</option>
-                        {races.map((race) => (
-                          <option key={race.id} value={race.id}>
-                            {race.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                          Mod. peso
-                        </div>
-                        <input
-                          type="number"
-                          value={typeof characterData.peso === 'number' ? characterData.peso : 0}
-                          disabled={!isEditing}
-                          onChange={(e) => updateField('peso', coerceInt(e.target.value, 0))}
-                          className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                        />
-                      </div>
-                      <div>
-                        <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                          Mod. tamanho
-                        </div>
-                        <input
-                          type="number"
-                          value={typeof characterData.tamanho === 'number' ? characterData.tamanho : 0}
-                          disabled={!isEditing}
-                          onChange={(e) => updateField('tamanho', coerceInt(e.target.value, 0))}
-                          className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Pontos de evolução
-                      </div>
-                      <div className="grid grid-cols-12 gap-2 items-center">
-                        <input
-                          type="number"
-                          value={characterData.pontosEvolucao.atual}
-                          readOnly
-                          disabled={!isEditing && !hasMasterOverride}
-                          className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
-                        />
-                        <div className="col-span-2 text-center text-slate-500 dark:text-ecoar-light-900/60">/</div>
-                        <input
-                          type="number"
-                          value={characterData.pontosEvolucao.max}
-                          readOnly
-                          disabled={!isEditing && !hasMasterOverride}
-                          className="col-span-5 h-9 px-3 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm opacity-90"
-                        />
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <input
-                          type="number"
-                          min="0"
-                          value={peToAdd}
-                          disabled={!isEditing}
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            if (raw === '') {
-                              setPeToAdd('')
-                              return
-                            }
-                            setPeToAdd(raw)
-                          }}
-                          placeholder="PE recebidos"
-                          className="flex-1 h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                        />
-                        <button
-                          type="button"
-                          disabled={!isEditing || peToAddNumber <= 0}
-                          onClick={() => {
-                            if (peToAddNumber <= 0) return
-                            setCharacterData((prev) => ({
-                              ...prev,
-                              pontosEvolucao: {
-                                atual: Math.max(0, prev.pontosEvolucao.atual + peToAddNumber),
-                                max: Math.max(0, prev.pontosEvolucao.max + peToAddNumber),
-                              },
-                            }))
-                            setPeToAdd('')
-                          }}
-                          className="h-9 px-3 rounded-md text-sm font-semibold bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border border-ecoar-teal-500/30 disabled:opacity-50"
-                        >
-                          Adicionar
-                        </button>
-                        {canEditSheet && !isEditing && (
-                          <button
-                            type="button"
-                            disabled={characterData.pontosEvolucao.atual <= 0}
-                            onClick={() => onOpenEvolution?.()}
-                            className="h-9 px-3 rounded-md text-sm font-semibold bg-ecoar-magenta/15 text-ecoar-magenta-800 dark:text-ecoar-magenta-300 border border-ecoar-magenta-500/30 disabled:opacity-50"
-                            title="Abrir tela para gastar Pontos de Evolução"
-                          >
-                            Evoluir
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="lg:col-span-3 space-y-3 min-w-0">
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Níveis
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Alma</div>
-                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
-                            {nivelAlma}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Poder</div>
-                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
-                            {nivelPoder}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Trilha</div>
-                          <div className="h-9 px-2 rounded-md bg-slate-50 dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-900 dark:text-ecoar-light-900/90 text-center flex items-center justify-center">
-                            {nivelTrilha}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Deslocamentos
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { key: 'terrestre', label: 'Terrestre' },
-                          { key: 'aquatico', label: 'Aquático' },
-                          { key: 'aereo', label: 'Aéreo' },
-                        ].map((move) => (
-                          <div key={move.key}>
-                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">{move.label}</div>
-                            <input
-                              type="text"
-                              value={characterData[move.key as keyof typeof characterData] as string}
-                              disabled={!isEditing}
-                              onChange={(e) => updateField(move.key, e.target.value)}
-                              className="w-full h-9 px-2 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Sentidos
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { key: 'visao', label: 'Visão' },
-                          { key: 'audicao', label: 'Audição' },
-                          { key: 'olfato', label: 'Olfato' },
-                        ].map((sense) => (
-                          <div key={sense.key}>
-                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">{sense.label}</div>
-                            <input
-                              type="text"
-                              value={characterData[sense.key as 'visao' | 'audicao' | 'olfato']}
-                              disabled={!isEditing}
-                              onChange={(e) => updateField(sense.key, e.target.value)}
-                              className="w-full h-9 px-2 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="lg:col-span-2 space-y-3 min-w-0">
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Personalidade
-                      </div>
-                      <div className="space-y-2">
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Traço positivo</div>
-                          <input
-                            type="text"
-                            value={characterData.tracoPositivo}
-                            disabled={!isEditing}
-                            onChange={(e) => updateField('tracoPositivo', e.target.value)}
-                            placeholder="—"
-                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                          />
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Traço negativo</div>
-                          <input
-                            type="text"
-                            value={characterData.tracoNegativo}
-                            disabled={!isEditing}
-                            onChange={(e) => updateField('tracoNegativo', e.target.value)}
-                            placeholder="—"
-                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                          />
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-1">Descrição livre</div>
-                          <input
-                            type="text"
-                            value={characterData.personalidade}
-                            disabled={!isEditing}
-                            onChange={(e) => updateField('personalidade', e.target.value)}
-                            placeholder="—"
-                            className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">
-                        Moeda (ceros)
-                      </div>
-                      <input
-                        type="number"
-                        min={0}
-                        disabled={!isEditing}
-                        value={characterData.saldoMoedas}
-                        onChange={(e) => updateField('saldoMoedas', Math.max(0, coerceInt(e.target.value, 0)))}
-                        className="w-full h-9 px-3 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-sm disabled:opacity-60"
-                      />
-                      <div className="mt-1 text-[11px] text-slate-500 dark:text-ecoar-light-900/60">
-                        {formatCerosDisplay(characterData.saldoMoedas)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-        {/* Layout em 3 colunas */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-          
-          {/* Sidebar Esquerda - Informações Principais */}
-          <aside className="lg:col-span-3 min-w-0 flex flex-col gap-3">
-            {/* Atributos mini-cards (desktop) */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.35 }}
-              className="hidden"
-            >
-              <div className="w-[132px] mx-auto space-y-3 pb-2">
-                {attributes.map((attr) => {
-                  const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
-                  const nivel = typeof attrData.nivel === 'string' ? parseInt(attrData.nivel) || 0 : attrData.nivel
-                  const eff = effectiveAttributesByKey[attr.key as keyof typeof effectiveAttributesByKey]
-                  return (
-                    <div
-                      key={`totem-${attr.key}`}
-                      className="min-h-[96px] overflow-hidden rounded-lg border border-slate-300/80 dark:border-ecoar-light-900/20 bg-gradient-to-b from-slate-50 to-white dark:from-ecoar-dark-700 dark:to-ecoar-dark-800 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] px-2 py-1.5 flex flex-col"
-                    >
-                      <div className="text-[10px] font-bold text-center text-slate-800 dark:text-ecoar-light-900 uppercase truncate">
-                        {attr.label}
-                      </div>
-                      <div className="mt-1.5">
-                        <input
-                          type="number"
-                          min="0"
-                          max="8"
-                          value={nivel}
-                          disabled={!isEditing}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0
-                            updateField(`${attr.key}.nivel`, val)
-                            updateField(`${attr.key}.mod`, getAttributeModifier(val))
-                          }}
-                          className="w-full h-8 text-center text-[11px] font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/85 dark:bg-ecoar-dark-700 border border-slate-300/80 dark:border-ecoar-light-900/25 rounded-md focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors disabled:opacity-60"
-                        />
-                      </div>
-                      <div className="mt-1.5 rounded-md border border-slate-300/70 dark:border-ecoar-light-900/20 bg-slate-100/70 dark:bg-ecoar-dark-700/50 min-h-6 flex flex-col items-center justify-center py-0.5 px-1">
-                        <span className="text-[11px] font-semibold text-ecoar-teal-700 dark:text-ecoar-teal-300">
-                          Mod {formatModifier(eff.effectiveMod)}
-                        </span>
-                        {eff.singularityBonus !== 0 && (
-                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                            sing. {formatModifier(eff.singularityBonus)}
-                          </span>
-                        )}
-                        {eff.bookDisadvantageBonus !== 0 && (
-                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                            livro {formatModifier(eff.bookDisadvantageBonus)}
-                          </span>
-                        )}
-                        {eff.equipmentBonus !== 0 && (
-                          <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                            equip. {formatModifier(eff.equipmentBonus)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.div>
-
-            {/* Habilidades abaixo dos atributos (desktop) */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4 }}
-              className="order-2 bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg shadow-sm overflow-hidden min-w-0"
-            >
-              <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-slate-50/60 dark:bg-ecoar-dark-900/30">
-                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                  Habilidades
-                </h3>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSkillCategory('all')}
-                    className={`px-2 py-1 rounded text-[10px] border ${activeSkillCategory === 'all' ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30' : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20'}`}
-                  >
-                    Todas
-                  </button>
-                  {skillCategoryKeys.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setActiveSkillCategory(cat)}
-                      className={`px-2 py-1 rounded text-[10px] border ${activeSkillCategory === cat ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30' : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20'}`}
-                    >
-                      {categoryLabels[cat]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-[11px]">
-                  <thead className="bg-white dark:bg-ecoar-dark-800/40">
-                    <tr className="border-b border-slate-200 dark:border-ecoar-light-900/15">
-                      <th className="text-left px-2 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80">Habilidades</th>
-                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[58px]">Nível</th>
-                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[72px]">Dado</th>
-                      <th className="text-left px-2 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80">Especialidade</th>
-                      <th className="text-center px-1.5 py-1.5 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[54px]">Bônus</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {((activeSkillCategory === 'all' ? skillCategoryKeys : [activeSkillCategory]) as Array<keyof typeof categoryLabels>).map((cat) => {
-                      const list = skillsByCategory.get(cat) ?? []
-                      if (list.length === 0) return null
-                      return (
-                        <Fragment key={cat}>
-                          <tr className="bg-slate-100/70 dark:bg-ecoar-light-900/10">
-                            <td colSpan={5} className="px-2 py-1 text-[10px] font-semibold text-slate-700 dark:text-ecoar-light-900/85 uppercase tracking-wider">
-                              {categoryLabels[cat]}
-                            </td>
-                          </tr>
-                          {list.map((skill) => {
-                            const skillState = characterData.skills?.[skill.id]
-                            const level = coerceInt(skillState?.level, 0)
-                            const dice = getSkillDice(level)
-                            const specId = skillState?.specialization ?? ''
-                            const skillSingBonus =
-                              (singularityBonuses.skills[skill.id] ?? 0) +
-                              (equipmentMechanicalBonuses.skills[skill.id] ?? 0) +
-                              (bookDisadvantageBonuses.skills[skill.id] ?? 0)
-                            return (
-                              <tr key={skill.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
-                                <td className="px-2 py-1.5 text-slate-900 dark:text-ecoar-light-900/90 whitespace-nowrap">{skill.name}</td>
-                                <td className="px-1.5 py-1.5 text-center">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={8}
-                                    disabled={!isEditing}
-                                    value={level}
-                                    onChange={(e) => {
-                                      const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
-                                      setCharacterData((prev) => ({
-                                        ...prev,
-                                        skills: {
-                                          ...(prev.skills ?? {}),
-                                          [skill.id]: { ...(prev.skills?.[skill.id] ?? {}), level: next },
-                                        },
-                                      }))
-                                    }}
-                                    className="w-[52px] text-center px-1.5 py-0.5 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-[11px] disabled:opacity-60"
-                                  />
-                                </td>
-                                <td className="px-1.5 py-1.5 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/85">{dice}</td>
-                                <td className="px-2 py-1.5">
-                                  <select
-                                    disabled={!isEditing}
-                                    value={specId}
-                                    onChange={(e) => {
-                                      const nextSpec = e.target.value
-                                      setCharacterData((prev) => ({
-                                        ...prev,
-                                        skills: {
-                                          ...(prev.skills ?? {}),
-                                          [skill.id]: {
-                                            ...(prev.skills?.[skill.id] ?? { level: 0 }),
-                                            specialization: nextSpec || undefined,
-                                          },
-                                        },
-                                      }))
-                                    }}
-                                    className="w-full px-1.5 py-0.5 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-[11px] disabled:opacity-60"
-                                  >
-                                    <option value="">—</option>
-                                    {skill.specializations.map((sp) => (
-                                      <option key={sp.id} value={sp.id}>
-                                        {sp.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td className="px-1.5 py-1.5 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                                  {skillSingBonus === 0 ? '—' : formatModifier(skillSingBonus)}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </Fragment>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-
-            {/* Atributos */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4 }}
-              className="order-1 bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-3">
-                Atributos
-              </h3>
-              <div className="space-y-2">
-                {attributes.map((attr) => {
-                  const Icon = attr.icon
-                  const attrData = characterData[attr.key as keyof typeof characterData] as { nivel: number; mod: number }
-                  const nivel = typeof attrData.nivel === 'string' 
-                    ? parseInt(attrData.nivel) || 0 
-                    : attrData.nivel
-                  const eff = effectiveAttributesByKey[attr.key as keyof typeof effectiveAttributesByKey]
-                  
-                  return (
-                    <div key={attr.key} className="flex items-center justify-between px-2 py-2 border border-slate-200 dark:border-ecoar-light-900/15 rounded-md bg-slate-50/60 dark:bg-ecoar-dark-900/20 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Icon className="w-3.5 h-3.5 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
-                        <span className="text-xs text-slate-700 dark:text-ecoar-light-900 font-medium truncate">{attr.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <input
-                          type="number"
-                          min="0"
-                          max="8"
-                          value={nivel}
-                          disabled={!isEditing}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0
-                            updateField(`${attr.key}.nivel`, val)
-                            updateField(`${attr.key}.mod`, getAttributeModifier(val))
-                          }}
-                          className="w-10 text-center text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border border-slate-300 dark:border-ecoar-light-900/25 rounded focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
-                        />
-                        <div className="flex flex-col items-end min-w-[3rem]">
-                          <span className="text-xs font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                            {formatModifier(eff.effectiveMod)}
-                          </span>
-                          {eff.singularityBonus !== 0 && (
-                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                              sing. {formatModifier(eff.singularityBonus)}
-                            </span>
-                          )}
-                          {eff.bookDisadvantageBonus !== 0 && (
-                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                              livro {formatModifier(eff.bookDisadvantageBonus)}
-                            </span>
-                          )}
-                          {eff.equipmentBonus !== 0 && (
-                            <span className="text-[9px] text-slate-500 dark:text-ecoar-light-900/55 leading-tight">
-                              equip. {formatModifier(eff.equipmentBonus)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.div>
-
-            {/* Níveis */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Níveis
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Alma</span>
-                  <input
-                    type="number"
-                    value={nivelAlma}
-                    readOnly
-                    disabled={!isEditing && !hasMasterOverride}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Poder</span>
-                  <input
-                    type="number"
-                    value={nivelPoder}
-                    readOnly
-                    disabled={!isEditing && !hasMasterOverride}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Trilha</span>
-                  <input
-                    type="number"
-                    value={nivelTrilha}
-                    readOnly
-                    disabled={!isEditing && !hasMasterOverride}
-                    className="w-16 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
-                  />
-                </div>
-                <div className="pt-3 border-t border-slate-200 dark:border-ecoar-light-900/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium">Pontos Evolução</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={characterData.pontosEvolucao.atual}
-                      readOnly
-                      disabled={!isEditing && !hasMasterOverride}
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
-                    />
-                    <span className="text-slate-500 dark:text-ecoar-light-900/60">/</span>
-                    <input
-                      type="number"
-                      value={characterData.pontosEvolucao.max}
-                      readOnly
-                      disabled={!isEditing && !hasMasterOverride}
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white/60 dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors opacity-90"
-                    />
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={peToAdd}
-                      disabled={!isEditing}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        if (raw === '') {
-                          setPeToAdd('')
-                          return
-                        }
-                        // Mantém controle como string para não “travar” em 0 durante digitação.
-                        setPeToAdd(raw)
-                      }}
-                      placeholder="PE recebidos"
-                      className="flex-1 text-center text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    />
-                    <button
-                      type="button"
-                      disabled={!isEditing || peToAddNumber <= 0}
-                      onClick={() => {
-                        if (peToAddNumber <= 0) return
-                        setCharacterData(prev => ({
-                          ...prev,
-                          pontosEvolucao: {
-                            atual: Math.max(0, prev.pontosEvolucao.atual + peToAddNumber),
-                            max: Math.max(0, prev.pontosEvolucao.max + peToAddNumber),
-                          },
-                        }))
-                        setPeToAdd('')
-                      }}
-                      className="px-3 py-1.5 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal/20 dark:hover:bg-ecoar-teal-600/20 disabled:opacity-50 text-ecoar-teal/90 dark:text-ecoar-teal-300/90 rounded-lg transition-all duration-200 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-
                   {canEditSheet && !isEditing && (
-                    <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-teal-500/10 px-3 text-xs font-semibold text-ecoar-teal-800 transition-colors hover:bg-ecoar-teal-500/20 dark:text-ecoar-teal-300"
+                      title="Editar personagem"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      Editar
+                    </button>
+                  )}
+                  {canEditSheet && isEditing && (
+                    <div className="flex shrink-0 items-center gap-2">
                       <button
                         type="button"
-                        disabled={characterData.pontosEvolucao.atual <= 0}
-                        onClick={() => onOpenEvolution?.()}
-                        className="flex-1 px-3 py-1.5 bg-ecoar-magenta/15 dark:bg-ecoar-magenta-600/15 hover:bg-ecoar-magenta/20 dark:hover:bg-ecoar-magenta-600/20 disabled:opacity-50 text-ecoar-magenta/90 dark:text-ecoar-magenta-300/90 rounded-lg transition-all duration-200 border border-ecoar-magenta/20 dark:border-ecoar-magenta-500/20"
-                        title="Abrir tela para gastar Pontos de Evolução"
+                        onClick={handleSaveEdit}
+                        disabled={isSaving}
+                        className="inline-flex h-8 items-center rounded-sm border border-ecoar-teal-500/35 bg-ecoar-teal-500/10 px-3 text-xs font-semibold text-ecoar-teal-800 transition-colors hover:bg-ecoar-teal-500/20 disabled:opacity-60 dark:text-ecoar-teal-300"
+                        title="Salvar alterações"
                       >
-                        Evoluir
+                        Salvar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="inline-flex h-8 items-center rounded-sm border border-slate-300/80 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-60 dark:border-ecoar-light-900/20 dark:text-ecoar-light-900/80 dark:hover:bg-ecoar-light-900/10"
+                        title="Cancelar"
+                      >
+                        Cancelar
                       </button>
                     </div>
                   )}
                 </div>
-              </div>
-            </motion.div>
-
-            {/* Limites */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Limites
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { key: 'corpo', label: 'Corpo', icon: Heart, max: derivedValues.corpoMax },
-                  { key: 'mente', label: 'Mente', icon: Brain, max: derivedValues.menteMax },
-                  { key: 'folego', label: 'Fôlego', icon: Waves, max: derivedValues.folegoMax },
-                  { key: 'mana', label: 'Mana', icon: Sparkles, max: derivedValues.manaMax },
-                ].map((limit) => {
-                  const Icon = limit.icon
-                  const current = characterData[limit.key as keyof typeof characterData] as { atual: number; max: number }
-                  
-                  return (
-                    <div key={limit.key} className="flex items-center justify-between py-2 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Icon className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400 flex-shrink-0" />
-                        <span className="text-sm text-slate-700 dark:text-ecoar-light-900 font-medium break-words min-w-0">{limit.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <input
-                          type="number"
-                          value={current.atual}
-                          onChange={(e) => {
-                            if (!isEditing) userTriggeredLimitsRef.current = true
-                            updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)
-                          }}
-                          className="w-12 text-center text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 bg-white dark:bg-ecoar-dark-700 border-b-2 border-slate-300 dark:border-ecoar-light-900/30 focus:border-teal-500 dark:focus:border-ecoar-teal-400 focus:outline-none transition-colors"
-                        />
-                        <span className="text-slate-500 dark:text-ecoar-light-900/60">/</span>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-ecoar-light-900 w-8 text-right">
-                          {limit.max}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.div>
-
-            {/* Aptidão */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4, delay: 0.25 }}
-              className="lg:hidden bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-4">
-                Aptidão
-              </h3>
-              <div className="max-h-[65vh] overflow-auto">
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-ecoar-light-900/15">
-                      <th className="text-left px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80">
-                        Aptidão
-                      </th>
-                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[70px]">
-                        Nível
-                      </th>
-                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[70px]">
-                        Mod.
-                      </th>
-                      <th className="text-center px-2 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 w-[90px]">
-                        Dado
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aptitudesDefinitions.map((apt) => {
-                      const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
-                      const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
-                      const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
-                      const effMod =
-                        effectiveAttributesByKey[apt.attribute]?.effectiveMod ?? attrMod
-                      return (
-                        <tr key={apt.id} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
-                          <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90">
-                            {apt.name}
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input
-                              type="number"
-                              min={0}
-                              max={8}
-                              value={level}
-                              disabled={!isEditing}
-                              onChange={(e) => {
-                                const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
-                                setCharacterData((prev) => ({
-                                  ...prev,
-                                  aptitudes: { ...(prev.aptitudes ?? {}), [apt.id]: next },
-                                }))
-                              }}
-                              className="w-[58px] text-center px-2 py-1 rounded-md bg-white dark:bg-ecoar-dark-700 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-900 dark:text-ecoar-light-900 text-xs disabled:opacity-60"
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                            {formatModifier(effMod)}
-                          </td>
-                          <td className="px-2 py-2 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/85">
-                            {getAptitudeDice(level)}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-
-          </aside>
-
-          {/* Área Central - Conteúdo Principal */}
-          <main className="lg:col-span-5 space-y-3 min-w-0">
-            <div className="space-y-3">
-            {/* Linha superior do corpo: Limites + Aptidão (desktop) */}
-            <div className="hidden lg:grid grid-cols-2 gap-3">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.08 }}
-                className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-2.5 shadow-sm overflow-hidden"
-              >
-                <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                  Limites
-                </h3>
-                <div className="space-y-1.5">
-                  {[
-                    { key: 'corpo', label: 'Corpo', max: derivedValues.corpoMax },
-                    { key: 'mente', label: 'Mente', max: derivedValues.menteMax },
-                    { key: 'folego', label: 'Fôlego', max: derivedValues.folegoMax },
-                    { key: 'mana', label: 'Mana', max: derivedValues.manaMax },
-                  ].map((limit) => {
-                    const current = characterData[limit.key as keyof typeof characterData] as { atual: number; max: number }
-                    return (
-                      <div key={limit.key} className="grid grid-cols-12 items-center gap-2 text-xs">
-                        <div className="col-span-5 text-slate-700 dark:text-ecoar-light-900/85">{limit.label}</div>
-                        <input
-                          type="number"
-                          value={current.atual}
-                          disabled={!isEditing}
-                          onChange={(e) => {
-                            if (!isEditing) userTriggeredLimitsRef.current = true
-                            updateField(`${limit.key}.atual`, parseInt(e.target.value) || 0)
-                          }}
-                          className="col-span-3 w-full text-center px-1.5 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700"
-                        />
-                        <div className="col-span-1 text-center text-slate-500">/</div>
-                        <div className="col-span-3 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/90">{limit.max}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 }}
-                className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-2.5 shadow-sm overflow-hidden"
-              >
-                <h3 className="text-[11px] font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2">
-                  Aptidão
-                </h3>
-                <div className="space-y-1.5">
-                  {aptitudesDefinitions.map((apt) => {
-                    const level = coerceInt(characterData.aptitudes?.[apt.id], 0)
-                    const attrModRaw = (characterData as any)?.[apt.attribute]?.mod
-                    const attrMod = typeof attrModRaw === 'number' ? attrModRaw : coerceInt(attrModRaw, 0)
-                    const effMod =
-                      effectiveAttributesByKey[apt.attribute]?.effectiveMod ?? attrMod
-                    return (
-                      <div key={apt.id} className="grid grid-cols-12 items-center gap-2 text-xs">
-                        <div className="col-span-4 text-slate-700 dark:text-ecoar-light-900/85 truncate">{apt.name}</div>
-                        <input
-                          type="number"
-                          min={0}
-                          max={8}
-                          value={level}
-                          disabled={!isEditing}
-                          onChange={(e) => {
-                            const next = Math.max(0, Math.min(8, coerceInt(e.target.value, 0)))
-                            setCharacterData((prev) => ({
-                              ...prev,
-                              aptitudes: { ...(prev.aptitudes ?? {}), [apt.id]: next },
-                            }))
-                          }}
-                          className="col-span-2 w-full text-center px-1.5 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700"
-                        />
-                        <div className="col-span-2 text-center font-semibold text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                          {formatModifier(effMod)}
-                        </div>
-                        <div className="col-span-4 text-center font-semibold text-slate-800 dark:text-ecoar-light-900/90">
-                          {getAptitudeDice(level)}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Testes Comuns */}
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
-            >
-              <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-2.5">
-                Testes Comuns
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {(() => {
-                  const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
-                  const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
-                  const sizeWeightPenalty = -(sizeModifier + weightModifier)
-                  const hasSizeWeightEffect = sizeModifier !== 0 || weightModifier !== 0
-                  
-                  return [
-                  { key: 'arredores', label: 'Arredores', desc: 'Percepção + Atenção', value: derivedValues.commonTests.arredores },
-                  { key: 'iniciativa', label: 'Iniciativa', desc: 'Percepção + Raciocínio', value: derivedValues.commonTests.iniciativa },
-                    { 
-                      key: 'esquiva', 
-                      label: 'Esquiva', 
-                      desc: hasSizeWeightEffect 
-                        ? `Percepção + Reflexos ${sizeWeightPenalty >= 0 ? '+' : ''}${sizeWeightPenalty} (T/P)`
-                        : 'Percepção + Reflexos', 
-                      value: derivedValues.commonTests.esquiva 
-                    },
-                  { key: 'coragem', label: 'Coragem', desc: 'Vontade + Compostura', value: derivedValues.commonTests.coragem },
-                  ]
-                })().map((test) => (
-                  <div key={test.key} className="text-center py-2.5 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-teal-50/50 dark:bg-ecoar-teal-900/30 rounded-lg overflow-hidden min-w-0">
-                    <div className="text-[10px] font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 uppercase tracking-wider mb-1 break-words px-2">
-                      {test.label}
-                    </div>
-                    <div className="text-base font-semibold text-ecoar-teal/90 dark:text-ecoar-teal-400/90 mb-0.5">
-                      {formatModifier(test.value)}
-                    </div>
-                    <div className="text-[10px] text-ecoar-dark-700 dark:text-ecoar-light-900/80 break-words px-2">{test.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            
-
-            {/* Resistência a dano */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.35 }}
-              className="bg-white dark:bg-ecoar-dark-800/70 border border-slate-200 dark:border-ecoar-light-900/[0.12] rounded-lg p-3 shadow-sm overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                  Resistência a dano
-                </h3>
-                <div className="text-[11px] text-slate-500 dark:text-ecoar-light-900/60 truncate">
-                  {equippedMainArmorEntries.length > 0
-                    ? `Armaduras: ${equippedMainArmorEntries.map((e) => e.name).join(', ')}`
-                    : 'Sem armadura equipada'}
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs border border-slate-200 dark:border-ecoar-light-900/20">
-                  <tbody>
-                    {[
-                      { left: 'Contundente', key: 'contundente', mid: 'Balístico', midKey: 'balistico', right: 'Corrosivo', rightKey: 'corrosivo' },
-                      { left: 'Cortante', key: 'cortante', mid: 'Esmagador', midKey: 'esmagador', right: 'Mágico', rightKey: 'magico' },
-                      { left: 'Perfurante', key: 'perfurante', mid: 'Explosivo', midKey: 'explosivo', right: 'Tóxico', rightKey: 'toxico' },
-                      { left: 'Ardente', key: 'ardente', mid: 'Congelante', midKey: 'congelante', right: 'Elétrico', rightKey: 'eletrico' },
-                    ].map((row, idx) => (
-                      <tr key={idx} className="border-b border-slate-200 dark:border-ecoar-light-900/15 last:border-b-0">
-                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
-                          {row.left}
-                        </td>
-                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {totalResistances[row.key as ArmorResistanceKey]}
-                        </td>
-                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
-                          {row.mid}
-                        </td>
-                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {totalResistances[row.midKey as ArmorResistanceKey]}
-                        </td>
-                        <td className="px-3 py-2 font-semibold text-slate-700 dark:text-ecoar-light-900/80 whitespace-nowrap">
-                          {row.right}
-                        </td>
-                        <td className="px-3 py-2 text-slate-900 dark:text-ecoar-light-900/90 text-center w-[70px]">
-                          {totalResistances[row.rightKey as ArmorResistanceKey]}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
-                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                    Defesa de crítico
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
-                    {totalArmorStats.crit}
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
-                  <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                    Origem (equipados)
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80 break-words">
-                    {[
-                      ...equippedMainArmorEntries.map((e) => e.name),
-                      ...equippedAccessoryEntries.map((a) => a.name),
-                      ...equippedUtilityEntries.map((u) => u.name),
-                    ]
-                      .filter(Boolean)
-                      .join(' + ') || '—'}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Armas equipadas em cards centrais (estilo ficha) */}
-            <div className="grid grid-cols-1 gap-3">
-              {(['slot1', 'slot2'] as EquippedWeaponSlotId[]).map((slotId) => {
-                const slotLabel = slotId === 'slot1' ? 'Arma 1' : 'Arma 2'
-                const slotState = characterData.equippedWeapons?.[slotId]
-                const owned = slotState
-                  ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
-                  : undefined
-                const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
-                return (
-                  <motion.div
-                    key={slotId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: slotId === 'slot1' ? 0.38 : 0.42 }}
-                    className="overflow-hidden"
-                  >
-                    <EquippedWeaponSlotPanel
-                      variant="sheet"
-                      slotId={slotId}
-                      slotLabel={slotLabel}
-                      slotState={slotState}
-                      owned={owned}
-                      entry={entry}
-                      characterData={characterData}
-                      isEditing={isEditing}
-                      showEditControls={false}
-                      onSetSlot={setEquippedWeaponSlot}
-                      onToggleEquipInstance={toggleEquipWeaponInstance}
-                    />
-                  </motion.div>
-                )
-              })}
-            </div>
-            </div>
-          </main>
-
-          {/* Sidebar Direita - Informações Secundárias */}
-          <aside className="lg:col-span-4 space-y-3 min-w-0">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4 }}
-              className="bg-white/50 dark:bg-ecoar-dark-800/70 border border-white/[0.12] dark:border-ecoar-light-900/[0.12] rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 uppercase tracking-wider">
-                  Equipamentos carregados
-                </div>
-                <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70">
-                  Espaços: <strong>{equipmentSpaces.used}</strong>/<strong>{equipmentSpaces.total || '—'}</strong>
-                </div>
-              </div>
-              <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
-                <button
-                  type="button"
-                  onClick={() => setActiveSidebarTab('singularidades')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeSidebarTab === 'singularidades'
-                      ? 'text-ecoar-teal border-b-2 border-ecoar-teal'
-                      : 'text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-700 dark:hover:text-ecoar-light-900/80'
-                  }`}
-                >
-                  Singularidades
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSidebarTab('equipamentos')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeSidebarTab === 'equipamentos'
-                      ? 'text-ecoar-teal border-b-2 border-ecoar-teal'
-                      : 'text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-700 dark:hover:text-ecoar-light-900/80'
-                  }`}
-                >
-                  Equipamentos
-                </button>
-              </div>
-
-              {activeSidebarTab === 'singularidades' && (
-                <div className="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
-                  <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                    {(Object.keys(singularityBonuses.attributes).length > 0 ||
-                      Object.keys(singularityBonuses.skills).length > 0 ||
-                      singularityBonuses.corpo !== 0 ||
-                      singularityBonuses.mente !== 0 ||
-                      singularityBonuses.folego !== 0 ||
-                      singularityBonuses.mana !== 0 ||
-                      Object.keys(equipmentMechanicalBonuses.attributes).length > 0 ||
-                      Object.keys(equipmentMechanicalBonuses.skills).length > 0) && (
-                      <p className="text-[11px] text-slate-600 dark:text-ecoar-light-900/65">
-                        Bônus de singularidades, de equipamento (catálogo: mechanicalBonuses, quando o item está equipado) e penalidades de desvantagens do livro (lista salva em desvantagens) são aplicados automaticamente na ficha.
-                      </p>
-                    )}
-                  </div>
-                  {initialDataRef.current?.id && (
-                    <a
-                      href={`/personagens/${initialDataRef.current.id}/singularidades`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-[11px] font-medium text-ecoar-teal-700 dark:text-ecoar-teal-300 hover:underline"
-                    >
-                      Abrir singularidades em nova aba
-                    </a>
-                  )}
-                  <PlayerSingularitiesViewer
-                    characterData={characterData}
-                    compact
-                    singularityBonuses={singularityBonuses}
-                  />
-                </div>
-              )}
-
-              {activeSidebarTab === 'equipamentos' && (
-                <div className="mt-4 space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-                  {(() => {
-                    const sheetUsesStructuredEquip =
-                      characterData.itensCatalogo.length > 0 ||
-                      characterData.equipamentosLivresText.trim() !== '' ||
-                      characterData.armasLivresText.trim() !== ''
-
-                    return (
-                      <>
-                        <div className="p-3 bg-slate-50 dark:bg-ecoar-light-900/10 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                          <div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                                Espaços
-                              </span>
-                              <span className="text-xs text-slate-700 dark:text-ecoar-light-900/80">
-                                <strong>{equipmentSpaces.used}</strong> / <strong>{equipmentSpaces.total || '—'}</strong>
-                              </span>
-                            </div>
-                            <div className="mt-1">
-                              <input
-                                type="text"
-                                value={characterData.espacos}
-                                disabled={!isEditing}
-                                onChange={(e) => updateField('espacos', e.target.value)}
-                                placeholder="ex.: 7 ou 1/7"
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-xs text-ecoar-dark-900 dark:text-ecoar-light-900 disabled:opacity-60"
-                              />
-                              <p className="mt-1 text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                                O usado é calculado a partir do campo “Espaço” dos itens do catálogo.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEquipmentSubTab('inventario')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                              equipmentSubTab === 'inventario'
-                                ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30'
-                                : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10'
-                            }`}
-                          >
-                            Inventário
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEquipmentSubTab('equipados')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                              equipmentSubTab === 'equipados'
-                                ? 'bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300 border-ecoar-teal-500/30'
-                                : 'bg-white dark:bg-ecoar-dark-800/40 text-slate-700 dark:text-ecoar-light-900/80 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10'
-                            }`}
-                          >
-                            Equipados
-                          </button>
-                        </div>
-
-                        {equipmentSubTab === 'inventario' ? (
-                          <>
-                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/80 dark:bg-ecoar-dark-800/40 px-3 py-2">
-                              <p className="text-xs text-slate-800 dark:text-ecoar-light-900/90">
-                                <span className="font-semibold text-ecoar-teal-700 dark:text-ecoar-teal-300">Saldo:</span>{' '}
-                                <span className="tabular-nums">{formatCerosDisplay(characterData.saldoMoedas)}</span>
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setEquipmentPickerOpen(true)}
-                                disabled={!canEditSheet || !isEditing}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-ecoar-teal to-ecoar-magenta text-slate-900 dark:text-ecoar-light-900 border border-ecoar-teal/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Abrir catálogo
-                              </button>
-                              <a
-                                href="/referencia/aquisicao-equipamentos"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline inline-flex items-center gap-1"
-                              >
-                                <ExternalLink className="w-3 h-3 shrink-0" />
-                                Referência completa (nova aba)
-                              </a>
-                            </div>
-                            {sheetUsesStructuredEquip ? (
-                            <>
-                              {characterData.itensCatalogo.length > 0 && (
-                                <div className="p-3 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 space-y-2">
-                                  <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90">Do catálogo</div>
-                                  <ul className="space-y-1.5 text-xs">
-                                    {characterData.itensCatalogo.map((item) => (
-                                      <li
-                                        key={item.instanceId}
-                                        className="flex items-start justify-between gap-2 py-1.5 px-2 rounded-md bg-white dark:bg-ecoar-dark-800/50 border border-slate-100 dark:border-ecoar-light-900/10"
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-slate-800 dark:text-ecoar-light-900/85 break-words">
-                                            {item.displayLine}
-                                          </div>
-                                          {item.kind === 'weapon' && (() => {
-                                            const slot = findEquippedSlotForInstance(item.instanceId)
-                                            return (
-                                              <div className="mt-1 flex items-center gap-2">
-                                                <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={!!slot}
-                                                    disabled={!canEditSheet}
-                                                    onChange={(e) => {
-                                                      if (!isEditing) handleStartEdit()
-                                                      toggleEquipWeaponInstance(item.instanceId, e.target.checked)
-                                                    }}
-                                                    className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
-                                                  />
-                                                  Equipar
-                                                </label>
-                                                {slot && (
-                                                  <span className="text-[11px] text-ecoar-teal-700 dark:text-ecoar-teal-300">
-                                                    {slot === 'slot1' ? 'Arma 1' : 'Arma 2'}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            )
-                                          })()}
-                                          {item.kind === 'armor' && isArmorCatalogItem(item) && (
-                                            <div className="mt-1 flex items-center gap-2">
-                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(characterData.equippedArmors ?? []).some(
-                                                      (it) => it.instanceId === item.instanceId,
-                                                    )}
-                                                    disabled={!canEditSheet}
-                                                    onChange={(e) => {
-                                                      if (!isEditing) handleStartEdit()
-                                                      toggleEquipArmorInstance(item.instanceId, e.target.checked)
-                                                    }}
-                                                    className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
-                                                  />
-                                                Equipar armadura
-                                              </label>
-                                            </div>
-                                          )}
-                                          {item.kind === 'armor' && isAccessoryCatalogItem(item) && (
-                                            <div className="mt-1 flex items-center gap-2">
-                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={(characterData.equippedAccessories ?? []).some((it) => it.instanceId === item.instanceId)}
-                                                  disabled={!canEditSheet}
-                                                  onChange={(e) => {
-                                                    if (!isEditing) handleStartEdit()
-                                                    toggleEquipAccessoryInstance(item.instanceId, e.target.checked)
-                                                  }}
-                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
-                                                />
-                                                Equipar acessório
-                                              </label>
-                                            </div>
-                                          )}
-                                          {item.kind === 'utility' && (
-                                            <div className="mt-1 flex items-center gap-2">
-                                              <label className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-ecoar-light-900/65 select-none">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={(characterData.equippedAccessories ?? []).some((it) => it.instanceId === item.instanceId)}
-                                                  disabled={!canEditSheet}
-                                                  onChange={(e) => {
-                                                    if (!isEditing) handleStartEdit()
-                                                    toggleEquipAccessoryInstance(item.instanceId, e.target.checked)
-                                                  }}
-                                                  className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/25"
-                                                />
-                                                Equipar (equipamento)
-                                              </label>
-                                            </div>
-                                          )}
-                                        </div>
-                                        {isEditing && (
-                                          <div className="shrink-0 flex flex-col items-end gap-1">
-                                            <button
-                                              type="button"
-                                              onClick={() => removeSheetCatalogItem(item.instanceId)}
-                                              className="text-ecoar-magenta text-[11px] hover:underline"
-                                            >
-                                              Remover
-                                            </button>
-                                          </div>
-                                        )}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              <div>
-                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
-                                  Outros equipamentos (uma linha por item)
-                                </div>
-                                <textarea
-                                  value={characterData.equipamentosLivresText}
-                                  disabled={!isEditing}
-                                  onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
-                                  placeholder="Itens fora do catálogo…"
-                                  className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/90 mb-1">
-                                  Outras armas (uma linha por item)
-                                </div>
-                                <textarea
-                                  value={characterData.armasLivresText}
-                                  disabled={!isEditing}
-                                  onChange={(e) => updateField('armasLivresText', e.target.value)}
-                                  placeholder="Armas fora do catálogo…"
-                                  className="w-full max-w-full min-w-0 h-28 px-3 py-2 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 disabled:opacity-60"
-                                />
-                              </div>
-                            </>
-                          ) : (
-                            <textarea
-                              value={characterData.equipamentos}
-                              disabled={!isEditing}
-                              onChange={(e) => updateField('equipamentos', e.target.value)}
-                              placeholder="Liste seus equipamentos..."
-                              className="w-full max-w-full min-w-0 h-64 px-4 py-3 bg-white dark:bg-ecoar-dark-700 border border-ecoar-dark-300/40 dark:border-ecoar-light-900/30 rounded-lg text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm resize-none focus:outline-none focus:border-ecoar-teal-500 dark:focus:border-ecoar-teal-400 focus:ring-2 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30 transition-all shadow-sm break-words disabled:opacity-60 disabled:cursor-not-allowed"
-                            />
-                          )}
-                          </>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
-                              <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                                Vestuário equipado
-                              </div>
-                              <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
-                                Armaduras:{' '}
-                                {equippedMainArmorEntries.map((e) => e.name).join(', ') || '—'}
-                              </div>
-                              <div className="mt-1 text-[11px] text-slate-700 dark:text-ecoar-light-900/80">
-                                Acessórios / outros:{' '}
-                                {[
-                                  ...equippedAccessoryEntries.map((entry) => entry.name),
-                                  ...equippedUtilityEntries.map((u) => u.name),
-                                ].join(', ') || '—'}
-                              </div>
-                              <div className="mt-1 text-[11px] text-slate-500 dark:text-ecoar-light-900/55">
-                                Esquiva total: {totalArmorStats.esquiva} · Furtividade total: {totalArmorStats.furtividade}
-                              </div>
-                            </div>
-                            <div className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/60 dark:bg-ecoar-light-900/10">
-                              <div className="text-[11px] font-semibold text-slate-600 dark:text-ecoar-light-900/60 uppercase tracking-wider">
-                                Armas equipadas (1 e 2)
-                              </div>
-                              <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                                Dados do catálogo (incl. base de dados quando disponível).
-                              </div>
-                            </div>
-                            {(['slot1', 'slot2'] as EquippedWeaponSlotId[]).map((slotId) => {
-                              const slotLabel = slotId === 'slot1' ? 'Arma 1' : 'Arma 2'
-                              const slotState = characterData.equippedWeapons?.[slotId]
-                              const owned = slotState
-                                ? characterData.itensCatalogo.find((i) => i.instanceId === slotState.instanceId)
-                                : undefined
-                              const entry = owned ? weaponCatalogById.get(owned.catalogId) : undefined
-                              return (
-                                <EquippedWeaponSlotPanel
-                                  key={slotId}
-                                  variant="panel"
-                                  slotId={slotId}
-                                  slotLabel={slotLabel}
-                                  slotState={slotState}
-                                  owned={owned}
-                                  entry={entry}
-                                  characterData={characterData}
-                                  isEditing={isEditing}
-                                  showEditControls={isEditing}
-                                  onSetSlot={setEquippedWeaponSlot}
-                                  onToggleEquipInstance={toggleEquipWeaponInstance}
-                                />
-                              )
-                            })}
-                            <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                              Para equipar, volte ao Inventário e marque “Equipar” na arma desejada (modo edição).
-                            </div>
-                          </div>
-                        )}
-
-                        {equipmentPickerOpen && (
-                          <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
-                            <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
-                              <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
-                                <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
-                                  Catálogo de aquisição
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setEquipmentPickerOpen(false)}
-                                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
-                                >
-                                  Fechar
-                                </button>
-                              </div>
-                              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
-                                <EquipmentCatalogErrorBoundary onClose={() => setEquipmentPickerOpen(false)}>
-                                  <EquipmentCatalogBrowser
-                                    mode="picker"
-                                    urlSync={false}
-                                    saldoDisponivel={characterData.saldoMoedas}
-                                    onPickItem={handleEquipmentCatalogPick}
-                                    showCostMultiplierTables={false}
-                                    weaponCatalog={weapons}
-                                    armorCatalog={armor}
-                                    utilityCatalog={utilities}
-                                    costMultiplierTables={multiplierTables}
-                                  />
-                                </EquipmentCatalogErrorBoundary>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {singularityPickerOpen && (
-                          <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
-                            <div className="mx-auto w-full max-w-5xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
-                              <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
-                                <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
-                                  Catálogo de singularidades
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setSingularityPickerOpen(false)}
-                                  className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
-                                >
-                                  Fechar
-                                </button>
-                              </div>
-                              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
-                                <SystemSingularityCatalogBrowser
-                                  mode="picker"
-                                  urlSync={false}
-                                  singularities={systemSingularities}
-                                  selectedIdsByKind={{
-                                    criacao: characterData.singularidades,
-                                    ecoar: characterData.singularidadesEcoar,
-                                    marciais: characterData.singularidadesMarciais,
-                                    raciais: characterData.singularidadesRaciais,
-                                    desvantagens: (characterData as { desvantagens?: string[] }).desvantagens ?? [],
-                                  }}
-                                  conditionalEnabledIdsByKind={{
-                                    criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
-                                    ecoar: characterData.singularidadesCondicionaisAtivas,
-                                    marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
-                                    raciais: characterData.singularidadesCondicionaisRaciaisAtivas,
-                                  }}
-                                  saldoPe={characterData.pontosEvolucao.atual}
-                                  context={{
-                                    nivelAlma,
-                                    raceId: characterData.raca,
-                                    attributes: {
-                                      carisma: characterData.carisma.nivel + (singularityBonuses.attributes.carisma ?? 0),
-                                      finesse: characterData.finesse.nivel + (singularityBonuses.attributes.finesse ?? 0),
-                                      forca: characterData.forca.nivel + (singularityBonuses.attributes.forca ?? 0),
-                                      inteligencia: characterData.inteligencia.nivel + (singularityBonuses.attributes.inteligencia ?? 0),
-                                      percepcao: characterData.percepcao.nivel + (singularityBonuses.attributes.percepcao ?? 0),
-                                      vitalidade: characterData.vitalidade.nivel + (singularityBonuses.attributes.vitalidade ?? 0),
-                                      vontade: characterData.vontade.nivel + (singularityBonuses.attributes.vontade ?? 0),
-                                    },
-                                    skills: characterData.skills,
-                                    aptitudes: characterData.aptitudes,
-                                  }}
-                                  onToggleSelect={handleToggleSystemSingularity}
-                                  onToggleConditional={handleToggleConditionalSystemSingularity}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-            </motion.div>
-
-            <SheetNotesSection
-              value={characterData.anotacoes}
-              isEditing={isEditing}
-              onChange={(value) => updateField('anotacoes', value)}
+              }
+              renderActiveTab={renderActiveTab}
             />
-          </aside>
-        </div>
-          </div>
-        </div>
+          </SheetRuntimeProvider>
+        </SheetLayoutProvider>
       </div>
     </div>
   )

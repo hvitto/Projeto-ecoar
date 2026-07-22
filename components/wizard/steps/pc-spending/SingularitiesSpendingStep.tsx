@@ -99,10 +99,16 @@ import { PathSingularitiesTab } from '@/components/wizard/steps/pc-spending/Path
 import { EcoarSelection } from '@/components/wizard/steps/pc-spending/EcoarSelection'
 
 
+import type { DisturbioOwnedEntry } from '@/data/disturbios'
+
 export function SingularitiesSpendingStep({
   singularidades,
   selectedEcoar,
   singularidadesEcoar,
+  disturbios,
+  onDisturbiosChange,
+  ecoarAcoes,
+  onEcoarAcoesChange,
   selectedTrilha,
   onTrilhaSelect,
   pathSingularityBase,
@@ -134,6 +140,10 @@ export function SingularitiesSpendingStep({
   singularidades: string[]
   selectedEcoar: string
   singularidadesEcoar: string[]
+  disturbios: DisturbioOwnedEntry[]
+  onDisturbiosChange: (entries: DisturbioOwnedEntry[]) => void
+  ecoarAcoes: string[]
+  onEcoarAcoesChange: (ids: string[]) => void
   selectedTrilha: string
   onTrilhaSelect: (id: string) => void
   pathSingularityBase: string
@@ -164,10 +174,9 @@ export function SingularitiesSpendingStep({
 }) {
   const { getEcoarSingularityById } = useEcoarCatalogData()
   const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
+  const nivelPoder = getSoulLevelByNivel(nivelAlma)?.nivelPoder ?? 3
 
-  // Custo de singularidades (singularidades + trilha são sincronizados no pai via useEffect)
   const calculateTotalCost = useCallback(() => {
-    // Custo das singularidades de criação (excluindo marciais e raciais)
     const criacaoCost = singularidades.reduce((sum, singId) => {
       if (getMartialSchoolSingularityById(singId)) return sum
       let sing: any = getCreationSingularityById(singId)
@@ -177,26 +186,18 @@ export function SingularitiesSpendingStep({
       return sum + (sing?.cost || 0)
     }, 0)
 
-    // Custo das singularidades de Ecoar
-    const ecoarCost = singularidadesEcoar.reduce((sum, singId) => {
-      const sing = getEcoarSingularityById(singId)
-      return sum + (sing?.cost || 0)
-    }, 0)
-
-    // Custo das singularidades marciais (catálogo global; estável com escola vazia)
     const marciaisCost = singularidades.reduce((sum, singId) => {
       const sing = getMartialSchoolSingularityById(singId)
       return sum + (sing?.cost ?? 0)
     }, 0)
 
-    // Custo das singularidades raciais
     const raciaisCost = singularidadesRaciais.reduce((sum, singId) => {
       const sing = getRacialSingularityById(singId)
       return sum + (sing?.cost || 0)
     }, 0)
 
-    return criacaoCost + ecoarCost + marciaisCost + raciaisCost
-  }, [singularidades, singularidadesEcoar, singularidadesRaciais, getEcoarSingularityById])
+    return criacaoCost + marciaisCost + raciaisCost
+  }, [singularidades, singularidadesRaciais])
 
   const toggleSingularity = (id: string, isCreation: boolean = false) => {
     let singularity: any = null
@@ -407,9 +408,12 @@ export function SingularitiesSpendingStep({
             singularidadesEcoar={singularidadesEcoar}
             onEcoarSelect={onEcoarSelect}
             onSingularidadesEcoarChange={onSingularidadesEcoarChange}
-            pontosDisponiveis={pontosDisponiveis}
-            pontosCriacao={pontosCriacao}
+            disturbios={disturbios}
+            onDisturbiosChange={onDisturbiosChange}
+            ecoarAcoes={ecoarAcoes}
+            onEcoarAcoesChange={onEcoarAcoesChange}
             nivelAlma={nivelAlma}
+            nivelPoder={nivelPoder}
             attributes={attributes}
             skills={skills}
             aptitudes={aptitudes}

@@ -1,4 +1,5 @@
 import type { CatalogOwnedItem } from '@/shared/types/equipment'
+import type { DisturbioOwnedEntry } from '@/data/disturbios'
 
 export type WizardAttributes = {
   carisma: number
@@ -37,6 +38,8 @@ export type WizardFormState = {
   singularidades: string[]
   selectedEcoar: string
   singularidadesEcoar: string[]
+  disturbios: DisturbioOwnedEntry[]
+  ecoarAcoes: string[]
   singularidadesRaciais: string[]
   pathSingularityBase: string
   pathBruxarias: string[]
@@ -87,6 +90,8 @@ export function createInitialWizardFormState(): WizardFormState {
     singularidades: [],
     selectedEcoar: '',
     singularidadesEcoar: [],
+    disturbios: [],
+    ecoarAcoes: [],
     singularidadesRaciais: [],
     pathSingularityBase: '',
     pathBruxarias: [],

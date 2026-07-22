@@ -1,6 +1,8 @@
 // Singularidades das Escolas Marciais (Martial School Singularities)
 // Cada escola marcial tem singularidades numeradas de I a XII
 
+import { necromanteSchool } from '@/data/necromanteSchool'
+
 export interface MartialSchoolSingularity {
   id: string
   schoolId: string
@@ -2179,7 +2181,8 @@ export const martialSchoolData: MartialSchoolData[] = [
   },
 ]
 
-// Funções auxiliares
+martialSchoolData.push(necromanteSchool)
+
 export const getMartialSchoolDataById = (id: string): MartialSchoolData | undefined => {
   return martialSchoolData.find(school => school.id === id)
 }

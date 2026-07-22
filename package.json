@@ -12,9 +12,15 @@
     "analyze": "cross-env ANALYZE=true next build",
     "seed:catalog": "tsx scripts/seed-equipment-catalog.ts",
     "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts",
-    "seed:system": "tsx scripts/seed-system-singularities.ts"
+    "seed:system": "tsx scripts/seed-system-singularities.ts",
+    "seed:reference": "tsx scripts/seed-game-reference-catalog.ts",
+    "import:pdm": "tsx scripts/import-pdm-singularities.ts"
   },
   "dependencies": {
+    "@dice-roller/rpg-dice-roller": "^5.5.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.23.24",
@@ -28,11 +34,11 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.6",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/three": "^0.170.0",
-    "@next/bundle-analyzer": "^16.1.6",
     "autoprefixer": "^10.4.16",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.4",

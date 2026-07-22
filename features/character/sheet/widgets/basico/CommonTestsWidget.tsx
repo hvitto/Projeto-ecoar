@@ -1,0 +1,100 @@
+'use client'
+
+import { getSkillDice, formatDiceWithModifier } from '@/lib/calculations'
+import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
+import { sheetLabel } from '@/features/character/sheet/sheetChrome'
+import { useDiceRoll } from '@/features/dice/DiceRollProvider'
+
+export function CommonTestsWidget() {
+  const { characterData, derivedValues, tableId, characterId } = useSheetRuntime()
+  const { roll } = useDiceRoll()
+
+  const sizeModifier = typeof characterData.tamanho === 'number' ? characterData.tamanho : 0
+  const weightModifier = typeof characterData.peso === 'number' ? characterData.peso : 0
+  const sizeWeightPenalty = -(sizeModifier + weightModifier)
+  const hasSizeWeightEffect = sizeModifier !== 0 || weightModifier !== 0
+
+  const skillLevelOf = (id: string) => {
+    const raw = characterData.skills?.[id]?.level
+    return typeof raw === 'number' ? raw : parseInt(String(raw ?? 0), 10) || 0
+  }
+
+  const characterName = characterData.nome?.trim() || 'Personagem'
+
+  const tests = [
+    {
+      key: 'arredores',
+      label: 'Arredores',
+      desc: 'Percepção + Atenção',
+      display: formatDiceWithModifier(
+        getSkillDice(skillLevelOf('atencao')),
+        derivedValues.commonTests.arredores,
+      ),
+    },
+    {
+      key: 'iniciativa',
+      label: 'Iniciativa',
+      desc: 'Percepção + Raciocínio',
+      display: formatDiceWithModifier(
+        getSkillDice(skillLevelOf('raciocinio')),
+        derivedValues.commonTests.iniciativa,
+      ),
+    },
+    {
+      key: 'esquiva',
+      label: 'Esquiva',
+      desc: hasSizeWeightEffect
+        ? `Percepção + Reflexos ${sizeWeightPenalty >= 0 ? '+' : ''}${sizeWeightPenalty} (T/P)`
+        : 'Percepção + Reflexos',
+      display: formatDiceWithModifier(
+        getSkillDice(skillLevelOf('reflexos')),
+        derivedValues.commonTests.esquiva,
+      ),
+    },
+    {
+      key: 'coragem',
+      label: 'Coragem',
+      desc: 'Vontade + Compostura',
+      display: formatDiceWithModifier(
+        getSkillDice(skillLevelOf('compostura')),
+        derivedValues.commonTests.coragem,
+      ),
+    },
+  ]
+
+  return (
+    <div className="grid h-full w-full grid-cols-2 gap-1.5 p-2 sm:grid-cols-4 sm:grid-rows-1">
+      {tests.map((test) => (
+        <button
+          key={test.key}
+          type="button"
+          title={`Rolar ${test.label}`}
+          aria-label={`Rolar ${test.label}: ${test.display}`}
+          onClick={() =>
+            void roll({
+              label: `${characterName} · ${test.label}`,
+              expression: test.display,
+              tableId,
+              characterId,
+              characterName,
+            })
+          }
+          className="flex h-full min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-sm border border-slate-200/80 bg-slate-50/70 px-1.5 py-1.5 text-center transition-colors hover:border-ecoar-teal-500/40 hover:bg-ecoar-teal-500/5 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/25 dark:hover:border-ecoar-teal-400/40"
+        >
+          <div className={`${sheetLabel} mb-0 w-full truncate text-center`}>{test.label}</div>
+          <div className="text-xs font-semibold tabular-nums text-ecoar-teal-700 dark:text-ecoar-teal-300">
+            {test.display}
+          </div>
+          <div
+            className="w-full truncate text-[9px] leading-tight text-slate-500 dark:text-ecoar-light-900/55"
+            title={test.desc}
+          >
+            {test.desc}
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export default CommonTestsWidget

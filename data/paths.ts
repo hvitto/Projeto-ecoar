@@ -1,40 +1,61 @@
-// Trilhas (Paths) data from Ecoar RPG
-
 export interface Path {
   id: string
   name: string
   description: string
-  type: 'caçador' | 'caçador-corrompido' | 'bruxaria' | 'cacada'
+  type: 'bruxaria' | 'cacada' | 'esperanca' | 'patronos' | 'violencia' | 'anti-cacada'
 }
 
-export const paths: Path[] = [
+export let paths: Path[] = [
   {
     id: 'bruxaria',
     name: 'Trilha da Bruxaria',
-    description: 'Aqueles que seguem esta Trilha se tornam Bruxos e Bruxas. Os Bruxos são frequentemente confundidos com cultistas devido ao fato de se apoiarem em emoções negativas para trazer seus efeitos mágicos à realidade.',
+    description:
+      'Aqueles que seguem esta Trilha se tornam Bruxos e Bruxas. Empoderam-se através dos terrores e emoções negativas canalizadas em magia.',
     type: 'bruxaria',
   },
   {
     id: 'cacada',
     name: 'Trilha da Caçada',
-    description: 'Aqueles que lutam diretamente contra a Praga podem se tornar Caçadores. Os Caçadores são especialistas no combate contra a Praga, e possuem a vantagem de não precisar de armas de prata para causar dano na vasta maioria de criaturas criadas pela Praga.',
+    description:
+      'Caçadores Independentes ou Absolutos (Abismo, Éter, Lunara, Grande-Chama) especializados no combate à Praga.',
     type: 'cacada',
   },
   {
-    id: 'cacador',
-    name: 'Caçador',
-    description: 'Caçadores da Praga, dedicados a eliminar ameaças.',
-    type: 'caçador',
+    id: 'esperanca',
+    name: 'Trilha da Esperança',
+    description:
+      'Ímpetos que inspiram aliados através da arte (Vox) e projetam escolas marciais artísticas.',
+    type: 'esperanca',
   },
   {
-    id: 'cacador-corrompido',
-    name: 'Caçador Corrompido',
-    description: 'Caçadores que foram corrompidos pela Praga.',
-    type: 'caçador-corrompido',
+    id: 'patronos',
+    name: 'Trilha dos Patronos',
+    description:
+      'Campeões vinculados a uma divindade, entidade menor ou entidade planar (ex.: Caeruleum).',
+    type: 'patronos',
+  },
+  {
+    id: 'violencia',
+    name: 'Trilha da Violência',
+    description:
+      'Carrascos que canalizam ultraviolência sob um código de honra.',
+    type: 'violencia',
+  },
+  {
+    id: 'anti-cacada',
+    name: 'Anti-Caçador',
+    description:
+      'Trilha corrompida a serviço da Praga, com acesso amplo a infusões sob o juramento do pecado.',
+    type: 'anti-cacada',
   },
 ]
 
-export const getPathById = (id: string): Path | undefined => {
-  return paths.find(p => p.id === id)
+const STATIC_PATHS: Path[] = paths
+
+export function hydratePaths(list: Path[]) {
+  paths = list.length > 0 ? list : STATIC_PATHS
 }
 
+export const getPathById = (id: string): Path | undefined => {
+  return paths.find((p) => p.id === id)
+}

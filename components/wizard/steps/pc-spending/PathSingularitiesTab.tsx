@@ -75,6 +75,8 @@ import {
 import {
   pathBaseSingularities,
   getPathBaseSingularityByPathId,
+  getPathBaseSingularitiesByPathId,
+  getPathBaseSingularityById,
   bruxarias,
   getBruxariasByCategory,
   getAllBruxarias,
@@ -82,7 +84,7 @@ import {
   getAllCacadaPowers,
   getCacadaPowerById,
   cacadaEnhancements,
-  getCacadaEnhancementsByPowerId,
+  getCacadaEnhancementsForPower,
   getCacadaEnhancementById,
   getPathLevelFromSoulLevel,
   Bruxaria,
@@ -121,21 +123,20 @@ export function PathSingularitiesTab({
   pontosDisponiveis: number
 }) {
   const selectedPath = selectedTrilha ? getPathById(selectedTrilha) : null
-  const pathBaseSingularity = selectedTrilha ? getPathBaseSingularityByPathId(selectedTrilha) : null
+  const pathBasesForTrilha = selectedTrilha ? getPathBaseSingularitiesByPathId(selectedTrilha) : []
+  const selectedBaseSingularity = selectedPathBase
+    ? getPathBaseSingularityById(selectedPathBase)
+    : undefined
 
-  // Calculate total cost
   const calculateTotalCost = () => {
     let total = 0
-    if (selectedPathBase && pathBaseSingularity) {
-      total += pathBaseSingularity.cost
+    if (selectedPathBase && selectedBaseSingularity) {
+      total += selectedBaseSingularity.cost
     }
-    // Bruxarias are free (chosen based on Path Level)
-    // Cacada powers cost
     selectedCacadaPowers.forEach(powerId => {
       const power = getCacadaPowerById(powerId)
       if (power) total += power.cost
     })
-    // Cacada enhancements cost
     selectedCacadaEnhancements.forEach(enhId => {
       const enh = getCacadaEnhancementById(enhId)
       if (enh) total += enh.cost
@@ -228,7 +229,7 @@ export function PathSingularitiesTab({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {paths.filter(p => p.type === 'bruxaria' || p.type === 'cacada').map((path) => (
+            {paths.map((path) => (
               <motion.button
                 key={path.id}
                 onClick={() => onTrilhaSelect(path.id)}
@@ -290,23 +291,28 @@ export function PathSingularitiesTab({
         </button>
       </div>
 
-      {/* Base Path Singularity */}
-      {pathBaseSingularity && (
+      {pathBasesForTrilha.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
             Singularidade Base da Trilha
           </h4>
           <div className="grid grid-cols-1 gap-4">
-            <SingularityCard
-              name={pathBaseSingularity.name}
-              description={pathBaseSingularity.description}
-              cost={pathBaseSingularity.cost}
-              isSelected={selectedPathBase === pathBaseSingularity.id}
-              canAfford={pontosDisponiveis >= pathBaseSingularity.cost}
-              canSelect={pontosDisponiveis >= pathBaseSingularity.cost}
-              onClick={() => togglePathBase(pathBaseSingularity.id)}
-              variant="teal"
-            />
+            {pathBasesForTrilha.map((pathBaseSingularity) => (
+              <SingularityCard
+                key={pathBaseSingularity.id}
+                name={pathBaseSingularity.name}
+                description={pathBaseSingularity.description}
+                cost={pathBaseSingularity.cost}
+                isSelected={selectedPathBase === pathBaseSingularity.id}
+                canAfford={pontosDisponiveis >= pathBaseSingularity.cost}
+                canSelect={
+                  selectedPathBase === pathBaseSingularity.id ||
+                  pontosDisponiveis >= pathBaseSingularity.cost
+                }
+                onClick={() => togglePathBase(pathBaseSingularity.id)}
+                variant="teal"
+              />
+            ))}
           </div>
         </div>
       )}
@@ -387,7 +393,7 @@ export function PathSingularitiesTab({
               {getAllCacadaPowers().map((power) => {
                 const isSelected = selectedCacadaPowers.includes(power.id)
                 const canAfford = pontosDisponiveis >= power.cost
-                const enhancements = getCacadaEnhancementsByPowerId(power.id)
+                const enhancements = getCacadaEnhancementsForPower(power.id, selectedPathBase)
                 
                 return (
                   <div key={power.id} className="space-y-2">

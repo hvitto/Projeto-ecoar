@@ -76,6 +76,7 @@ export default function CharacterSheetPage({ characterId }: CharacterSheetPagePr
       initialData={character.data}
       canEdit={canEdit}
       isTableGmEditor={isTableGmEditor}
+      tableId={fromMesa}
       onOpenEvolution={() => {
         const qs = fromMesa ? `?fromMesa=${encodeURIComponent(fromMesa)}` : ''
         router.push(`/personagens/${characterId}/evolucao${qs}`)

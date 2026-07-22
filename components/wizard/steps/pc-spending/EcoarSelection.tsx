@@ -94,6 +94,8 @@ import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrow
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
 import { EcoarSingularitiesList } from '@/components/wizard/steps/pc-spending/EcoarSingularitiesList'
+import { DisturbiosEcoarPanel } from '@/components/disturbios/DisturbiosEcoarPanel'
+import { getDisturbiosPontosEcoarObtidos } from '@/data/disturbios'
 
 
 export function EcoarSelection({
@@ -101,9 +103,12 @@ export function EcoarSelection({
   singularidadesEcoar,
   onEcoarSelect,
   onSingularidadesEcoarChange,
-  pontosDisponiveis,
-  pontosCriacao,
+  disturbios,
+  onDisturbiosChange,
+  ecoarAcoes,
+  onEcoarAcoesChange,
   nivelAlma,
+  nivelPoder,
   attributes,
   skills,
   aptitudes,
@@ -112,16 +117,25 @@ export function EcoarSelection({
   singularidadesEcoar: string[]
   onEcoarSelect: (id: string) => void
   onSingularidadesEcoarChange: (singularidades: string[]) => void
-  pontosDisponiveis: number
-  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  disturbios: import('@/data/disturbios').DisturbioOwnedEntry[]
+  onDisturbiosChange: (entries: import('@/data/disturbios').DisturbioOwnedEntry[]) => void
+  ecoarAcoes: string[]
+  onEcoarAcoesChange: (ids: string[]) => void
   nivelAlma: number
+  nivelPoder: number
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
-  const { playableEcoarTypes } = useEcoarCatalogData()
+  const { playableEcoarTypes, getEcoarSingularityById } = useEcoarCatalogData()
+  const pontosEcoarObtidos = getDisturbiosPontosEcoarObtidos(disturbios)
+  const pontosEcoarGastos = singularidadesEcoar.reduce((sum, id) => {
+    return sum + (getEcoarSingularityById(id)?.cost ?? 0)
+  }, 0)
+  const pontosEcoarDisponiveis = pontosEcoarObtidos - pontosEcoarGastos
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-4">Tipo de Ecoar</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -144,17 +158,28 @@ export function EcoarSelection({
         </div>
       </div>
 
-      {selectedEcoar && <EcoarSingularitiesList 
-        selectedEcoar={selectedEcoar}
-        singularidadesEcoar={singularidadesEcoar}
-        onSingularidadesEcoarChange={onSingularidadesEcoarChange}
-        pontosDisponiveis={pontosDisponiveis}
-        pontosCriacao={pontosCriacao}
-        nivelAlma={nivelAlma}
-        attributes={attributes}
-        skills={skills}
-        aptitudes={aptitudes}
-      />}
+      {selectedEcoar && (
+        <>
+          <DisturbiosEcoarPanel
+            entries={disturbios}
+            onEntriesChange={onDisturbiosChange}
+            ecoarAcoesOwned={ecoarAcoes}
+            onEcoarAcoesChange={onEcoarAcoesChange}
+            nivelPoder={nivelPoder}
+            pontosEcoarGastos={pontosEcoarGastos}
+          />
+          <EcoarSingularitiesList
+            selectedEcoar={selectedEcoar}
+            singularidadesEcoar={singularidadesEcoar}
+            onSingularidadesEcoarChange={onSingularidadesEcoarChange}
+            pontosEcoarDisponiveis={pontosEcoarDisponiveis}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
+          />
+        </>
+      )}
     </div>
   )
 }

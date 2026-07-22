@@ -22,20 +22,21 @@ First, install the dependencies:
 npm install
 ```
 
-### Modo demonstração
-
-`OFFLINE_DEMO_MODE` em [`lib/config.ts`](lib/config.ts): `true` = perfis demo + localStorage; `false` = auth API + Neon.
-
 ### Environment variables
 
 Copie [`.env.example`](.env.example) para **`.env.local`** na raiz do projeto (nunca commite esses arquivos).
 
 - **`JWT_SECRET`** (obrigatório) – Chave para assinar os JWTs (ex.: `openssl rand -hex 32`).
-- **`DATABASE_URL`** (obrigatório em produção) – Connection string PostgreSQL, ex.: Neon.
+- **`DATABASE_URL`** (obrigatório) – Connection string PostgreSQL, ex.: Neon (pode ser pooled).
+- **`DATABASE_URL_UNPOOLED`** – Connection string direta (sem `-pooler`) para `LISTEN`/`NOTIFY` do chat em tempo real.
 - **`NEXT_PUBLIC_API_URL`** – Em desenvolvimento pode omitir (usa a mesma origem). Em produção defina a URL pública do app (ex.: `https://seu-app.vercel.app`) para as chamadas à API.
 - **`RESEND_API_KEY`** – Chave da API do [Resend](https://resend.com) para envio de emails de confirmação (cadastro por email/senha).
 - **`EMAIL_FROM`** – Endereço remetente dos emails (ex.: `noreply@seudominio.com` ou use o domínio do Resend).
 - **`GOOGLE_CLIENT_ID`** e **`GOOGLE_CLIENT_SECRET`** – Credenciais OAuth 2.0 do [Google Cloud Console](https://console.cloud.google.com/apis/credentials) para login com Google.
+- **`EQUIPMENT_ADMIN_EMAILS`** / **`ECOAR_ADMIN_EMAILS`** – Lista de emails (separados por vírgula) com permissão de editar catálogos. A sessão usa cookie HttpOnly `ecoar_session`.
+
+Seeds de catálogo (após migrations): `yarn seed:catalog`, `yarn seed:ecoar`, `yarn seed:system`, `yarn seed:reference`.
+
 
 ### Para outras pessoas usarem
 

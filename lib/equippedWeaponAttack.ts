@@ -1,4 +1,4 @@
-﻿import { getSkillDice, getAptitudeDice } from '@/lib/calculations'
+﻿import { formatDiceWithModifier, getSkillDice, getAptitudeDice } from '@/lib/calculations'
 import { skills as skillsDefinitions } from '@/data/skills'
 import { aptitudes as aptitudesDefinitions } from '@/data/aptitudes'
 import type { WeaponCatalogEntry } from '@/shared/types/equipment'
@@ -44,31 +44,46 @@ export type AttackResolutionCharacterData = {
 export type AttackResolutionInput = {
   entry: WeaponCatalogEntry | undefined
   characterData: AttackResolutionCharacterData
+  getAttributeMod?: (key: AttributeStateKey) => number
+  getSkillBonus?: (skillId: string) => number
+  extraAttackBonus?: number
 }
 
-/**
- * Texto de ataque automático (dado + mod. de atributo) a partir de `attackTest` do catálogo.
- * Devolve `null` se não for possível resolver (usa-se então o texto bruto ou "—").
- */
-export function resolveWeaponAttackAutoText(input: AttackResolutionInput): string | null {
-  const { entry, characterData } = input
+export type WeaponAttackResolved = {
+  text: string
+  diceText: string
+  attributeKey: AttributeStateKey
+  skillId?: string
+  totalMod: number
+}
+
+function readStoredAttrMod(
+  characterData: AttackResolutionCharacterData,
+  attributeKey: AttributeStateKey,
+): number {
+  const attrModRaw = (characterData as Record<string, { mod?: number } | undefined>)?.[attributeKey]?.mod
+  return typeof attrModRaw === 'number' ? attrModRaw : parseInt(String(attrModRaw ?? 0), 10) || 0
+}
+
+export function resolveWeaponAttackDetails(
+  input: AttackResolutionInput,
+): WeaponAttackResolved | { text: string; raw: true } | null {
+  const { entry, characterData, getAttributeMod, getSkillBonus, extraAttackBonus = 0 } = input
   const raw = entry?.attackTest
   if (!raw || typeof raw !== 'string') return null
 
   const normalized = normalizeAttackTestText(raw)
   const match = normalized.match(/^(.+?)\s*\+\s*([^(]+?)\s*\(([^)]+)\)\s*$/)
-  if (!match) return raw
+  if (!match) return { text: raw, raw: true }
 
   const attrNorm = match[1].trim()
   const skillNameNorm = match[2].trim()
   const specLabelNorm = match[3].trim()
 
   const attributeKey = ATTRIBUTE_KEY_BY_ATTACK_TEST_LABEL[attrNorm]
-  if (!attributeKey) return raw
+  if (!attributeKey) return { text: raw, raw: true }
 
-  const attrModRaw = (characterData as Record<string, { mod?: number } | undefined>)?.[attributeKey]?.mod
-  const attrMod =
-    typeof attrModRaw === 'number' ? attrModRaw : parseInt(String(attrModRaw ?? 0), 10) || 0
+  const attrMod = getAttributeMod?.(attributeKey) ?? readStoredAttrMod(characterData, attributeKey)
 
   const skillsByNormalizedName = new Map<string, (typeof skillsDefinitions)[number]>()
   skillsDefinitions.forEach((skill) => {
@@ -84,10 +99,15 @@ export function resolveWeaponAttackAutoText(input: AttackResolutionInput): strin
   const skillDef = skillsByNormalizedName.get(skillNameNorm)
 
   let diceText: string | null = null
+  let skillId: string | undefined
   if (skillDef) {
+    skillId = skillDef.id
     const specializationId =
       skillDef.specializations.find((sp) => normalizeAttackTestText(sp.name) === specLabelNorm)?.id ??
-      skillDef.specializations.find((sp) => normalizeAttackTestText(sp.id) === specLabelNorm)?.id
+      skillDef.specializations.find((sp) => normalizeAttackTestText(sp.id) === specLabelNorm)?.id ??
+      (specLabelNorm === 'arqueria'
+        ? skillDef.specializations.find((sp) => normalizeAttackTestText(sp.id) === 'arqueira')?.id
+        : undefined)
 
     const skillState = characterData.skills?.[skillDef.id]
     const levelRaw = skillState?.level
@@ -112,5 +132,20 @@ export function resolveWeaponAttackAutoText(input: AttackResolutionInput): strin
 
   if (!diceText) return null
 
-  return `${diceText} ${attrMod >= 0 ? '+' : '-'} ${Math.abs(attrMod)}`
+  const skillBonus = skillId && getSkillBonus ? getSkillBonus(skillId) : 0
+  const totalMod = attrMod + skillBonus + extraAttackBonus
+
+  return {
+    text: formatDiceWithModifier(diceText, totalMod),
+    diceText,
+    attributeKey,
+    skillId,
+    totalMod,
+  }
+}
+
+export function resolveWeaponAttackAutoText(input: AttackResolutionInput): string | null {
+  const resolved = resolveWeaponAttackDetails(input)
+  if (!resolved) return null
+  return resolved.text
 }

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Save, X } from 'lucide-react'
 import type { CatalogEntry } from '@/shared/types/equipment'
 import { parseCatalogPayload } from '@/lib/equipmentCatalogSchemas'
-import { getAccessToken } from '@/lib/auth/authService'
 import CatalogItemFields from '@/components/admin/CatalogItemFields'
 
 type AdminRow = {
@@ -52,12 +51,11 @@ export default function CatalogItemEditModal({
       return
     }
 
-    const token = getAccessToken()
     const res = await fetch(`/api/equipment-catalog/items/${encodeURIComponent(row.id)}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         payload: v.data,

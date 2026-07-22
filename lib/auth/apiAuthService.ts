@@ -1,41 +1,33 @@
 ﻿import { config } from '@/lib/config'
 import { User, AuthResult } from '@/shared/types/auth'
-import { isLocalDemoUserId } from '@/lib/auth/localDemoUser'
 
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 dias
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
 
-function getStoredSession(): { token?: string; user?: User; expiresAt?: number } | null {
+function getStoredUser(): User | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(config.STORAGE_KEYS.AUTH)
     if (!raw) return null
-    const session = JSON.parse(raw) as { token?: string; user?: User; expiresAt?: number }
+    const session = JSON.parse(raw) as { user?: User; expiresAt?: number }
     if (session.expiresAt != null && session.expiresAt < Date.now()) {
       localStorage.removeItem(config.STORAGE_KEYS.AUTH)
       return null
     }
-    return session
+    return session.user ?? null
   } catch {
     return null
   }
 }
 
-function getStoredToken(): string | null {
-  return getStoredSession()?.token ?? null
-}
-
-export function getAccessToken(): string | null {
-  return getStoredToken()
-}
-
-function saveSession(token: string, user: User): void {
+function saveUser(user: User): void {
   if (typeof window === 'undefined') return
-  const session = {
-    token,
-    user,
-    expiresAt: Date.now() + SESSION_DURATION,
-  }
-  localStorage.setItem(config.STORAGE_KEYS.AUTH, JSON.stringify(session))
+  localStorage.setItem(
+    config.STORAGE_KEYS.AUTH,
+    JSON.stringify({
+      user,
+      expiresAt: Date.now() + SESSION_DURATION,
+    }),
+  )
 }
 
 function clearSession(): void {
@@ -43,12 +35,16 @@ function clearSession(): void {
   localStorage.removeItem(config.STORAGE_KEYS.AUTH)
 }
 
-async function request<T>(path: string, options: RequestInit & { token?: string | null } = {}): Promise<Response> {
-  const { token = getStoredToken(), ...init } = options
-  const headers = new Headers(init.headers)
-  headers.set('Content-Type', 'application/json')
-  if (token) headers.set('Authorization', `Bearer ${token}`)
-  return fetch(`${config.API.BASE_URL}${path}`, { ...init, headers })
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers)
+  if (!headers.has('Content-Type') && options.body) {
+    headers.set('Content-Type', 'application/json')
+  }
+  return fetch(`${config.API.BASE_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  })
 }
 
 export const apiAuthService = {
@@ -56,50 +52,31 @@ export const apiAuthService = {
     const response = await request(config.API.ENDPOINTS.LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-      token: null,
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
       return { success: false, error: data.error || 'Erro ao fazer login' }
     }
-    if (data.success && data.user && data.token) {
-      saveSession(data.token, data.user)
-      return { success: true, user: data.user, token: data.token }
+    if (data.success && data.user) {
+      saveUser(data.user)
+      return { success: true, user: data.user }
     }
     return { success: false, error: data.error || 'Erro ao fazer login' }
-  },
-
-  async loginDemo(accountId?: string): Promise<AuthResult> {
-    const response = await request(config.API.ENDPOINTS.DEMO, {
-      method: 'POST',
-      token: null,
-      body: accountId ? JSON.stringify({ accountId }) : JSON.stringify({}),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      return { success: false, error: data.error || 'Erro ao entrar com conta de teste' }
-    }
-    if (data.success && data.user && data.token) {
-      saveSession(data.token, data.user)
-      return { success: true, user: data.user, token: data.token }
-    }
-    return { success: false, error: data.error || 'Erro ao entrar com conta de teste' }
   },
 
   async register(email: string, password: string, fullName: string, username: string): Promise<AuthResult> {
     const response = await request(config.API.ENDPOINTS.REGISTER, {
       method: 'POST',
       body: JSON.stringify({ email, password, fullName, username }),
-      token: null,
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
       return { success: false, error: data.error || 'Erro ao cadastrar' }
     }
     if (data.success) {
-      if (data.user && data.token) {
-        saveSession(data.token, data.user)
-        return { success: true, user: data.user, token: data.token }
+      if (data.user) {
+        saveUser(data.user)
+        return { success: true, user: data.user }
       }
       return { success: true, message: data.message }
     }
@@ -115,24 +92,25 @@ export const apiAuthService = {
   },
 
   async getCurrentUser(): Promise<User | null> {
-    const token = getStoredToken()
-    if (!token) return null
-    const response = await request(config.API.ENDPOINTS.CURRENT_USER, { token })
-    if (!response.ok) {
-      const cached = getStoredSession()?.user
-      if (cached && isLocalDemoUserId(cached.id)) return cached
+    try {
+      const response = await request(config.API.ENDPOINTS.CURRENT_USER)
+      if (!response.ok) {
+        clearSession()
+        return null
+      }
+      const data = await response.json().catch(() => ({}))
+      if (data.user) {
+        saveUser(data.user)
+        return data.user
+      }
       clearSession()
       return null
+    } catch {
+      return getStoredUser()
     }
-    const data = await response.json().catch(() => ({}))
-    if (data.user) return data.user
-    const cached = getStoredSession()?.user
-    if (cached && isLocalDemoUserId(cached.id)) return cached
-    clearSession()
-    return null
   },
 
   isAuthenticated(): boolean {
-    return getStoredToken() != null
+    return getStoredUser() != null
   },
 }

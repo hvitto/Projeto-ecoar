@@ -1,4 +1,5 @@
 ﻿import type { CatalogOwnedItem } from '@/shared/types/equipment'
+import { createDefaultSheetLayout, type SheetLayout } from '@/features/character/sheet/sheetLayoutTypes'
 
 export type EquippedArmorState = { instanceId: string }
 export type CharacterSkillState = Record<string, { level: number; specialization?: string }>
@@ -55,13 +56,19 @@ export type CharacterSheetState = {
   anotacoes: string
   singularidades: string[]
   singularidadesEcoar: string[]
+  disturbios: import('@/data/disturbios').DisturbioOwnedEntry[]
+  ecoarAcoes: string[]
+  pontosEcoar: { obtidos: number; gastos: number; disponiveis: number }
   singularidadesCondicionaisAtivas: string[]
   singularidadesCondicionaisCriacaoAtivas: string[]
   singularidadesMarciais: string[]
   singularidadesCondicionaisMarciaisAtivas: string[]
   singularidadesCondicionaisRaciaisAtivas: string[]
   singularidadesRaciais: string[]
+  singularidadesPath: string[]
+  singularidadesCondicionaisPathAtivas: string[]
   desvantagens: string[]
+  sheetLayout: SheetLayout
 }
 
 export function createInitialCharacterSheetState(): CharacterSheetState {
@@ -80,8 +87,8 @@ export function createInitialCharacterSheetState(): CharacterSheetState {
     terrestre: '',
     aquatico: '',
     aereo: '',
-    corpo: { atual: 9, max: 9 },
-    mente: { atual: 9, max: 9 },
+    corpo: { atual: 0, max: 0 },
+    mente: { atual: 0, max: 0 },
     folego: { atual: 0, max: 0 },
     mana: { atual: 0, max: 0 },
     carisma: { nivel: 0, mod: 0 },
@@ -113,12 +120,18 @@ export function createInitialCharacterSheetState(): CharacterSheetState {
     anotacoes: '',
     singularidades: [],
     singularidadesEcoar: [],
+    disturbios: [],
+    ecoarAcoes: [],
+    pontosEcoar: { obtidos: 0, gastos: 0, disponiveis: 0 },
     singularidadesCondicionaisAtivas: [],
     singularidadesCondicionaisCriacaoAtivas: [],
     singularidadesMarciais: [],
     singularidadesCondicionaisMarciaisAtivas: [],
     singularidadesCondicionaisRaciaisAtivas: [],
     singularidadesRaciais: [],
+    singularidadesPath: [],
+    singularidadesCondicionaisPathAtivas: [],
     desvantagens: [],
+    sheetLayout: createDefaultSheetLayout(),
   }
 }

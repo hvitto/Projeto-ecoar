@@ -1,4 +1,4 @@
-// Singularidades de Trilhas (Path Singularities) data from Ecoar RPG
+import { pathBookEntries } from '@/data/pathBookContent'
 
 export interface PathBaseSingularity {
   id: string
@@ -70,35 +70,141 @@ export const pathBaseSingularities: PathBaseSingularity[] = [
     pathId: 'bruxaria',
     name: 'Bruxo(a)',
     description: 'Aqueles que seguem esta Trilha se tornam Bruxos e Bruxas.',
-    cost: 60,
+    cost: 30,
     requirements: {
       skills: { arcana: 2 },
       noOtherPath: true,
     },
-    effects: [
-      'Falso Ídolo',
-      'Véu da Angústia',
-      'Canalização Arcana',
-      'Bruxarias',
-    ],
+    effects: ['Falso Ídolo', 'Véu da Angústia', 'Canalização Arcana', 'Bruxarias'],
   },
   {
-    id: 'cacador',
+    id: 'cacador-independente',
     pathId: 'cacada',
-    name: 'Caçador(a)',
-    description: 'Aqueles que lutam diretamente contra a Praga podem se tornar Caçadores.',
-    cost: 60,
-    requirements: {
-      noOtherPath: true,
-    },
+    name: 'Caçador(a) Independente',
+    description: 'Caçador independente da Praga.',
+    cost: 30,
+    requirements: { noOtherPath: true },
     effects: [
       'Caçador de Monstros',
       'Expurgo',
-      'Invisibilidade Moral',
-      'Sentido da Trilha',
       'Resistência à Praga',
+      'Sentido da Trilha',
+      'Invisibilidade Moral',
       'Poderes da Caçada',
     ],
+  },
+  {
+    id: 'cacador-abismo',
+    pathId: 'cacada',
+    name: 'Caçador(a) do Abismo',
+    description: 'Caçador Absoluto do Abismo / Vazio.',
+    cost: 45,
+    requirements: { noOtherPath: true },
+    effects: [
+      'Caçador de Monstros',
+      'Expurgo',
+      'Imunidade à Praga',
+      'Sentido da Trilha',
+      'Armamento Abissal',
+      'Um com a Escuridão',
+      'Poderes da Caçada: Abismo',
+    ],
+  },
+  {
+    id: 'cacador-eter',
+    pathId: 'cacada',
+    name: 'Caçador(a) do Éter',
+    description: 'Caçador Absoluto do Éter / Céu.',
+    cost: 45,
+    requirements: { noOtherPath: true },
+    effects: [
+      'Caçador de Monstros',
+      'Expurgo',
+      'Imunidade à Praga',
+      'Sentido da Trilha',
+      'Armadura Etérea',
+      'Soldado da Justiça',
+      'Poderes da Caçada: Éter',
+    ],
+  },
+  {
+    id: 'cacador-lunara',
+    pathId: 'cacada',
+    name: 'Caçador(a) de Lunara',
+    description: 'Caçador Absoluto de Lunara / Lua.',
+    cost: 45,
+    requirements: { noOtherPath: true },
+    effects: [
+      'Caçador de Monstros',
+      'Expurgo',
+      'Imunidade à Praga',
+      'Sentido da Trilha',
+      'Inquisição',
+      'Guiado pela Lua',
+      'Poderes da Caçada: Lunara',
+    ],
+  },
+  {
+    id: 'cacador-grande-chama',
+    pathId: 'cacada',
+    name: 'Caçador(a) da Grande-Chama',
+    description: 'Caçador Absoluto da Grande-Chama / Purgatório.',
+    cost: 45,
+    requirements: { noOtherPath: true },
+    effects: [
+      'Caçador de Monstros',
+      'Expurgo',
+      'Imunidade à Praga',
+      'Sentido da Trilha',
+      'Purgação',
+      'Imbuído nas Chamas',
+      'Poderes da Caçada: Grande-Chama',
+    ],
+  },
+  {
+    id: 'impeto',
+    pathId: 'esperanca',
+    name: 'Ímpeto',
+    description: 'Arauto da esperança e da arte (Vox).',
+    cost: 30,
+    requirements: { noOtherPath: true },
+    effects: ['Esperança', 'Remorso Subconsciente', 'Canalização Voxi', 'Projeção Artística'],
+  },
+  {
+    id: 'campeao',
+    pathId: 'patronos',
+    name: 'Campeão(ã)',
+    description: 'Servo de um patrono (divindade, entidade menor ou planar).',
+    cost: 30,
+    requirements: {
+      skills: { natura: 2 },
+      noOtherPath: true,
+    },
+    effects: ['Contrabalanço', 'Proteção do Patrono', 'Canalização Naturi', 'Manifestações do Patrono'],
+  },
+  {
+    id: 'carrasco',
+    pathId: 'violencia',
+    name: 'Carrasco(a)',
+    description: 'Ultraviolência sob código de honra.',
+    cost: 30,
+    requirements: { noOtherPath: true },
+    effects: [
+      'Resistência à Praga',
+      'Identificação do Carrasco',
+      'Canalização Lethalis',
+      'Código de Violência',
+      'Ultraviolências',
+    ],
+  },
+  {
+    id: 'anti-cacador',
+    pathId: 'anti-cacada',
+    name: 'Anti-Caçador',
+    description: 'Servo da Praga e do pecado.',
+    cost: 30,
+    requirements: { noOtherPath: true },
+    effects: ['Corrupção', 'Imunidade', 'Cultista', 'Promessa de Poder'],
   },
 ]
 
@@ -571,12 +677,14 @@ export const cacadaPowers: CacadaPower[] = [
   {
     id: 'protecao-da-cacada',
     name: 'Proteção da Caçada',
-    description: 'Uma camada de energia sobrenatural lhe serve como proteção.',
-    cost: 5,
+    description:
+      'Camada de energia sobrenatural conforme a proteção vestida (tronco/membros/cabeça).',
+    cost: 15,
     requirements: {
       pathId: 'cacada',
     },
-    effects: 'Para cada posição (cabeça, rosto, tronco, braços e pernas) onde não tiver uma armadura equipada, você recebe um bônus irredutível igual a metade (arredondada para baixo) do seu Nível de Trilha em cálculos de resistência a dano físico. O bônus de Proteção da Caçada ainda é aplicado em posições equipadas apenas com uma armadura com a propriedade Confortável.',
+    effects:
+      'Tronco e órgãos vitais (sem armadura): bônus de resistência igual ao dobro do Nível de Trilha. Membros (armadura leve): bônus igual ao Nível de Trilha em ataques localizados nos membros. Cabeça (sem capacete): bônus igual ao dobro do Nível de Trilha em ataques localizados na cabeça.',
   },
   {
     id: 'punhos-da-cacada',
@@ -768,6 +876,10 @@ export function getPathBaseSingularityByPathId(pathId: string): PathBaseSingular
   return pathBaseSingularities.find(s => s.pathId === pathId)
 }
 
+export function getPathBaseSingularitiesByPathId(pathId: string): PathBaseSingularity[] {
+  return pathBaseSingularities.filter((s) => s.pathId === pathId)
+}
+
 export function getBruxariasByCategory(category: Bruxaria['category']): Bruxaria[] {
   return bruxarias.filter(b => b.category === category)
 }
@@ -784,12 +896,93 @@ export function getAllCacadaPowers(): CacadaPower[] {
   return cacadaPowers
 }
 
+export type CacadaEntityVariant = 'abismo' | 'eter' | 'lunara' | 'grande-chama'
+
+const PATH_BASE_TO_ENTITY_VARIANT: Record<string, CacadaEntityVariant> = {
+  'cacador-abismo': 'abismo',
+  'path-cacador-abismo': 'abismo',
+  'cacador-eter': 'eter',
+  'path-cacador-eter': 'eter',
+  'cacador-lunara': 'lunara',
+  'path-cacador-lunara': 'lunara',
+  'cacador-grande-chama': 'grande-chama',
+  'path-cacador-grande-chama': 'grande-chama',
+}
+
+function entityEnhancementFromBook(entry: {
+  id: string
+  name: string
+  description: string
+  cost: number
+  meta?: Record<string, unknown>
+}): CacadaEnhancement | null {
+  const powerId = typeof entry.meta?.powerId === 'string' ? entry.meta.powerId : null
+  if (!powerId) return null
+  return {
+    id: entry.id,
+    name: entry.name,
+    description: entry.description,
+    cost: entry.cost,
+    requirements: {
+      powerId,
+      noOtherEnhancement: true,
+    },
+    effects: entry.description,
+  }
+}
+
+function getEntityCacadaEnhancementsFromBook(): CacadaEnhancement[] {
+  return pathBookEntries
+    .filter((e) => e.meta?.kind === 'enhancement' && e.pathKind === 'cacada')
+    .map((e) => entityEnhancementFromBook(e))
+    .filter((e): e is CacadaEnhancement => Boolean(e))
+}
+
+export function getCacadaEntityVariantFromPathBase(pathBaseId: string): CacadaEntityVariant | null {
+  return PATH_BASE_TO_ENTITY_VARIANT[pathBaseId] ?? null
+}
+
 export function getCacadaEnhancementById(id: string): CacadaEnhancement | undefined {
-  return cacadaEnhancements.find(e => e.id === id)
+  const universal = cacadaEnhancements.find((e) => e.id === id)
+  if (universal) return universal
+  const book = pathBookEntries.find((e) => e.id === id && e.meta?.kind === 'enhancement')
+  if (!book) return undefined
+  return entityEnhancementFromBook(book) ?? undefined
 }
 
 export function getCacadaEnhancementsByPowerId(powerId: string): CacadaEnhancement[] {
-  return cacadaEnhancements.filter(e => e.requirements.powerId === powerId)
+  return cacadaEnhancements.filter((e) => e.requirements.powerId === powerId)
+}
+
+export function getCacadaEnhancementsForPower(
+  powerId: string,
+  pathBaseId?: string,
+): CacadaEnhancement[] {
+  const universal = getCacadaEnhancementsByPowerId(powerId)
+  const variant = pathBaseId ? getCacadaEntityVariantFromPathBase(pathBaseId) : null
+  if (!variant) return universal
+  const entity = pathBookEntries
+    .filter(
+      (e) =>
+        e.pathKind === 'cacada' &&
+        e.meta?.kind === 'enhancement' &&
+        e.variant === variant &&
+        e.meta?.powerId === powerId,
+    )
+    .map((e) => entityEnhancementFromBook(e))
+    .filter((e): e is CacadaEnhancement => Boolean(e))
+  return [...universal, ...entity]
+}
+
+export function getAllCacadaEnhancements(): CacadaEnhancement[] {
+  const seen = new Set<string>()
+  const out: CacadaEnhancement[] = []
+  for (const e of [...cacadaEnhancements, ...getEntityCacadaEnhancementsFromBook()]) {
+    if (seen.has(e.id)) continue
+    seen.add(e.id)
+    out.push(e)
+  }
+  return out
 }
 
 export function getAllBruxarias(): Bruxaria[] {

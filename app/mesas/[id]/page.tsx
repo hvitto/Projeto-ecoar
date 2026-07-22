@@ -312,50 +312,52 @@ export default function MesaPage() {
           </div>
         )}
 
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-3">
-          Fichas na mesa
-        </h2>
-        {tableCharacters.length === 0 ? (
-          <p className="text-sm text-slate-500">Nenhuma ficha na mesa ainda.</p>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tableCharacters.map((item) => (
-              <li
-                key={item.character.id}
-                className="p-4 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-slate-900 dark:text-ecoar-light-900">
-                    {item.character.name}
-                  </span>
-                  {item.memberUsername && (
-                    <span className="text-xs text-slate-500">@{item.memberUsername}</span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={Eye}
-                    onClick={() => handleViewCharacter(item)}
-                  >
-                    Ver
-                  </Button>
-                  {item.canEdit && (
+        <div className="min-w-0">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90">
+            Fichas na mesa
+          </h2>
+          {tableCharacters.length === 0 ? (
+            <p className="text-sm text-slate-500">Nenhuma ficha na mesa ainda.</p>
+          ) : (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tableCharacters.map((item) => (
+                <li
+                  key={item.character.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-800"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="font-medium text-slate-900 dark:text-ecoar-light-900">
+                      {item.character.name}
+                    </span>
+                    {item.memberUsername && (
+                      <span className="text-xs text-slate-500">@{item.memberUsername}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      leftIcon={Pencil}
-                      onClick={() => handleEditCharacter(item)}
+                      leftIcon={Eye}
+                      onClick={() => handleViewCharacter(item)}
                     >
-                      Editar
+                      Ver
                     </Button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                    {item.canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        leftIcon={Pencil}
+                        onClick={() => handleEditCharacter(item)}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </motion.div>
       </div>
     </div>

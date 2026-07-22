@@ -9,7 +9,6 @@ import Button from '@/shared/components/ui/Button'
 import AuthCard from './AuthCard'
 import { LogIn } from 'lucide-react'
 import { AuthError } from '@/shared/types/auth'
-import { DEMO_ACCOUNTS } from '@/lib/config'
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void
@@ -24,20 +23,18 @@ type FieldErrors = {
 }
 
 export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessage, onMessageShown }: LoginFormProps) {
-  const { login, loginDemo, isLoading } = useAuth()
+  const { login, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [demoError, setDemoError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loginSubmitting, setLoginSubmitting] = useState(false)
-  const [pendingDemoId, setPendingDemoId] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(initialMessage || null)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMessage, setResendMessage] = useState<string | null>(null)
 
   const isEmailNotVerified = error === AuthError.EMAIL_NOT_VERIFIED
-  const formBusy = isLoading || loginSubmitting || pendingDemoId !== null
+  const formBusy = isLoading || loginSubmitting
 
   const handleResendVerification = async () => {
     if (!email.trim()) return
@@ -48,6 +45,7 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
       const res = await fetch(`${base}/api/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: email.trim() }),
       })
       const data = await res.json()
@@ -66,7 +64,6 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    setDemoError(null)
 
     if (!email.trim() || !password.trim()) {
       setFieldErrors({
@@ -88,29 +85,6 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
       }
     } finally {
       setLoginSubmitting(false)
-    }
-  }
-
-  const handleDemoLogin = async (accountId: string) => {
-    setError(null)
-    setDemoError(null)
-    setFieldErrors({})
-    setPendingDemoId(accountId)
-    try {
-      const result = await loginDemo(accountId)
-      if (result.success) {
-        onSuccess?.()
-      } else {
-        const message = result.error || 'Erro ao entrar com conta de teste.'
-        setDemoError(message)
-        setError(message)
-      }
-    } catch {
-      const message = 'Erro de rede ao entrar com conta de teste. Verifique se o servidor está rodando.'
-      setDemoError(message)
-      setError(message)
-    } finally {
-      setPendingDemoId(null)
     }
   }
 
@@ -238,32 +212,6 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
             Entrar com Google
           </motion.a>
         </motion.form>
-
-        <motion.div className="pt-2 border-t border-ecoar-dark-200 dark:border-ecoar-light-900/20" variants={staggerItem}>
-          <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/55 mb-2 text-center">
-            Contas de teste (senha comum: <span className="font-mono">demo123</span> se entrar por email):
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <Button
-                key={acc.id}
-                type="button"
-                onClick={() => void handleDemoLogin(acc.id)}
-                disabled={formBusy}
-                variant="secondary"
-                size="sm"
-                className="w-full min-h-[40px] rounded-lg text-xs justify-center"
-              >
-                {pendingDemoId === acc.id ? 'Entrando...' : acc.label}
-              </Button>
-            ))}
-          </div>
-          {demoError && (
-            <p className="mt-3 text-sm text-red-400 text-center" role="alert">
-              {demoError}
-            </p>
-          )}
-        </motion.div>
       </motion.div>
     </AuthCard>
   )

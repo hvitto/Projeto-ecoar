@@ -46,7 +46,7 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
+import { getAttributeModifier, getSkillDice, formatModifier, calculateCharacterLimits, toLimitShape } from '@/lib/calculations'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import {
@@ -63,6 +63,7 @@ import {
 import {
   pathBaseSingularities,
   getPathBaseSingularityByPathId,
+  getPathBaseSingularityById,
   bruxarias,
   getBruxariasByCategory,
   getAllBruxarias,
@@ -77,6 +78,7 @@ import {
   CacadaPower,
   CacadaEnhancement,
 } from '@/data/pathSingularities'
+import { getDisturbiosPontosEcoarObtidos } from '@/data/disturbios'
 import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
 import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
 import { WIZARD_TOTAL_STEPS } from '@/features/character/constants/wizardSteps'
@@ -142,10 +144,18 @@ export interface CharacterCreationData {
   // Step 11: Ecoar
   ecoar?: string
   singularidadesEcoar?: string[]
+  disturbios?: import('@/data/disturbios').DisturbioOwnedEntry[]
+  ecoarAcoes?: string[]
+  pontosEcoar?: { obtidos: number; gastos: number; disponiveis: number }
 
   // Step 11 (complemento): singularidades marciais e raciais
   singularidadesMarciais?: string[]
   singularidadesRaciais?: string[]
+  singularidadesPath?: string[]
+  pathCacadaPowers?: string[]
+  pathCacadaEnhancements?: string[]
+  pathSingularityBase?: string
+  pathBruxarias?: string[]
 
   /** IDs de desvantagens do livro (ex.: antipatico). */
   desvantagens?: string[]
@@ -177,6 +187,11 @@ export interface CharacterCreationData {
   equipamentosLivres?: string[]
   armasLivres?: string[]
   moeda?: string
+
+  corpo?: { atual: number; max: number }
+  mente?: { atual: number; max: number }
+  folego?: { atual: number; max: number }
+  mana?: { atual: number; max: number }
 }
 
 interface CharacterCreationWizardProps {
@@ -231,6 +246,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     singularidades,
     selectedEcoar,
     singularidadesEcoar,
+    disturbios,
+    ecoarAcoes,
     singularidadesRaciais,
     pathSingularityBase,
     pathBruxarias,
@@ -280,6 +297,11 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const setSingularidades = useCallback((v: string[]) => patch({ singularidades: v }), [patch])
   const setSelectedEcoar = useCallback((v: string) => patch({ selectedEcoar: v }), [patch])
   const setSingularidadesEcoar = useCallback((v: string[]) => patch({ singularidadesEcoar: v }), [patch])
+  const setDisturbios = useCallback(
+    (v: import('@/data/disturbios').DisturbioOwnedEntry[]) => patch({ disturbios: v }),
+    [patch],
+  )
+  const setEcoarAcoes = useCallback((v: string[]) => patch({ ecoarAcoes: v }), [patch])
   const setSingularidadesRaciais = useCallback((v: string[]) => patch({ singularidadesRaciais: v }), [patch])
   const setPathSingularityBase = useCallback((v: string) => patch({ pathSingularityBase: v }), [patch])
   const setPathBruxarias = useCallback((v: string[]) => patch({ pathBruxarias: v }), [patch])
@@ -351,6 +373,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         : {}),
       ...(initialData.singularidades ? { singularidades: initialData.singularidades } : {}),
       ...(initialData.singularidadesEcoar ? { singularidadesEcoar: initialData.singularidadesEcoar } : {}),
+      ...(Array.isArray(initialData.disturbios) ? { disturbios: initialData.disturbios } : {}),
+      ...(Array.isArray(initialData.ecoarAcoes) ? { ecoarAcoes: initialData.ecoarAcoes } : {}),
       ...(initialData.pontosCriacao ? { pontosCriacao: initialData.pontosCriacao } : {}),
       ...(initialData.nome ? { nome: initialData.nome } : {}),
       ...(initialData.backstory ? { backstory: initialData.backstory } : {}),
@@ -635,16 +659,12 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     return singularidades.filter((s) => school.singularities.some((sing) => sing.id === s))
   }, [singularidades, selectedEscolaMarcial])
 
-  /** PC gasto em singularidades (criação + ecoar + marciais + raciais), mesma regra de SingularitiesSpendingStep. */
+  /** PC gasto em singularidades (criação + marciais + raciais). Ecoar usa Pontos de Ecoar. */
   const gastosPCEmSingularidades = useMemo(() => {
     const criacaoCost = singularidades.reduce((sum, singId) => {
       if (getMartialSchoolSingularityById(singId)) return sum
       let sing: { cost?: number } | null | undefined = getCreationSingularityById(singId)
       if (!sing) sing = getSingularityById(singId)
-      return sum + (sing?.cost || 0)
-    }, 0)
-    const ecoarCost = singularidadesEcoar.reduce((sum, singId) => {
-      const sing = getEcoarSingularityById(singId)
       return sum + (sing?.cost || 0)
     }, 0)
     const marciaisCost = singularidades.reduce((sum, singId) => {
@@ -655,22 +675,18 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       const sing = getRacialSingularityById(singId)
       return sum + (sing?.cost ?? 0)
     }, 0)
-    return criacaoCost + ecoarCost + marciaisCost + raciaisCost
-  }, [
-    singularidades,
-    singularidadesEcoar,
-    singularidadesRaciais,
-    getEcoarSingularityById,
-  ])
+    return criacaoCost + marciaisCost + raciaisCost
+  }, [singularidades, singularidadesRaciais])
 
   /** PC gasto na aba Trilha (base + caçada). */
   const gastosPCEmTrilha = useMemo(() => {
-    const pathBaseSingularity = selectedTrilha ? getPathBaseSingularityByPathId(selectedTrilha) : null
+    const pathBaseSingularity = pathSingularityBase
+      ? getPathBaseSingularityById(pathSingularityBase)
+      : null
     let total = 0
     if (pathSingularityBase && pathBaseSingularity) {
       total += pathBaseSingularity.cost
     }
-    // Bruxarias are free
     pathCacadaPowers.forEach((powerId) => {
       const power = getCacadaPowerById(powerId)
       if (power) total += power.cost
@@ -680,7 +696,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       if (enh) total += enh.cost
     })
     return total
-  }, [selectedTrilha, pathSingularityBase, pathCacadaPowers, pathCacadaEnhancements])
+  }, [pathSingularityBase, pathCacadaPowers, pathCacadaEnhancements])
 
   /** PC gasto em atributos (além dos 12) e aptidões (além dos 3). */
   const gastosPCEmTracos = useMemo(() => {
@@ -723,10 +739,12 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           singularidadesEcoar,
           singularidadesMarciais: singularidadesMarciaisFiltered,
           singularidadesRaciais,
+          singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements],
           singularidadesCondicionaisCriacaoAtivas: [],
           singularidadesCondicionaisAtivas: [],
           singularidadesCondicionaisMarciaisAtivas: [],
           singularidadesCondicionaisRaciaisAtivas: [],
+          singularidadesCondicionaisPathAtivas: [],
         }),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
@@ -735,6 +753,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       singularidadesEcoar,
       singularidadesMarciaisFiltered,
       singularidadesRaciais,
+      pathCacadaPowers,
+      pathCacadaEnhancements,
       systemSingularityById,
     ],
   )
@@ -758,6 +778,36 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     () => partitionSignedBonuses(singularityBonusesCreation),
     [singularityBonusesCreation],
   )
+
+  const creationLimits = useMemo(() => {
+    const soulLevel = getSoulLevelByNivel(nivelAlmaInicial)
+    const nivelPoder = soulLevel?.nivelPoder ?? 3
+    const race = selectedRaca ? getRaceById(selectedRaca) : undefined
+    const raceCorpo = race?.bonuses?.corpo ?? 0
+    const raceMente = race?.bonuses?.mente ?? 0
+    return calculateCharacterLimits({
+      vitalidade: effectiveAttributesCreation.vitalidade?.effectiveLevel ?? 0,
+      vontade: effectiveAttributesCreation.vontade?.effectiveLevel ?? 0,
+      nivelPoder,
+      corpoBonus: singularityBonusesCreation.corpo + bookDisadvantageCreation.corpo + raceCorpo,
+      menteBonus: singularityBonusesCreation.mente + bookDisadvantageCreation.mente + raceMente,
+      folegoBonus: singularityBonusesCreation.folego + bookDisadvantageCreation.folego,
+      manaBonus: singularityBonusesCreation.mana + bookDisadvantageCreation.mana,
+    })
+  }, [
+    nivelAlmaInicial,
+    selectedRaca,
+    effectiveAttributesCreation.vitalidade?.effectiveLevel,
+    effectiveAttributesCreation.vontade?.effectiveLevel,
+    singularityBonusesCreation.corpo,
+    singularityBonusesCreation.mente,
+    singularityBonusesCreation.folego,
+    singularityBonusesCreation.mana,
+    bookDisadvantageCreation.corpo,
+    bookDisadvantageCreation.mente,
+    bookDisadvantageCreation.folego,
+    bookDisadvantageCreation.mana,
+  ])
 
   const mergedEquipamentosLista = useMemo(
     () => [
@@ -785,6 +835,21 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       const catEquipLines = itensCatalogo.filter((i) => i.kind !== 'weapon').map((i) => i.displayLine)
       const catArmaLines = itensCatalogo.filter((i) => i.kind === 'weapon').map((i) => i.displayLine)
       const saldoMoedas = Math.max(0, equipmentOrcamentoCeros - sumCatalogItemsCeros(itensCatalogo))
+      const limits = calculateCharacterLimits({
+        vitalidade: effectiveAttributesCreation.vitalidade?.effectiveLevel ?? 0,
+        vontade: effectiveAttributesCreation.vontade?.effectiveLevel ?? 0,
+        nivelPoder,
+        corpoBonus:
+          singularityBonusesCreation.corpo +
+          bookDisadvantageCreation.corpo +
+          (getRaceById(selectedRaca)?.bonuses?.corpo ?? 0),
+        menteBonus:
+          singularityBonusesCreation.mente +
+          bookDisadvantageCreation.mente +
+          (getRaceById(selectedRaca)?.bonuses?.mente ?? 0),
+        folegoBonus: singularityBonusesCreation.folego + bookDisadvantageCreation.folego,
+        manaBonus: singularityBonusesCreation.mana + bookDisadvantageCreation.mana,
+      })
 
       onComplete({
         nivelAlma: nivelAlmaInicial,
@@ -815,8 +880,25 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         singularidades,
         ecoar: selectedEcoar,
         singularidadesEcoar,
+        disturbios,
+        ecoarAcoes,
+        pontosEcoar: {
+          obtidos: getDisturbiosPontosEcoarObtidos(disturbios),
+          gastos: singularidadesEcoar.reduce(
+            (sum, id) => sum + (getEcoarSingularityById(id)?.cost ?? 0),
+            0,
+          ),
+          disponiveis:
+            getDisturbiosPontosEcoarObtidos(disturbios) -
+            singularidadesEcoar.reduce((sum, id) => sum + (getEcoarSingularityById(id)?.cost ?? 0), 0),
+        },
         singularidadesMarciais: singularidades.filter((s) => Boolean(getMartialSchoolSingularityById(s))),
         singularidadesRaciais,
+        singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements],
+        pathCacadaPowers,
+        pathCacadaEnhancements,
+        pathSingularityBase,
+        pathBruxarias,
         desvantagens: selectedDisadvantages,
         pontosCriacao,
         nome,
@@ -831,6 +913,10 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         equipamentosLivres: equipamentos,
         armasLivres: armas,
         moeda: formatCerosDisplay(saldoMoedas),
+        corpo: toLimitShape(limits.corpoMax),
+        mente: toLimitShape(limits.menteMax),
+        folego: toLimitShape(limits.folegoMax),
+        mana: toLimitShape(limits.manaMax),
       })
     }
   }, [
@@ -851,6 +937,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     singularidades,
     selectedEcoar,
     singularidadesEcoar,
+    disturbios,
+    ecoarAcoes,
     singularidadesRaciais,
     selectedDisadvantages,
     pontosCriacao,
@@ -863,6 +951,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     armas,
     itensCatalogo,
     equipmentOrcamentoCeros,
+    effectiveAttributesCreation,
+    singularityBonusesCreation,
+    bookDisadvantageCreation,
   ])
 
   const updateAttribute = (attr: string, newTotalValue: number) => {
@@ -1104,6 +1195,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           singularityBonusesCreation={singularityBonusesCreation}
           bookDisadvantageCreation={bookDisadvantageCreation}
           signedSingularityEffects={signedSingularityEffects}
+          creationLimits={creationLimits}
         />
       }
     >
@@ -1131,6 +1223,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             singularidades={singularidades}
             selectedEcoar={selectedEcoar}
             singularidadesEcoar={singularidadesEcoar}
+            disturbios={disturbios}
+            ecoarAcoes={ecoarAcoes}
             selectedTrilha={selectedTrilha}
             pathSingularityBase={pathSingularityBase}
             pathBruxarias={pathBruxarias}
@@ -1175,6 +1269,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             setSingularidadesRaciais={setSingularidadesRaciais}
             setSelectedEcoar={setSelectedEcoar}
             setSingularidadesEcoar={setSingularidadesEcoar}
+            setDisturbios={setDisturbios}
+            setEcoarAcoes={setEcoarAcoes}
             setAttributes={setAttributes}
             setPCSubStep={setPCSubStep}
             setItensCatalogo={setItensCatalogo}

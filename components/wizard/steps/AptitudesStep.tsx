@@ -58,7 +58,7 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
+import { getAttributeModifier, getAptitudeDice, formatModifier } from '@/lib/calculations'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import {
@@ -245,7 +245,7 @@ export function AptitudesStep({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {aptitudesData.map((aptitude) => {
           const level = aptitudes[aptitude.id] || 0
-          const dice = getSkillDice(level)
+          const dice = getAptitudeDice(level)
           const maxLevel = getMaxLevel()
           const totalPointsUsed = Object.values(aptitudes).reduce((sum, l) => sum + l, 0)
           const newTotalIfIncrease = totalPointsUsed - level + (level + 1)

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 type AdminSingularityRow = {
   id: string
   ecoar_id: string | null
-  system_type: 'ecoar' | 'criacao' | 'marcial' | 'racial' | null
+  system_type: 'ecoar' | 'criacao' | 'marcial' | 'racial' | 'desvantagem' | 'tag' | 'path' | null
   source_group: string | null
   name: string
   description: string
@@ -86,7 +86,7 @@ export async function PUT(request: Request) {
       description?: string
       activationType?: 'passiva' | 'condicional' | 'complexa' | 'ativa'
       ecoarId?: string
-      systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial'
+      systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial' | 'desvantagem' | 'tag' | 'path'
       cost?: number
       bonuses?: {
         attributes?: Record<string, number>
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       id?: string
       ecoarId?: string
-      systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial'
+      systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial' | 'desvantagem' | 'tag' | 'path'
       name?: string
       description?: string
       cost?: number

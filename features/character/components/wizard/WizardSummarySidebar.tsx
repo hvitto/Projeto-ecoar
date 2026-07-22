@@ -12,6 +12,9 @@ import {
   Eye,
   Users,
   Star,
+  Heart,
+  Brain,
+  Waves,
 } from 'lucide-react'
 import SummaryItem from '@/shared/components/ui/SummaryItem'
 import { getRaceById } from '@/data/races'
@@ -22,7 +25,7 @@ import { getSkillById } from '@/data/skills'
 import { getAptitudeById } from '@/data/aptitudes'
 import { getDisadvantageById } from '@/data/disadvantages'
 import { getSingularityById } from '@/data/singularities'
-import { getAttributeModifier, formatModifier } from '@/lib/calculations'
+import { getAttributeModifier, formatModifier, type CharacterLimits } from '@/lib/calculations'
 import {
   CHARACTER_ATTRIBUTE_KEYS,
   type EffectiveAttributeRow,
@@ -56,6 +59,7 @@ export type WizardSummarySidebarProps = {
     bonusSkills: Record<string, number>
     penaltySkills: Record<string, number>
   }
+  creationLimits: CharacterLimits
 }
 
 function WizardSummarySidebar({
@@ -74,6 +78,7 @@ function WizardSummarySidebar({
   singularityBonusesCreation,
   bookDisadvantageCreation,
   signedSingularityEffects,
+  creationLimits,
 }: WizardSummarySidebarProps) {
   return (
     <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
@@ -277,6 +282,35 @@ function WizardSummarySidebar({
                 </div>
               </div>
             )}
+
+          <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
+            <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
+              <Heart className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
+              Limites
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+              {[
+                { key: 'corpo', label: 'Corpo', icon: Heart, max: creationLimits.corpoMax },
+                { key: 'mente', label: 'Mente', icon: Brain, max: creationLimits.menteMax },
+                { key: 'folego', label: 'Fôlego', icon: Waves, max: creationLimits.folegoMax },
+                { key: 'mana', label: 'Mana', icon: Sparkles, max: creationLimits.manaMax },
+              ].map((limit) => {
+                const Icon = limit.icon
+                return (
+                  <div
+                    key={limit.key}
+                    className="flex items-center justify-between gap-2 px-2 py-1.5 rounded border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-800/50 dark:bg-ecoar-light-900/5"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Icon className="w-3 h-3 text-ecoar-teal-600 dark:text-ecoar-teal-400 shrink-0" />
+                      <span className="text-slate-700 dark:text-ecoar-light-900/80 truncate">{limit.label}</span>
+                    </div>
+                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900 shrink-0">{limit.max}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
           {Object.keys(skills).length > 0 && (
             <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">

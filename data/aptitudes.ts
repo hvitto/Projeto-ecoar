@@ -7,7 +7,7 @@ export interface Aptitude {
   attribute: 'forca' | 'finesse' | 'carisma' | 'inteligencia' | 'percepcao' | 'vitalidade' | 'vontade'
 }
 
-export const aptitudes: Aptitude[] = [
+export let aptitudes: Aptitude[] = [
   {
     id: 'arcana',
     name: 'Arcana',
@@ -33,6 +33,12 @@ export const aptitudes: Aptitude[] = [
     attribute: 'carisma',
   },
 ]
+
+const STATIC_APTITUDES: Aptitude[] = aptitudes
+
+export function hydrateAptitudes(list: Aptitude[]) {
+  aptitudes = list.length > 0 ? list : STATIC_APTITUDES
+}
 
 export const getAptitudeById = (id: string): Aptitude | undefined => {
   return aptitudes.find(apt => apt.id === id)

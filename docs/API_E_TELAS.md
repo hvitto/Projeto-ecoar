@@ -14,9 +14,9 @@
 - **APIs:** todas ficam em `/api`. Exemplo: `http://localhost:3000/api/auth/login`.
 - Se você for testar as APIs direto (Postman, curl, etc.), use essa base; nas telas, o próprio site já chama essas APIs.
 
-### Conta de teste (login rápido)
+### Contas reais
 
-Na tela de **Login** existe o botão **"Entrar com conta de teste"**. Basta clicar: o sistema cria o usuário de teste no banco (se ainda não existir) e faz o login automaticamente, levando você direto ao dashboard. Não é necessário rodar nenhum comando antes.
+Use **cadastro** (email/senha + verificação) ou **Google**. Admins de catálogo são emails listados em `EQUIPMENT_ADMIN_EMAILS` / `ECOAR_ADMIN_EMAILS` no servidor.
 
 ---
 
@@ -53,23 +53,22 @@ No dashboard, o acesso às mesas (criar, entrar, listar) costuma ser por menu ou
 
 Quem for testar chamadas diretas às APIs pode usar a tabela abaixo. Todas as rotas são relativas à base (ex.: `http://localhost:3000/api`).
 
-**Autenticação nas rotas protegidas:** enviar no header:  
-`Authorization: Bearer <token>`  
-O token é devolvido no login (email/senha) ou na volta do Google (na URL `?token=...`).
+**Autenticação nas rotas protegidas:** cookie HttpOnly `ecoar_session` (JWT com `purpose: session`). O cliente deve usar `credentials: 'include'`. Bearer ainda é aceito pelo servidor como fallback legado.
 
 ### 4.1 Autenticação
 
-| Rota | Método | Precisa de token? | Observação |
+| Rota | Método | Precisa de sessão? | Observação |
 |------|--------|-------------------|------------|
-| `/api/auth/login` | POST | Não | Body: `{ email, password }`. Resposta 200 traz `user` e `token`. 403 se email não verificado. |
-| `/api/auth/demo` | POST | Não | Cria o usuário de teste no banco (se não existir) e retorna `user` e `token`. Usado pelo botão "Entrar com conta de teste". |
+| `/api/auth/login` | POST | Não | Body: `{ email, password }`. Resposta 200 traz `user` e define cookie `ecoar_session`. 403 se email não verificado. |
 | `/api/auth/register` | POST | Não | Body: `email`, `password`, `fullName`, `username`. Envia email de verificação. 409 se email ou username já existe. |
-| `/api/auth/logout` | POST | Não | Só confirma; o cliente que remove o token. |
+| `/api/auth/logout` | POST | Não | Limpa o cookie de sessão. |
 | `/api/auth/me` | GET | Sim | Retorna o usuário atual. |
-| `/api/auth/verify-email` | GET | Não | Query: `?token=...`. Redireciona para home com `?verified=1` ou `?error=...`. |
+| `/api/auth/verify-email` | GET | Não | Query: `?token=...` (token de verificação, não de sessão). Redireciona para home com `?verified=1` ou `?error=...`. |
 | `/api/auth/resend-verification` | POST | Não | Body: `{ email }`. Reenvia email de verificação. |
 | `/api/auth/google` | GET | Não | Redireciona para Google. |
-| `/api/auth/google/callback` | GET | Não | Callback do Google; redireciona para home com `?token=...` ou `?error=...`. |
+| `/api/auth/google/callback` | GET | Não | Callback do Google; define cookie e redireciona para home (ou `?error=...`). |
+
+**Admin:** emails em `EQUIPMENT_ADMIN_EMAILS` / `ECOAR_ADMIN_EMAILS` no ambiente do servidor.
 
 **Regras de registro (validação):** email válido; senha com no mínimo 6 caracteres; nome completo entre 2 e 100 caracteres; username entre 3 e 20 caracteres, só letras, números, `_` e `-`, e não pode começar ou terminar com `-` ou `_`.
 

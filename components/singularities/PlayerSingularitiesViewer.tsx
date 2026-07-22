@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState } from 'react'
 import type { CharacterData } from '@/shared/types/auth'
@@ -30,10 +30,10 @@ const TAB_LABELS: Record<MainTab, string> = {
 
 const TAB_INTRO: Record<MainTab, string> = {
   'passivas-condicionais':
-    'Passivas: efeitos numéricos simples entram na ficha automaticamente. Condicionais só entram no cálculo quando a condição está ativa na ficha — marque quando valer no teste ou na cena.',
+    'Passivas: entram na ficha automaticamente. Condicionais: só entram com “Condição ativa (Ativa?)” ligada — equivalente ao Ativa? da planilha.',
   complexas:
-    'Não são somadas automaticamente na ficha. Leia a descrição e aplique na mesa ou no teste quando fizer sentido.',
-  ativas: 'Costumam exigir gastar ações ou ativar o efeito; não entram no agregado numérico automático da ficha.',
+    'Regras especiais/textuais; não somam números flat automaticamente (salvo bônus estruturados reclassificados como passivos).',
+  ativas: 'Efeitos de ação/reação/Mana; não alteram mods permanentes da ficha (como na coluna Ativos da planilha).',
 }
 
 function tabFromActivationType(a: SystemSingularityActivationType): MainTab {
@@ -52,6 +52,8 @@ function kindLabel(kind: SystemSingularityKind): string {
       return 'Marcial'
     case 'racial':
       return 'Racial'
+    case 'path':
+      return 'Trilha'
   }
 }
 
@@ -63,6 +65,7 @@ function conditionalEnabledForKind(
   if (kind === 'criacao') return slice.singularidadesCondicionaisCriacaoAtivas.includes(id)
   if (kind === 'ecoar') return slice.singularidadesCondicionaisAtivas.includes(id)
   if (kind === 'marcial') return slice.singularidadesCondicionaisMarciaisAtivas.includes(id)
+  if (kind === 'path') return (slice.singularidadesCondicionaisPathAtivas ?? []).includes(id)
   return slice.singularidadesCondicionaisRaciaisAtivas.includes(id)
 }
 
@@ -86,11 +89,17 @@ export default function PlayerSingularitiesViewer({
   const { getEcoarSingularityById, ecoarSingularities } = useEcoarCatalogData()
 
   const selectionSlice = useMemo((): CharacterSingularitySelectionSlice => {
+    const pathFromPowers = [
+      ...((characterData.singularidadesPath as string[] | undefined) ?? []),
+      ...((characterData.pathCacadaPowers as string[] | undefined) ?? []),
+      ...((characterData.pathCacadaEnhancements as string[] | undefined) ?? []),
+    ]
     return {
       singularidades: (characterData.singularidades as string[] | undefined) ?? [],
       singularidadesEcoar: (characterData.singularidadesEcoar as string[] | undefined) ?? [],
       singularidadesMarciais: (characterData.singularidadesMarciais as string[] | undefined) ?? [],
       singularidadesRaciais: (characterData.singularidadesRaciais as string[] | undefined) ?? [],
+      singularidadesPath: Array.from(new Set(pathFromPowers)),
       singularidadesCondicionaisCriacaoAtivas:
         (characterData.singularidadesCondicionaisCriacaoAtivas as string[] | undefined) ?? [],
       singularidadesCondicionaisAtivas:
@@ -99,16 +108,22 @@ export default function PlayerSingularitiesViewer({
         (characterData.singularidadesCondicionaisMarciaisAtivas as string[] | undefined) ?? [],
       singularidadesCondicionaisRaciaisAtivas:
         (characterData.singularidadesCondicionaisRaciaisAtivas as string[] | undefined) ?? [],
+      singularidadesCondicionaisPathAtivas:
+        (characterData.singularidadesCondicionaisPathAtivas as string[] | undefined) ?? [],
     }
   }, [
     characterData.singularidades,
     characterData.singularidadesEcoar,
     characterData.singularidadesMarciais,
     characterData.singularidadesRaciais,
+    characterData.singularidadesPath,
+    characterData.pathCacadaPowers,
+    characterData.pathCacadaEnhancements,
     characterData.singularidadesCondicionaisCriacaoAtivas,
     characterData.singularidadesCondicionaisAtivas,
     characterData.singularidadesCondicionaisMarciaisAtivas,
     characterData.singularidadesCondicionaisRaciaisAtivas,
+    characterData.singularidadesCondicionaisPathAtivas,
   ])
 
   const singularityBonuses = singularityBonusesProp ?? emptySingularityBonuses()
@@ -174,7 +189,12 @@ export default function PlayerSingularitiesViewer({
       singularityBonuses.corpo !== 0 ||
       singularityBonuses.mente !== 0 ||
       singularityBonuses.folego !== 0 ||
-      singularityBonuses.mana !== 0)
+      singularityBonuses.mana !== 0 ||
+      singularityBonuses.attack !== 0 ||
+      singularityBonuses.damage !== 0 ||
+      singularityBonuses.penetration !== 0 ||
+      singularityBonuses.crit !== 0 ||
+      singularityBonuses.maxDamage !== 0)
 
   const selectedEntries = useMemo((): SelectedEntry[] => {
     const out: SelectedEntry[] = []
@@ -186,6 +206,7 @@ export default function PlayerSingularitiesViewer({
     for (const id of selectionSlice.singularidadesEcoar) push(id, 'ecoar')
     for (const id of selectionSlice.singularidadesMarciais) push(id, 'marcial')
     for (const id of selectionSlice.singularidadesRaciais) push(id, 'racial')
+    for (const id of selectionSlice.singularidadesPath ?? []) push(id, 'path')
     return out
   }, [selectionSlice])
 

@@ -7,20 +7,19 @@ export function getAttributeModifier(level: number): number {
   return level;
 }
 
-// Skill Dice Calculation
 export function getSkillDice(level: number): string {
   const diceTable: Record<number, string> = {
-    0: '1d4-1',
-    1: '1d4',
-    2: '1d6',
-    3: '1d8',
-    4: '1d10',
-    5: '1d12',
-    6: '1d12+1d4',
-    7: '1d20+1',
-    8: '1d20+1d6',
+    0: '1d4',
+    1: '1d6',
+    2: '1d8',
+    3: '1d10',
+    4: '1d12',
+    5: '1d12+1d4',
+    6: '1d20+1',
+    7: '1d20+1d6',
+    8: '1d20+1d8',
   };
-  return diceTable[level] || '1d4-1';
+  return diceTable[level] || '1d4';
 }
 
 // Aptitude Dice and Modifier Calculation
@@ -64,6 +63,48 @@ export function calculateManaMax(menteMax: number): number {
   return menteMax * 2;
 }
 
+export function calculateEspiritoMax(nivelPoder: number): number {
+  return Math.max(0, nivelPoder) * 15
+}
+
+export type CharacterLimitsInput = {
+  vitalidade: number
+  vontade: number
+  nivelPoder: number
+  corpoBonus?: number
+  menteBonus?: number
+  folegoBonus?: number
+  manaBonus?: number
+}
+
+export type CharacterLimits = {
+  corpoMax: number
+  menteMax: number
+  folegoMax: number
+  manaMax: number
+}
+
+export function calculateCharacterLimits(input: CharacterLimitsInput): CharacterLimits {
+  const corpoBonus = input.corpoBonus ?? 0
+  const menteBonus = input.menteBonus ?? 0
+  const folegoBonus = input.folegoBonus ?? 0
+  const manaBonus = input.manaBonus ?? 0
+  const corpoMax = calculateCorpoMax(input.vitalidade, input.nivelPoder) + corpoBonus
+  const menteMax = calculateMenteMax(input.vontade, input.nivelPoder) + menteBonus
+  return {
+    corpoMax,
+    menteMax,
+    folegoMax: calculateFolegoMax(corpoMax) + folegoBonus,
+    manaMax: calculateManaMax(menteMax) + manaBonus,
+  }
+}
+
+export function toLimitShape(max: number, atual?: number): { atual: number; max: number } {
+  const safeMax = Number.isFinite(max) ? max : 0
+  const safeAtual = atual !== undefined && Number.isFinite(atual) ? atual : safeMax
+  return { atual: safeAtual, max: safeMax }
+}
+
 // Common Tests Calculations
 // Arredores (Surroundings) = Percepção + Atenção (Arredores specialization)
 // Iniciativa (Initiative) = Percepção + Raciocínio (Iniciativa specialization) 
@@ -94,9 +135,13 @@ export function calculateCommonTests(
   };
 }
 
-// Format modifier with + sign
 export function formatModifier(mod: number): string {
   if (mod >= 0) return `+${mod}`;
   return `${mod}`;
+}
+
+export function formatDiceWithModifier(dice: string, mod: number): string {
+  if (mod === 0) return dice
+  return `${dice} ${mod >= 0 ? '+' : '-'} ${Math.abs(mod)}`
 }
 

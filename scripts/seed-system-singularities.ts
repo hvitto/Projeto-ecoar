@@ -13,6 +13,12 @@ import { singularities as legacyCreationSingularities } from '../data/singularit
 import { getAllMartialSchools, getOfficialMartialCostByLevel } from '../data/martialSchoolSingularities'
 import { races } from '../data/races'
 import { racialSingularities } from '../data/racialSingularities'
+import { pathBookEntries } from '../data/pathBookContent'
+import {
+  cacadaEnhancements,
+  cacadaPowers,
+  pathBaseSingularities,
+} from '../data/pathSingularities'
 import { extractSimpleBonusesFromMartialText } from '../lib/extractSimpleBonusesFromMartialText'
 
 type ActivationType = 'passiva' | 'condicional' | 'complexa' | 'ativa'
@@ -89,7 +95,12 @@ function buildCreationBonuses(source: {
   }
 }
 
-async function ensureGroup(sql: any, groupId: string, systemType: 'criacao' | 'marcial' | 'racial', label: string) {
+async function ensureGroup(
+  sql: any,
+  groupId: string,
+  systemType: 'criacao' | 'marcial' | 'racial' | 'path',
+  label: string,
+) {
   await sql`
     INSERT INTO ecoar_catalog (id, name, type, acquisition_requirement, acquisition_cost, description, is_active, updated_at)
     VALUES (${groupId}, ${label}, ${systemType}, ${'catálogo-admin'}, 0, ${`Agrupador ${label}`}, true, now())
@@ -108,7 +119,7 @@ async function ensureSystemTypeConstraintAllowsRacial(sql: any) {
   await sql`
     ALTER TABLE ecoar_singularities
     ADD CONSTRAINT ecoar_singularities_system_type_check
-    CHECK (system_type IN ('ecoar', 'criacao', 'marcial', 'racial'))
+    CHECK (system_type IN ('ecoar', 'criacao', 'marcial', 'racial', 'desvantagem', 'tag', 'path'))
   `
 }
 
@@ -320,6 +331,244 @@ async function main() {
     `
   }
 
+  const pathGroups = new Map<string, string>()
+  for (const entry of pathBookEntries) {
+    if (!pathGroups.has(entry.sourceGroup)) {
+      pathGroups.set(entry.sourceGroup, `Trilha: ${entry.pathKind}`)
+    }
+  }
+  pathGroups.set('path-bases-ui', 'Trilha: bases (UI)')
+  pathGroups.set('path-cacada-powers-ui', 'Trilha: poderes da Caçada')
+  pathGroups.set('path-cacada-enh-ui', 'Trilha: aprimoramentos da Caçada')
+  for (const [groupId, label] of pathGroups) {
+    await ensureGroup(sql, groupId, 'path', label)
+  }
+
+  for (const entry of pathBookEntries) {
+    const bonusesSimple = JSON.stringify({
+      attributes: entry.bonuses?.attributes ?? {},
+      skills: entry.bonuses?.skills ?? {},
+      corpo: entry.bonuses?.corpo,
+      mente: entry.bonuses?.mente,
+      folego: entry.bonuses?.folego,
+      mana: entry.bonuses?.mana,
+      attack: entry.bonuses?.attack,
+      damage: entry.bonuses?.damage,
+      penetration: entry.bonuses?.penetration,
+      crit: entry.bonuses?.crit,
+      maxDamage: entry.bonuses?.maxDamage,
+    })
+    await sql`
+      INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
+      VALUES (
+        ${entry.id},
+        ${entry.sourceGroup},
+        ${'path'},
+        ${entry.sourceGroup},
+        ${JSON.stringify({
+          pathKind: entry.pathKind,
+          variant: entry.variant ?? null,
+          requirementsText: entry.requirementsText ?? null,
+          ...(entry.meta ?? {}),
+        })}::jsonb,
+        ${entry.name},
+        ${entry.description},
+        ${Math.trunc(entry.cost)},
+        null,
+        ${entry.activationType},
+        ${bonusesSimple}::jsonb,
+        false,
+        true,
+        now()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        ecoar_id = EXCLUDED.ecoar_id,
+        system_type = EXCLUDED.system_type,
+        source_group = EXCLUDED.source_group,
+        source_meta = EXCLUDED.source_meta,
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        cost = EXCLUDED.cost,
+        activation_type = EXCLUDED.activation_type,
+        bonuses_simple = EXCLUDED.bonuses_simple,
+        is_active = true,
+        updated_at = now()
+    `
+    await sql`DELETE FROM ecoar_singularity_requirements WHERE singularity_id = ${entry.id}`
+    if (entry.previousIds) {
+      for (let i = 0; i < entry.previousIds.length; i++) {
+        await sql`
+          INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
+          VALUES (${`${entry.id}-req-prev-${i + 1}`}, ${entry.id}, ${'previous'}, ${'id'}, ${entry.previousIds[i]}, null, now())
+        `
+      }
+    }
+    await sql`
+      INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
+      VALUES (${`${entry.id}-fx-main`}, ${entry.id}, ${'main'}, ${entry.name}, ${entry.description}, 1, now())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        updated_at = now()
+    `
+  }
+
+  for (const base of pathBaseSingularities) {
+    const effectsText = Array.isArray(base.effects) ? base.effects.join('; ') : ''
+    const fullDescription = `${base.description}${effectsText ? `\n${effectsText}` : ''}`
+    const activationType = inferActivationType(fullDescription)
+    await sql`
+      INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
+      VALUES (
+        ${base.id},
+        ${'path-bases-ui'},
+        ${'path'},
+        ${'path-bases-ui'},
+        ${JSON.stringify({ pathId: base.pathId, kind: 'path-base', requirements: base.requirements })}::jsonb,
+        ${base.name},
+        ${fullDescription},
+        ${Math.trunc(base.cost)},
+        null,
+        ${activationType},
+        ${JSON.stringify({})}::jsonb,
+        true,
+        true,
+        now()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        ecoar_id = EXCLUDED.ecoar_id,
+        system_type = EXCLUDED.system_type,
+        source_group = EXCLUDED.source_group,
+        source_meta = EXCLUDED.source_meta,
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        cost = EXCLUDED.cost,
+        activation_type = EXCLUDED.activation_type,
+        is_base = true,
+        is_active = true,
+        updated_at = now()
+    `
+    await sql`DELETE FROM ecoar_singularity_requirements WHERE singularity_id = ${base.id}`
+    await sql`
+      INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
+      VALUES (${`${base.id}-fx-main`}, ${base.id}, ${'main'}, ${base.name}, ${fullDescription}, 1, now())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        updated_at = now()
+    `
+  }
+
+  for (const power of cacadaPowers) {
+    const fullDescription = `${power.description}${power.effects ? `\n${power.effects}` : ''}`
+    const activationType = inferActivationType(fullDescription)
+    const bonusesSimple = JSON.stringify(
+      extractSimpleBonusesFromMartialText({ description: power.description, effects: power.effects }),
+    )
+    await sql`
+      INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
+      VALUES (
+        ${power.id},
+        ${'path-cacada-powers-ui'},
+        ${'path'},
+        ${'path-cacada-powers-ui'},
+        ${JSON.stringify({ pathId: power.requirements.pathId, kind: 'cacada-power' })}::jsonb,
+        ${power.name},
+        ${fullDescription},
+        ${Math.trunc(power.cost)},
+        null,
+        ${activationType},
+        ${bonusesSimple}::jsonb,
+        false,
+        true,
+        now()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        ecoar_id = EXCLUDED.ecoar_id,
+        system_type = EXCLUDED.system_type,
+        source_group = EXCLUDED.source_group,
+        source_meta = EXCLUDED.source_meta,
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        cost = EXCLUDED.cost,
+        activation_type = EXCLUDED.activation_type,
+        bonuses_simple = EXCLUDED.bonuses_simple,
+        is_active = true,
+        updated_at = now()
+    `
+    await sql`DELETE FROM ecoar_singularity_requirements WHERE singularity_id = ${power.id}`
+    await sql`
+      INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
+      VALUES (${`${power.id}-fx-main`}, ${power.id}, ${'main'}, ${power.name}, ${fullDescription}, 1, now())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        updated_at = now()
+    `
+  }
+
+  for (const enh of cacadaEnhancements) {
+    const fullDescription = `${enh.description}${enh.effects ? `\n${enh.effects}` : ''}`
+    const activationType = inferActivationType(fullDescription)
+    const bonusesSimple = JSON.stringify(
+      extractSimpleBonusesFromMartialText({ description: enh.description, effects: enh.effects }),
+    )
+    await sql`
+      INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
+      VALUES (
+        ${enh.id},
+        ${'path-cacada-enh-ui'},
+        ${'path'},
+        ${'path-cacada-enh-ui'},
+        ${JSON.stringify({
+          kind: 'cacada-enhancement',
+          powerId: enh.requirements.powerId,
+          noOtherEnhancement: enh.requirements.noOtherEnhancement ?? false,
+        })}::jsonb,
+        ${enh.name},
+        ${fullDescription},
+        ${Math.trunc(enh.cost)},
+        null,
+        ${activationType},
+        ${bonusesSimple}::jsonb,
+        false,
+        true,
+        now()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        ecoar_id = EXCLUDED.ecoar_id,
+        system_type = EXCLUDED.system_type,
+        source_group = EXCLUDED.source_group,
+        source_meta = EXCLUDED.source_meta,
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        cost = EXCLUDED.cost,
+        activation_type = EXCLUDED.activation_type,
+        bonuses_simple = EXCLUDED.bonuses_simple,
+        is_active = true,
+        updated_at = now()
+    `
+    await sql`DELETE FROM ecoar_singularity_requirements WHERE singularity_id = ${enh.id}`
+    await sql`
+      INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
+      VALUES (${`${enh.id}-req-prev`}, ${enh.id}, ${'previous'}, ${'id'}, ${enh.requirements.powerId}, null, now())
+    `
+    await sql`
+      INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
+      VALUES (${`${enh.id}-fx-main`}, ${enh.id}, ${'main'}, ${enh.name}, ${fullDescription}, 1, now())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        updated_at = now()
+    `
+  }
+
+  await sql`
+    UPDATE ecoar_singularities
+    SET is_active = false, updated_at = now()
+    WHERE id IN ('cacador', 'cacada-protecao-da-cacada')
+  `
+
   const summary = (await sql`
     SELECT system_type, COUNT(*)::int AS n
     FROM ecoar_singularities
@@ -328,7 +577,7 @@ async function main() {
     ORDER BY system_type
   `) as Array<{ system_type: string; n: number }>
   console.log('Resumo por system_type (ativas):', Object.fromEntries(summary.map((r) => [r.system_type, r.n])))
-  console.log('Backfill de singularidades de Criação, Marciais e Raciais concluído.')
+  console.log('Backfill de singularidades de Criação, Marciais, Raciais e Trilhas concluído.')
 }
 
 main().catch((err) => {

@@ -64,7 +64,7 @@ const defaultHeroImageConfig: RaceImageHeroConfig = {
   zIndex: 0,
 }
 
-export const races: Race[] = [
+export let races: Race[] = [
   {
     id: 'peccata',
     name: 'Peccata',
@@ -259,6 +259,12 @@ export const races: Race[] = [
     },
   },
 ]
+
+const STATIC_RACES: Race[] = races
+
+export function hydrateRaces(list: Race[]) {
+  races = list.length > 0 ? list : STATIC_RACES
+}
 
 export const getRaceById = (id: string): Race | undefined => {
   return races.find(r => r.id === id)

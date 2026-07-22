@@ -7,7 +7,6 @@ import ThemeSwitcher from '@/components/ThemeSwitcher'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { getAccessToken } from '@/lib/auth/authService'
 import type { ArmorCatalogEntry, CatalogEntry, CostMultiplierTable, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
 import CatalogItemEditModal from '@/components/admin/CatalogItemEditModal'
 import CreateEquipmentModal from '@/components/admin/CreateEquipmentModal'
@@ -34,7 +33,7 @@ export default function EquipmentCatalog() {
   const [createOpen, setCreateOpen] = useState(false)
 
   useEffect(() => {
-    if (authLoading || !user || !getAccessToken()) {
+    if (authLoading || !user) {
       setShowAdminLink(false)
       setAdminData(null)
       setEditingRow(null)
@@ -43,7 +42,7 @@ export default function EquipmentCatalog() {
     let cancelled = false
     ;(async () => {
       const res = await fetch('/api/equipment-catalog/admin/ping', {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        credentials: 'include',
         cache: 'no-store',
       })
       if (!cancelled) setShowAdminLink(res.ok)
@@ -54,7 +53,7 @@ export default function EquipmentCatalog() {
       }
 
       const adminRes = await fetch('/api/equipment-catalog/admin', {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        credentials: 'include',
         cache: 'no-store',
       })
 
@@ -195,7 +194,7 @@ export default function EquipmentCatalog() {
           existingIds={adminData?.items.map((i) => i.id) ?? []}
           onCreated={async () => {
             const adminRes = await fetch('/api/equipment-catalog/admin', {
-              headers: { Authorization: `Bearer ${getAccessToken()}` },
+              credentials: 'include',
               cache: 'no-store',
             })
             if (!adminRes.ok) return
@@ -217,7 +216,7 @@ export default function EquipmentCatalog() {
           onClose={() => setEditingRow(null)}
           onSaved={async () => {
             const adminRes = await fetch('/api/equipment-catalog/admin', {
-              headers: { Authorization: `Bearer ${getAccessToken()}` },
+              credentials: 'include',
               cache: 'no-store',
             })
             if (!adminRes.ok) return

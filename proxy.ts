@@ -1,24 +1,20 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Origens permitidas para CORS (frontend em domínio diferente da API)
 const DEFAULT_ORIGINS = 'https://ecoar.dev'
-const ALLOWED_ORIGINS = (
-  process.env.CORS_ORIGIN || DEFAULT_ORIGINS
-)
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || DEFAULT_ORIGINS)
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean)
 
 function getCorsHeaders(origin: string | null) {
   const allowOrigin =
-    origin && ALLOWED_ORIGINS.includes(origin)
-      ? origin
-      : ALLOWED_ORIGINS[0] || '*'
+    origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] || 'https://ecoar.dev'
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
   }
 }
@@ -26,7 +22,6 @@ function getCorsHeaders(origin: string | null) {
 export function proxy(request: NextRequest) {
   const origin = request.headers.get('origin')
 
-  // Preflight: responder OPTIONS com headers CORS
   if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
       status: 204,

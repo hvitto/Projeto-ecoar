@@ -37,6 +37,8 @@ export type WizardStepRendererProps = {
   singularidades: string[]
   selectedEcoar: string
   singularidadesEcoar: string[]
+  disturbios: import('@/data/disturbios').DisturbioOwnedEntry[]
+  ecoarAcoes: string[]
   selectedTrilha: string
   pathSingularityBase: string
   pathBruxarias: string[]
@@ -81,6 +83,8 @@ export type WizardStepRendererProps = {
   setSingularidadesRaciais: (ids: string[]) => void
   setSelectedEcoar: (id: string) => void
   setSingularidadesEcoar: (ids: string[]) => void
+  setDisturbios: (entries: import('@/data/disturbios').DisturbioOwnedEntry[]) => void
+  setEcoarAcoes: (ids: string[]) => void
   setAttributes: (attrs: WizardAttributes) => void
   setPCSubStep: (sub: 'singularidades' | 'traços' | 'escola-marcial') => void
   setItensCatalogo: (items: CatalogOwnedItem[]) => void
@@ -107,6 +111,8 @@ function WizardStepRenderer({
   singularidades,
   selectedEcoar,
   singularidadesEcoar,
+  disturbios,
+  ecoarAcoes,
   selectedTrilha,
   pathSingularityBase,
   pathBruxarias,
@@ -151,6 +157,8 @@ function WizardStepRenderer({
   setSingularidadesRaciais,
   setSelectedEcoar,
   setSingularidadesEcoar,
+  setDisturbios,
+  setEcoarAcoes,
   setAttributes,
   setPCSubStep,
   setItensCatalogo,
@@ -266,6 +274,10 @@ function WizardStepRenderer({
             singularidades={singularidades}
             selectedEcoar={selectedEcoar}
             singularidadesEcoar={singularidadesEcoar}
+            disturbios={disturbios}
+            onDisturbiosChange={setDisturbios}
+            ecoarAcoes={ecoarAcoes}
+            onEcoarAcoesChange={setEcoarAcoes}
             selectedTrilha={selectedTrilha}
             onTrilhaSelect={handleTrilhaSelectForPCStep}
             pathSingularityBase={pathSingularityBase}

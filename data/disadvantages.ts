@@ -1,6 +1,11 @@
 // Disadvantages (Desvantagens) data from Ecoar RPG
 // Desvantagens podem ser escolhidas para ganhar Pontos de Criação adicionais durante a criação de personagem
 
+import {
+  getRuntimeCatalogSingularities,
+  mapCatalogToDisadvantages,
+} from '@/lib/runtimeCatalogStore'
+
 export interface Disadvantage {
   id: string
   name: string
@@ -187,10 +192,18 @@ export const disadvantages: Disadvantage[] = [
   },
 ]
 
+export const getAllDisadvantages = (): Disadvantage[] => {
+  const runtime = getRuntimeCatalogSingularities()
+  if (runtime && runtime.some((s) => s.systemType === 'desvantagem')) {
+    return mapCatalogToDisadvantages(runtime)
+  }
+  return disadvantages
+}
+
 export const getDisadvantageById = (id: string): Disadvantage | undefined => {
-  return disadvantages.find(d => d.id === id)
+  return getAllDisadvantages().find((d) => d.id === id)
 }
 
 export const getDisadvantagesByCategory = (category: Disadvantage['category']): Disadvantage[] => {
-  return disadvantages.filter(d => d.category === category)
+  return getAllDisadvantages().filter((d) => d.category === category)
 }

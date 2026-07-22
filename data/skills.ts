@@ -14,7 +14,7 @@ export interface Skill {
   description?: string
 }
 
-export const skills: Skill[] = [
+export let skills: Skill[] = [
   // Habilidades de Combate
   {
     id: 'armas-especiais',
@@ -340,6 +340,12 @@ export const skills: Skill[] = [
     ],
   },
 ]
+
+const STATIC_SKILLS: Skill[] = skills
+
+export function hydrateSkills(list: Skill[]) {
+  skills = list.length > 0 ? list : STATIC_SKILLS
+}
 
 export const getSkillsByCategory = (category: Skill['category']): Skill[] => {
   return skills.filter(skill => skill.category === category)

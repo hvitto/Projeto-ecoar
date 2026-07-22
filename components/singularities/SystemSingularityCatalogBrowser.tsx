@@ -34,7 +34,7 @@ type SelectionByKind = {
   ecoar: string[]
   marciais: string[]
   raciais: string[]
-  /** IDs de desvantagens do livro (ex.: devagar); entram nos conflitos de singularidade de criação. */
+  path?: string[]
   desvantagens: string[]
 }
 
@@ -43,6 +43,7 @@ type ConditionalEnabledByKind = {
   ecoar: string[]
   marciais: string[]
   raciais: string[]
+  path?: string[]
 }
 
 export interface SystemSingularityCatalogBrowserContext {
@@ -151,6 +152,10 @@ function computeMissingRequirements(args: {
     }
   }
 
+  if (sing.kind === 'path') {
+    return missing
+  }
+
   if (sing.kind === 'racial') {
     const req = sing.requirements
     if (!('raceId' in req)) return missing
@@ -180,7 +185,8 @@ function formatCost(cost: number): string {
 
 function shortBonusDisplay(s: SystemSingularity): string {
   const b = s.bonusesSimpleExtracted
-  if (!b) return 'Sem bônus simples configurado'
+  const channels = s.effectChannels
+  if (!b && !channels) return 'Sem bônus simples configurado'
   const parts: string[] = []
 
   const addKV = (k: string, v: number) => {
@@ -188,14 +194,35 @@ function shortBonusDisplay(s: SystemSingularity): string {
     parts.push(`${k}: ${v >= 0 ? '+' : ''}${v}`)
   }
 
-  for (const [k, v] of Object.entries(b.attributes ?? {})) addKV(k, v)
-  for (const [k, v] of Object.entries(b.skills ?? {})) addKV(k, v)
-  addKV('Corpo', b.corpo)
-  addKV('Mente', b.mente)
-  addKV('Fôlego', b.folego)
-  addKV('Mana', b.mana)
+  const show = b ?? channels?.passivos
+  if (show) {
+    for (const [k, v] of Object.entries(show.attributes ?? {})) addKV(k, v)
+    for (const [k, v] of Object.entries(show.skills ?? {})) addKV(k, v)
+    addKV('Corpo', show.corpo)
+    addKV('Mente', show.mente)
+    addKV('Fôlego', show.folego)
+    addKV('Mana', show.mana)
+    addKV('Ataque', show.attack)
+    addKV('Dano', show.damage)
+    addKV('Penetração', show.penetration)
+    addKV('Crítico', show.crit)
+    addKV('Dano Máx.', show.maxDamage)
+  }
+
+  if (channels?.condicionais?.length) {
+    parts.push(`Condicionais: ${channels.condicionais.length}`)
+  }
 
   return parts.length ? parts.join(' | ') : 'Sem bônus simples configurado'
+}
+
+function selectionKeyForKind(kind: SystemSingularityKind): keyof SelectionByKind | null {
+  if (kind === 'criacao') return 'criacao'
+  if (kind === 'ecoar') return 'ecoar'
+  if (kind === 'marcial') return 'marciais'
+  if (kind === 'racial') return 'raciais'
+  if (kind === 'path') return 'path'
+  return null
 }
 
 export default function SystemSingularityCatalogBrowser({
@@ -264,8 +291,11 @@ export default function SystemSingularityCatalogBrowser({
 
   const renderCard = (sing: SystemSingularity) => {
     const kind = sing.kind
-    const selectedList = ((selectedIdsByKind as any)[kind === 'marcial' ? 'marciais' : kind === 'racial' ? 'raciais' : kind] ?? []) as string[]
-    const conditionalList = ((conditionalEnabledIdsByKind as any)[kind === 'marcial' ? 'marciais' : kind === 'racial' ? 'raciais' : kind] ?? []) as string[]
+    const selKey = selectionKeyForKind(kind)
+    const selectedList = (selKey ? ((selectedIdsByKind as SelectionByKind)[selKey] ?? []) : []) as string[]
+    const conditionalList = (selKey && selKey !== 'desvantagens'
+      ? ((conditionalEnabledIdsByKind as ConditionalEnabledByKind)[selKey as keyof ConditionalEnabledByKind] ?? [])
+      : []) as string[]
     const isSelected = selectedList.includes(sing.id)
     const condEnabled = conditionalList.includes(sing.id)
 
@@ -274,7 +304,10 @@ export default function SystemSingularityCatalogBrowser({
     const validReq = missingReqs.length === 0
     const canSelect = isSelected || (mode === 'picker' && validReq && canAfford)
 
-    const showConditionalBox = mode === 'picker' && onToggleConditional && sing.activationType === 'condicional' && isSelected
+    const hasConditionalEffects =
+      (sing.effectChannels?.condicionais?.length ?? 0) > 0 || sing.activationType === 'condicional'
+    const showConditionalBox =
+      mode === 'picker' && onToggleConditional && hasConditionalEffects && isSelected
 
     const showPickerCheckbox = mode === 'picker' && onToggleSelect
 
@@ -320,7 +353,7 @@ export default function SystemSingularityCatalogBrowser({
               onChange={(e) => onToggleConditional({ id: sing.id, kind, enabled: e.target.checked })}
               className="h-3.5 w-3.5 rounded border-slate-300 dark:border-ecoar-light-900/30"
             />
-            Condição ativa [X]
+            Condição ativa (Ativa?)
           </label>
         )}
       </article>

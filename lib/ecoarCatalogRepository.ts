@@ -15,13 +15,15 @@ type EcoarCatalogRow = {
 type EcoarSingularityRow = {
   id: string
   ecoar_id: string
-  system_type: 'ecoar' | 'criacao' | 'marcial' | 'racial' | null
+  system_type: 'ecoar' | 'criacao' | 'marcial' | 'racial' | 'desvantagem' | 'tag' | 'path' | null
   source_group: string | null
+  source_meta: unknown
   name: string
   description: string
   cost: number
   activation_type: 'passiva' | 'condicional' | 'complexa' | 'ativa' | null
   bonuses_simple: unknown
+  effect_channels: unknown
 }
 
 export async function listActiveEcoarCatalog(): Promise<Ecoar[]> {
@@ -42,7 +44,7 @@ export async function listActiveEcoarCatalog(): Promise<Ecoar[]> {
 
 export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]> {
   const rows = (await sql`
-    SELECT id, ecoar_id, system_type, source_group, name, description, cost, activation_type, bonuses_simple
+    SELECT id, ecoar_id, system_type, source_group, source_meta, name, description, cost, activation_type, bonuses_simple, effect_channels
     FROM ecoar_singularities
     WHERE is_active = true
     ORDER BY system_type NULLS LAST, source_group NULLS LAST, ecoar_id, tier NULLS LAST, name
@@ -106,6 +108,18 @@ export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]
     ecoarId: r.ecoar_id,
     systemType: r.system_type ?? 'ecoar',
     sourceGroup: r.source_group ?? undefined,
+    sourceMeta: (() => {
+      const v = r.source_meta
+      if (!v) return undefined
+      if (typeof v === 'string') {
+        try {
+          return JSON.parse(v) as Record<string, unknown>
+        } catch {
+          return undefined
+        }
+      }
+      return v as Record<string, unknown>
+    })(),
     name: r.name,
     description: r.description,
     cost: r.cost,
@@ -124,8 +138,19 @@ export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]
           return undefined
         }
       }
-      // If JSONB came as object already
       return v as EcoarSingularity['bonuses']
+    })(),
+    effectChannels: (() => {
+      const v = r.effect_channels as unknown
+      if (!v) return undefined
+      if (typeof v === 'string') {
+        try {
+          return JSON.parse(v) as EcoarSingularity['effectChannels']
+        } catch {
+          return undefined
+        }
+      }
+      return v as EcoarSingularity['effectChannels']
     })(),
   }))
 }

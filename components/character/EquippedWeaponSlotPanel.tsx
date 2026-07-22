@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import type { ReactNode } from 'react'
 import { formatWeaponDamageDisplay, formatWeaponRangeDisplay } from '@/lib/weaponCatalogDisplay'
@@ -24,10 +24,16 @@ export type EquippedWeaponSlotPanelProps = {
   slotState: EquippedWeaponState | undefined
   owned: CatalogOwnedItem | undefined
   entry: WeaponCatalogEntry | undefined
-  /** Estado mínimo do personagem para resolver dado de ataque */
   characterData: AttackResolutionCharacterData
   isEditing: boolean
   showEditControls: boolean
+  singularityCombatBonuses?: {
+    attack?: number
+    damage?: number
+    crit?: number
+    maxDamage?: number
+    penetration?: number
+  }
   onSetSlot: (slot: EquippedWeaponSlotId, next: EquippedWeaponState | undefined) => void
   onToggleEquipInstance: (instanceId: string, shouldEquip: boolean) => void
 }
@@ -76,6 +82,7 @@ export default function EquippedWeaponSlotPanel({
   characterData,
   isEditing,
   showEditControls,
+  singularityCombatBonuses,
   onSetSlot,
   onToggleEquipInstance,
 }: EquippedWeaponSlotPanelProps) {
@@ -83,7 +90,12 @@ export default function EquippedWeaponSlotPanel({
   const traits = deriveWeaponTraitDisplays(entry, properties)
   const extrasOverride = !!slotState?.overrides?.extrasText?.trim()
 
-  const attackBonus = slotState?.attackBonus ?? 0
+  const singAttack = singularityCombatBonuses?.attack ?? 0
+  const singDamage = singularityCombatBonuses?.damage ?? 0
+  const singCrit = singularityCombatBonuses?.crit ?? 0
+  const singMaxDamage = singularityCombatBonuses?.maxDamage ?? 0
+
+  const attackBonus = (slotState?.attackBonus ?? 0) + singAttack
   const attackAutoText = resolveWeaponAttackAutoText({ entry, characterData })
   const attackOverrideText = slotState?.overrides?.attackText?.trim()
   const attackBase =
@@ -102,8 +114,9 @@ export default function EquippedWeaponSlotPanel({
     slotState?.overrides?.damageText ?? (entry ? formatWeaponDamageDisplay(entry) : '—')
   const damageTypesText = formatWeaponDamageTypesList(entry)
 
-  const critBonus = slotState?.critBonus ?? 0
-  const damageBonus = slotState?.damageBonus ?? 0
+  const critBonus = (slotState?.critBonus ?? 0) + singCrit
+  const damageBonus = (slotState?.damageBonus ?? 0) + singMaxDamage
+  const calcDamageBonus = singDamage
 
   const attackCatalog = entry?.attackTest ?? '—'
   const evasion = entry?.evasionTest ?? '—'
@@ -214,7 +227,12 @@ export default function EquippedWeaponSlotPanel({
         <div className="space-y-2.5">
           <div>
             <div className={lbl}>Dano</div>
-            <div className={valueClass(damageText)}>{damageText}</div>
+            <div className={valueClass(damageText)}>
+              {damageText}
+              {calcDamageBonus !== 0
+                ? ` (${calcDamageBonus > 0 ? '+' : ''}${calcDamageBonus} cálculos de dano)`
+                : ''}
+            </div>
             {showEditControls && slotState && (
               <input
                 type="text"

@@ -11,8 +11,7 @@ import { CharacterWithMetadata } from '@/shared/types/auth'
 import type { GameTable } from '@/shared/types/tables'
 import CharacterCard from '@/shared/components/ui/CharacterCard'
 import Button from '@/shared/components/ui/Button'
-import { UserPlus, FileText, LogOut, Users, Plus, LogIn, Database, Sparkles, AlertCircle } from 'lucide-react'
-import { isOfflineDemoMode } from '@/lib/auth/authService'
+import { UserPlus, FileText, LogOut, Users, Plus, LogIn, Database, Sparkles } from 'lucide-react'
 import Header from './Header'
 
 interface CharacterDashboardProps {
@@ -102,8 +101,6 @@ export default function CharacterDashboard({
     return null
   }
 
-  const showOfflineHint = isOfflineDemoMode()
-
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
       <div className="flex-shrink-0">
@@ -144,22 +141,6 @@ export default function CharacterDashboard({
           </div>
         </motion.div>
 
-        {showOfflineHint && (
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 flex gap-3 rounded-xl border border-ecoar-teal-500/25 bg-ecoar-teal-500/10 p-4 text-sm text-ecoar-teal-800 dark:text-ecoar-teal-200"
-            role="status"
-          >
-            <AlertCircle className="w-5 h-5 shrink-0 text-ecoar-teal-500" aria-hidden />
-            <p>
-              Modo demonstração: suas fichas são salvas <strong>só neste navegador</strong>. Mesas online e login real
-              estão desativados.
-            </p>
-          </motion.div>
-        )}
-
         <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
           <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/70 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -187,7 +168,6 @@ export default function CharacterDashboard({
           </div>
         </motion.section>
 
-        {!showOfflineHint && (
         <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900/90">
@@ -257,7 +237,6 @@ export default function CharacterDashboard({
             </motion.div>
           )}
         </motion.section>
-        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">

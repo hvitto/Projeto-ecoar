@@ -19,10 +19,12 @@ export type CharacterSingularitySelectionSlice = {
   singularidadesEcoar: string[]
   singularidadesMarciais: string[]
   singularidadesRaciais: string[]
+  singularidadesPath?: string[]
   singularidadesCondicionaisCriacaoAtivas: string[]
   singularidadesCondicionaisAtivas: string[]
   singularidadesCondicionaisMarciaisAtivas: string[]
   singularidadesCondicionaisRaciaisAtivas: string[]
+  singularidadesCondicionaisPathAtivas?: string[]
 }
 
 /** Monta o payload esperado por `aggregateSimpleBonuses` (system catalog). */
@@ -34,12 +36,14 @@ export function aggregateSingularityInputFromCharacterData(
     ecoar: string[]
     marciais: string[]
     raciais: string[]
+    path: string[]
   }
   conditionalEnabledIdsByKind: {
     criacao: string[]
     ecoar: string[]
     marciais: string[]
     raciais: string[]
+    path: string[]
   }
 } {
   return {
@@ -48,12 +52,14 @@ export function aggregateSingularityInputFromCharacterData(
       ecoar: characterData.singularidadesEcoar,
       marciais: characterData.singularidadesMarciais,
       raciais: characterData.singularidadesRaciais,
+      path: characterData.singularidadesPath ?? [],
     },
     conditionalEnabledIdsByKind: {
       criacao: characterData.singularidadesCondicionaisCriacaoAtivas,
       ecoar: characterData.singularidadesCondicionaisAtivas,
       marciais: characterData.singularidadesCondicionaisMarciaisAtivas,
       raciais: characterData.singularidadesCondicionaisRaciaisAtivas,
+      path: characterData.singularidadesCondicionaisPathAtivas ?? [],
     },
   }
 }
@@ -76,6 +82,11 @@ export function aggregateBookDisadvantagePenalties(ids: string[]): Singularities
     mente: 0,
     folego: 0,
     mana: 0,
+    attack: 0,
+    damage: 0,
+    penetration: 0,
+    crit: 0,
+    maxDamage: 0,
   }
   for (const id of ids) {
     const d = getDisadvantageById(id)

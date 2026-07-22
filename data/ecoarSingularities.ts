@@ -4,8 +4,9 @@
 export interface EcoarSingularity {
   id: string
   ecoarId: string
-  systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial'
+  systemType?: 'ecoar' | 'criacao' | 'marcial' | 'racial' | 'desvantagem' | 'tag' | 'path'
   sourceGroup?: string
+  sourceMeta?: Record<string, unknown>
   groupKey?: string
   groupLabel?: string
   originLabel?: string
@@ -13,6 +14,38 @@ export interface EcoarSingularity {
   description: string
   cost: number // Pontos de Criação ou Pontos de Evolução
   activationType?: 'passiva' | 'condicional' | 'complexa' | 'ativa'
+  effectChannels?: {
+    passivos: {
+      attributes: Record<string, number>
+      skills: Record<string, number>
+      corpo: number
+      mente: number
+      folego: number
+      mana: number
+      attack: number
+      damage: number
+      penetration: number
+      crit: number
+      maxDamage: number
+    }
+    condicionais: Array<{
+      id: string
+      label: string
+      bonuses: {
+        attributes: Record<string, number>
+        skills: Record<string, number>
+        corpo: number
+        mente: number
+        folego: number
+        mana: number
+        attack: number
+        damage: number
+        penetration: number
+        crit: number
+        maxDamage: number
+      }
+    }>
+  }
   requirements?: {
     previous?: string // ID da singularidade anterior necessária
     nivelAlma?: number // Nível de Alma mínimo

@@ -12,14 +12,7 @@ export interface AuthResult {
   success: boolean
   user?: User
   error?: string
-  token?: string
   message?: string
-}
-
-export interface AuthSession {
-  userId: string
-  token: string
-  expiresAt: number
 }
 
 export interface StoredUser {

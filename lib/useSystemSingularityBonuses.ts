@@ -36,6 +36,8 @@ export function useSystemSingularityBonuses(characterData: Slice) {
       characterData.singularidadesCondicionaisMarciaisAtivas,
       characterData.singularidadesCondicionaisRaciaisAtivas,
       characterData.singularidadesRaciais,
+      characterData.singularidadesPath,
+      characterData.singularidadesCondicionaisPathAtivas,
       systemSingularityById,
     ],
   )

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState, useCallback } from 'react'
 import { Sparkles, ArrowLeft } from 'lucide-react'
@@ -16,7 +16,7 @@ import {
 import { getSkillsByCategory, getSkillById, type Skill } from '@/data/skills'
 import { aptitudes as aptitudesData, type Aptitude } from '@/data/aptitudes'
 import {
-  creationSingularities,
+  getAllCreationSingularities,
   getCreationSingularitiesByCategory,
   type CreationSingularity,
 } from '@/data/creationSingularities'
@@ -31,12 +31,29 @@ import {
 } from '@/data/martialSchoolSingularities'
 import { getMartialSchoolById } from '@/data/martialSchools'
 import { races } from '@/data/races'
+import { paths, getPathById } from '@/data/paths'
+import {
+  getPathBaseSingularityById,
+  getPathBaseSingularitiesByPathId,
+  getAllCacadaPowers,
+  getCacadaPowerById,
+  getCacadaEnhancementsForPower,
+  getCacadaEnhancementById,
+  getBruxariasByCategory,
+  type Bruxaria,
+} from '@/data/pathSingularities'
 import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
+import { DisturbiosEcoarPanel } from '@/components/disturbios/DisturbiosEcoarPanel'
+import {
+  getDisturbiosPontosEcoarObtidos,
+  ownedEntryKey,
+  type DisturbioOwnedEntry,
+} from '@/data/disturbios'
 
 type EvolutionTab = 'tracos' | 'singularidades'
 type TraitsSubTab = 'atributos' | 'habilidades' | 'aptidoes'
-type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'raciais'
+type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'raciais' | 'trilhas'
 
 type AttributeKey = 'carisma' | 'finesse' | 'forca' | 'inteligencia' | 'percepcao' | 'vitalidade' | 'vontade'
 
@@ -102,6 +119,7 @@ export default function CharacterEvolutionScreen({
   const baselineEcoarId = initialCharacterData?.ecoar ?? ''
   const baselineEscolaMarcialId = initialCharacterData?.escolaMarcial ?? ''
   const baselineRacaId = initialCharacterData?.raca ?? ''
+  const baselineTrilhaId = initialCharacterData?.trilha ?? ''
 
   const [draftEcoar, setDraftEcoar] = useState<string>(() => initialCharacterData?.ecoar ?? '')
   const [draftEscolaMarcial, setDraftEscolaMarcial] = useState<string>(() => {
@@ -109,6 +127,7 @@ export default function CharacterEvolutionScreen({
     return resolveMartialSchoolDataId(raw) ?? raw
   })
   const [draftRaca, setDraftRaca] = useState<string>(() => initialCharacterData?.raca ?? '')
+  const [draftTrilha, setDraftTrilha] = useState<string>(() => initialCharacterData?.trilha ?? '')
 
   const raceBonuses = useMemo(() => {
     if (!draftRaca) return {} as Record<string, number>
@@ -174,10 +193,57 @@ export default function CharacterEvolutionScreen({
     [initialCharacterData?.singularidadesRaciais]
   )
 
+  const baselinePathIds = useMemo<string[]>(() => {
+    const fromPath = Array.isArray(initialCharacterData?.singularidadesPath)
+      ? (initialCharacterData.singularidadesPath as string[])
+      : []
+    const fromPowers = Array.isArray(initialCharacterData?.pathCacadaPowers)
+      ? (initialCharacterData.pathCacadaPowers as string[])
+      : []
+    const fromEnh = Array.isArray(initialCharacterData?.pathCacadaEnhancements)
+      ? (initialCharacterData.pathCacadaEnhancements as string[])
+      : []
+    return Array.from(new Set([...fromPath, ...fromPowers, ...fromEnh]))
+  }, [initialCharacterData])
+
+  const baselinePathSingularityBase = useMemo(
+    () => (typeof initialCharacterData?.pathSingularityBase === 'string' ? initialCharacterData.pathSingularityBase : ''),
+    [initialCharacterData?.pathSingularityBase],
+  )
+  const baselinePathBruxarias = useMemo<string[]>(
+    () => (Array.isArray(initialCharacterData?.pathBruxarias) ? initialCharacterData.pathBruxarias : []),
+    [initialCharacterData?.pathBruxarias],
+  )
+  const baselinePathCacadaPowers = useMemo(
+    () => baselinePathIds.filter((id) => Boolean(getCacadaPowerById(id))),
+    [baselinePathIds],
+  )
+  const baselinePathCacadaEnhancements = useMemo(
+    () => baselinePathIds.filter((id) => Boolean(getCacadaEnhancementById(id))),
+    [baselinePathIds],
+  )
+
   const baselineCreationSet = useMemo(() => new Set(baselineSingularidadesCriacao), [baselineSingularidadesCriacao])
   const baselineEcoarSet = useMemo(() => new Set(baselineSingularidadesEcoar), [baselineSingularidadesEcoar])
   const baselineMartialSet = useMemo(() => new Set(baselineSingularidadesMarciais), [baselineSingularidadesMarciais])
   const baselineRacialSet = useMemo(() => new Set(baselineSingularidadesRaciais), [baselineSingularidadesRaciais])
+  const baselinePathPowerSet = useMemo(() => new Set(baselinePathCacadaPowers), [baselinePathCacadaPowers])
+  const baselinePathEnhSet = useMemo(() => new Set(baselinePathCacadaEnhancements), [baselinePathCacadaEnhancements])
+  const baselinePathBruxariaSet = useMemo(() => new Set(baselinePathBruxarias), [baselinePathBruxarias])
+
+  const baselineDisturbios = useMemo<DisturbioOwnedEntry[]>(() => {
+    return Array.isArray(initialCharacterData?.disturbios)
+      ? (initialCharacterData.disturbios as DisturbioOwnedEntry[])
+      : []
+  }, [initialCharacterData?.disturbios])
+  const baselineEcoarAcoes = useMemo<string[]>(
+    () => (Array.isArray(initialCharacterData?.ecoarAcoes) ? initialCharacterData.ecoarAcoes : []),
+    [initialCharacterData?.ecoarAcoes],
+  )
+  const baselineDisturbioKeys = useMemo(
+    () => new Set(baselineDisturbios.map((e) => ownedEntryKey(e))),
+    [baselineDisturbios],
+  )
 
   const racialSingularitiesForEvolution = useMemo(
     () => (draftRaca ? getRacialSingularitiesByRaceIdForEvolution(draftRaca) : []),
@@ -198,6 +264,12 @@ export default function CharacterEvolutionScreen({
   const [draftSingularidadesEcoar, setDraftSingularidadesEcoar] = useState<string[]>(baselineSingularidadesEcoar)
   const [draftSingularidadesMarciais, setDraftSingularidadesMarciais] = useState<string[]>(baselineSingularidadesMarciais)
   const [draftSingularidadesRaciais, setDraftSingularidadesRaciais] = useState<string[]>(baselineSingularidadesRaciais)
+  const [draftPathSingularityBase, setDraftPathSingularityBase] = useState(baselinePathSingularityBase)
+  const [draftPathBruxarias, setDraftPathBruxarias] = useState<string[]>(baselinePathBruxarias)
+  const [draftPathCacadaPowers, setDraftPathCacadaPowers] = useState<string[]>(baselinePathCacadaPowers)
+  const [draftPathCacadaEnhancements, setDraftPathCacadaEnhancements] = useState<string[]>(baselinePathCacadaEnhancements)
+  const [draftDisturbios, setDraftDisturbios] = useState<DisturbioOwnedEntry[]>(baselineDisturbios)
+  const [draftEcoarAcoes, setDraftEcoarAcoes] = useState<string[]>(baselineEcoarAcoes)
 
   const handleDraftEcoarChange = useCallback(
     (next: string) => {
@@ -234,6 +306,30 @@ export default function CharacterEvolutionScreen({
       })
     },
     [baselineSingularidadesRaciais]
+  )
+
+  const handleDraftTrilhaChange = useCallback(
+    (next: string) => {
+      setDraftTrilha(next)
+      if (next === baselineTrilhaId) {
+        setDraftPathSingularityBase(baselinePathSingularityBase)
+        setDraftPathBruxarias([...baselinePathBruxarias])
+        setDraftPathCacadaPowers([...baselinePathCacadaPowers])
+        setDraftPathCacadaEnhancements([...baselinePathCacadaEnhancements])
+        return
+      }
+      setDraftPathSingularityBase('')
+      setDraftPathBruxarias([])
+      setDraftPathCacadaPowers([])
+      setDraftPathCacadaEnhancements([])
+    },
+    [
+      baselineTrilhaId,
+      baselinePathSingularityBase,
+      baselinePathBruxarias,
+      baselinePathCacadaPowers,
+      baselinePathCacadaEnhancements,
+    ],
   )
 
   const [selectedSkillCategory, setSelectedSkillCategory] = useState<Skill['category']>('combate')
@@ -290,7 +386,7 @@ export default function CharacterEvolutionScreen({
 
   const costSingularidadesCriacaoPE = useMemo(() => {
     const costById = new Map<string, number>()
-    creationSingularities.forEach((s) => costById.set(s.id, s.cost))
+    getAllCreationSingularities().forEach((s) => costById.set(s.id, s.cost))
 
     return draftSingularidadesCriacao.reduce((sum, id) => {
       if (baselineCreationSet.has(id)) return sum
@@ -298,14 +394,18 @@ export default function CharacterEvolutionScreen({
     }, 0)
   }, [baselineCreationSet, draftSingularidadesCriacao])
 
-  const costSingularidadesEcoarPE = useMemo(() => {
+  const costSingularidadesEcoarPE = 0
+
+  const pontosEcoarObtidos = useMemo(
+    () => getDisturbiosPontosEcoarObtidos(draftDisturbios),
+    [draftDisturbios],
+  )
+  const pontosEcoarGastos = useMemo(() => {
     const map = new Map<string, number>()
     getEcoarSingularitiesByEcoarId(draftEcoar).forEach((s) => map.set(s.id, s.cost))
-    return draftSingularidadesEcoar.reduce((sum, id) => {
-      if (baselineEcoarSet.has(id)) return sum
-      return sum + (map.get(id) ?? 0)
-    }, 0)
-  }, [baselineEcoarSet, draftSingularidadesEcoar, draftEcoar])
+    return draftSingularidadesEcoar.reduce((sum, id) => sum + (map.get(id) ?? 0), 0)
+  }, [draftSingularidadesEcoar, draftEcoar, getEcoarSingularitiesByEcoarId])
+  const pontosEcoarDisponiveis = pontosEcoarObtidos - pontosEcoarGastos
 
   const costSingularidadesMarciaisPE = useMemo(() => {
     // Index global por id para não depender do school selecionado.
@@ -327,6 +427,29 @@ export default function CharacterEvolutionScreen({
     }, 0)
   }, [baselineRacialSet, draftSingularidadesRaciais, draftRaca])
 
+  const costTrilhaPE = useMemo(() => {
+    let total = 0
+    if (draftPathSingularityBase && draftPathSingularityBase !== baselinePathSingularityBase) {
+      total += getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0
+    }
+    for (const id of draftPathCacadaPowers) {
+      if (baselinePathPowerSet.has(id)) continue
+      total += getCacadaPowerById(id)?.cost ?? 0
+    }
+    for (const id of draftPathCacadaEnhancements) {
+      if (baselinePathEnhSet.has(id)) continue
+      total += getCacadaEnhancementById(id)?.cost ?? 0
+    }
+    return total
+  }, [
+    draftPathSingularityBase,
+    baselinePathSingularityBase,
+    draftPathCacadaPowers,
+    draftPathCacadaEnhancements,
+    baselinePathPowerSet,
+    baselinePathEnhSet,
+  ])
+
   const totalCostPE = useMemo(() => {
     return (
       costAttributesPE +
@@ -335,7 +458,8 @@ export default function CharacterEvolutionScreen({
       costSingularidadesCriacaoPE +
       costSingularidadesEcoarPE +
       costSingularidadesMarciaisPE +
-      costSingularidadesRaciaisPE
+      costSingularidadesRaciaisPE +
+      costTrilhaPE
     )
   }, [
     costAptitudesPE,
@@ -345,6 +469,7 @@ export default function CharacterEvolutionScreen({
     costSingularidadesEcoarPE,
     costSingularidadesMarciaisPE,
     costSingularidadesRaciaisPE,
+    costTrilhaPE,
   ])
 
   const pontosDisponiveisAtual = pontosEvolucaoDisponivelInicial - totalCostPE
@@ -357,6 +482,19 @@ export default function CharacterEvolutionScreen({
     if (!eqArr(draftSingularidadesEcoar, baselineSingularidadesEcoar)) return true
     if (!eqArr(draftSingularidadesMarciais, baselineSingularidadesMarciais)) return true
     if (!eqArr(draftSingularidadesRaciais, baselineSingularidadesRaciais)) return true
+    if (draftDisturbios.length !== baselineDisturbios.length) return true
+    if (
+      !draftDisturbios.every((e) =>
+        baselineDisturbios.some((b) => ownedEntryKey(b) === ownedEntryKey(e)),
+      )
+    )
+      return true
+    if (!eqArr(draftEcoarAcoes, baselineEcoarAcoes)) return true
+    if (draftTrilha !== baselineTrilhaId) return true
+    if (draftPathSingularityBase !== baselinePathSingularityBase) return true
+    if (!eqArr(draftPathBruxarias, baselinePathBruxarias)) return true
+    if (!eqArr(draftPathCacadaPowers, baselinePathCacadaPowers)) return true
+    if (!eqArr(draftPathCacadaEnhancements, baselinePathCacadaEnhancements)) return true
 
     for (const k of ATTRIBUTE_KEYS) {
       if ((draftAttributes[k] ?? 0) !== (baselineAttributes[k] ?? 0)) return true
@@ -408,21 +546,35 @@ export default function CharacterEvolutionScreen({
     baselineEcoarId,
     baselineEscolaMarcialId,
     baselineRacaId,
+    baselineTrilhaId,
+    baselinePathSingularityBase,
+    baselinePathBruxarias,
+    baselinePathCacadaPowers,
+    baselinePathCacadaEnhancements,
     baselineSkills,
     baselineSingularidadesCriacao,
     baselineSingularidadesEcoar,
     baselineSingularidadesMarciais,
     baselineSingularidadesRaciais,
+    baselineDisturbios,
+    baselineEcoarAcoes,
     draftAptitudes,
     draftAttributes,
     draftEcoar,
     draftEscolaMarcial,
     draftRaca,
+    draftTrilha,
+    draftPathSingularityBase,
+    draftPathBruxarias,
+    draftPathCacadaPowers,
+    draftPathCacadaEnhancements,
     draftSkills,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
     draftSingularidadesRaciais,
+    draftDisturbios,
+    draftEcoarAcoes,
   ])
 
   const updateAttribute = (key: AttributeKey, nextTotalValue: number) => {
@@ -460,7 +612,7 @@ export default function CharacterEvolutionScreen({
         return prev.filter((x) => x !== id)
       }
 
-      const sing = creationSingularities.find((s) => s.id === id)
+      const sing = getAllCreationSingularities().find((s) => s.id === id)
       if (!sing) return prev
 
       if (!hasMasterOverride && sing.requirements?.some((reqId) => prev.includes(reqId))) return prev
@@ -547,7 +699,7 @@ export default function CharacterEvolutionScreen({
       if (!hasMasterOverride && !valid) return prev
 
       const addCost = sing.cost ?? 0
-      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
+      if (!hasMasterOverride && pontosEcoarDisponiveis < addCost) return prev
       return [...prev, id]
     })
   }
@@ -619,11 +771,87 @@ export default function CharacterEvolutionScreen({
     })
   }
 
+  const togglePathBase = (id: string) => {
+    if (draftPathSingularityBase === id) {
+      if (baselinePathSingularityBase === id && !hasMasterOverride) return
+      setDraftPathSingularityBase('')
+      return
+    }
+    const currentExtra =
+      draftPathSingularityBase && draftPathSingularityBase !== baselinePathSingularityBase
+        ? (getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0)
+        : 0
+    const nextExtra =
+      id !== baselinePathSingularityBase ? (getPathBaseSingularityById(id)?.cost ?? 0) : 0
+    const netNeeded = nextExtra - currentExtra
+    if (!hasMasterOverride && netNeeded > 0 && pontosDisponiveisAtual < netNeeded) return
+    setDraftPathSingularityBase(id)
+  }
+
+  const togglePathBruxaria = (id: string) => {
+    setDraftPathBruxarias((prev) => {
+      const has = prev.includes(id)
+      if (has) {
+        if (baselinePathBruxariaSet.has(id) && !hasMasterOverride) return prev
+        return prev.filter((x) => x !== id)
+      }
+      return [...prev, id]
+    })
+  }
+
+  const togglePathCacadaPower = (id: string) => {
+    const power = getCacadaPowerById(id)
+    if (!power) return
+    const isBaselineLocked = baselinePathPowerSet.has(id)
+    setDraftPathCacadaPowers((prev) => {
+      const has = prev.includes(id)
+      if (has) {
+        if (isBaselineLocked && !hasMasterOverride) return prev
+        setDraftPathCacadaEnhancements((enhPrev) =>
+          enhPrev.filter((e) => {
+            if (baselinePathEnhSet.has(e) && !hasMasterOverride) return true
+            return getCacadaEnhancementById(e)?.requirements.powerId !== id
+          }),
+        )
+        return prev.filter((x) => x !== id)
+      }
+      const addCost = power.cost ?? 0
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
+      return [...prev, id]
+    })
+  }
+
+  const togglePathCacadaEnhancement = (id: string) => {
+    const enhancement = getCacadaEnhancementById(id)
+    if (!enhancement) return
+    const isBaselineLocked = baselinePathEnhSet.has(id)
+    if (!draftPathCacadaPowers.includes(enhancement.requirements.powerId)) return
+    setDraftPathCacadaEnhancements((prev) => {
+      const has = prev.includes(id)
+      if (has) {
+        if (isBaselineLocked && !hasMasterOverride) return prev
+        return prev.filter((x) => x !== id)
+      }
+      if (enhancement.requirements.noOtherEnhancement) {
+        const other = prev.filter((e) => {
+          const data = getCacadaEnhancementById(e)
+          return data?.requirements.powerId === enhancement.requirements.powerId && e !== id
+        })
+        if (other.length > 0 && !hasMasterOverride) return prev
+      }
+      const addCost = enhancement.cost ?? 0
+      if (!hasMasterOverride && pontosDisponiveisAtual < addCost) return prev
+      return [...prev, id]
+    })
+  }
+
   const draftAttributesForReqCheck: Record<string, number> = draftAttributes
   const draftSkillsForReqCheck = draftSkills
   const draftAptitudesForReqCheck = draftAptitudes
 
-  const canSave = hasMasterOverride || pontosDisponiveisAtual >= 0
+  const canSave =
+    (hasMasterOverride || pontosDisponiveisAtual >= 0) &&
+    (hasMasterOverride || pontosEcoarDisponiveis >= 0)
 
   const handleSave = useCallback(async () => {
     if (!user) return
@@ -634,6 +862,11 @@ export default function CharacterEvolutionScreen({
       ecoar: draftEcoar,
       escolaMarcial: resolveMartialSchoolDataId(draftEscolaMarcial) ?? draftEscolaMarcial,
       raca: draftRaca,
+      trilha: draftTrilha,
+      pathSingularityBase: draftPathSingularityBase,
+      pathBruxarias: draftPathBruxarias,
+      pathCacadaPowers: draftPathCacadaPowers,
+      pathCacadaEnhancements: draftPathCacadaEnhancements,
       pontosEvolucao: {
         ...initialPontosEvolucao,
         atual: hasMasterOverride
@@ -647,6 +880,14 @@ export default function CharacterEvolutionScreen({
       singularidadesEcoar: draftSingularidadesEcoar,
       singularidadesMarciais: draftSingularidadesMarciais,
       singularidadesRaciais: draftSingularidadesRaciais,
+      singularidadesPath: [...draftPathCacadaPowers, ...draftPathCacadaEnhancements],
+      disturbios: draftDisturbios,
+      ecoarAcoes: draftEcoarAcoes,
+      pontosEcoar: {
+        obtidos: pontosEcoarObtidos,
+        gastos: pontosEcoarGastos,
+        disponiveis: pontosEcoarDisponiveis,
+      },
     }
 
     const saved = await saveCharacter(user.id, updated)
@@ -665,10 +906,20 @@ export default function CharacterEvolutionScreen({
     draftEcoar,
     draftEscolaMarcial,
     draftRaca,
+    draftTrilha,
+    draftPathSingularityBase,
+    draftPathBruxarias,
+    draftPathCacadaPowers,
+    draftPathCacadaEnhancements,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
     draftSingularidadesRaciais,
+    draftDisturbios,
+    draftEcoarAcoes,
+    pontosEcoarObtidos,
+    pontosEcoarGastos,
+    pontosEcoarDisponiveis,
     onSaved,
   ])
 
@@ -1018,8 +1269,8 @@ export default function CharacterEvolutionScreen({
     return (
       <div className="space-y-5">
         {/* Tabs de Singularidades */}
-        <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
-          {(['criacao', 'ecoa', 'marciais', 'raciais'] as const).map((t) => (
+        <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20 flex-wrap">
+          {(['criacao', 'ecoa', 'marciais', 'raciais', 'trilhas'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSingSubTab(t)}
@@ -1035,7 +1286,9 @@ export default function CharacterEvolutionScreen({
                 ? 'Ecoar'
                 : t === 'marciais'
                 ? 'Marciais'
-                : 'Raciais'}
+                : t === 'raciais'
+                ? 'Raciais'
+                : 'Trilhas'}
             </button>
           ))}
         </div>
@@ -1090,7 +1343,7 @@ export default function CharacterEvolutionScreen({
         )}
 
         {singSubTab === 'ecoa' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Tipo de Ecoar</label>
               <select
@@ -1106,51 +1359,81 @@ export default function CharacterEvolutionScreen({
                 ))}
               </select>
               <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
-                Você pode definir ou alterar aqui, mesmo que não tenha escolhido na criação. Ao trocar o Ecoar, singularidades incompatíveis saem do rascunho.
+                Distúrbios concedem Pontos de Ecoar; singularidades do Ecoar gastam essa moeda (não PE).
               </p>
             </div>
             {!draftEcoar ? (
               <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
-                  Escolha um Ecoar acima para listar e comprar singularidades com PE.
+                  Escolha um Ecoar acima para Distúrbios e singularidades.
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {ecoarSingularities.map((sing) => {
-                  const isSelected = draftSingularidadesEcoar.includes(sing.id)
-                  const isBaselineLocked = baselineEcoarSet.has(sing.id)
+              <>
+                <DisturbiosEcoarPanel
+                  entries={draftDisturbios}
+                  onEntriesChange={setDraftDisturbios}
+                  ecoarAcoesOwned={draftEcoarAcoes}
+                  onEcoarAcoesChange={setDraftEcoarAcoes}
+                  nivelPoder={nivelPoder}
+                  pontosEcoarGastos={pontosEcoarGastos}
+                  lockedKeys={baselineDisturbioKeys}
+                  allowRemoveLocked={hasMasterOverride}
+                />
+                <div className="space-y-3">
+                  <div className="flex items-end justify-between gap-3">
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+                      Singularidades do Ecoar
+                    </h4>
+                    <div
+                      className={`text-sm font-semibold ${
+                        pontosEcoarDisponiveis >= 0 ? 'text-ecoar-teal' : 'text-ecoar-magenta'
+                      }`}
+                    >
+                      Pts Ecoar: {pontosEcoarDisponiveis}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {ecoarSingularities.map((sing) => {
+                      const isSelected = draftSingularidadesEcoar.includes(sing.id)
+                      const isBaselineLocked = baselineEcoarSet.has(sing.id)
 
-                  const currentTraitsForCheck = {
-                    attributes: draftAttributesForReqCheck,
-                    skills: draftSkillsForReqCheck,
-                    aptitudes: draftAptitudesForReqCheck,
-                    singularidadesEcoar: draftSingularidadesEcoar,
-                  }
+                      const currentTraitsForCheck = {
+                        attributes: draftAttributesForReqCheck,
+                        skills: draftSkillsForReqCheck,
+                        aptitudes: draftAptitudesForReqCheck,
+                        singularidadesEcoar: draftSingularidadesEcoar,
+                      }
 
-                  const { valid } = checkEcoarRequirements(sing, currentTraitsForCheck)
-                  const addCost = sing.cost ?? 0
-                  const canAfford = pontosDisponiveisAtual >= addCost
-                  const canSelect = !isSelected && (!isBaselineLocked || hasMasterOverride) && (valid || hasMasterOverride) && (addCost === 0 || canAfford || hasMasterOverride)
+                      const { valid } = checkEcoarRequirements(sing, currentTraitsForCheck)
+                      const addCost = isBaselineLocked ? 0 : (sing.cost ?? 0)
+                      const canAfford = pontosEcoarDisponiveis >= addCost
+                      const canSelect =
+                        !isSelected &&
+                        (!isBaselineLocked || hasMasterOverride) &&
+                        (valid || hasMasterOverride) &&
+                        (addCost === 0 || canAfford || hasMasterOverride)
 
-                  return (
-                    <SingularityCard
-                      key={sing.id}
-                      name={sing.name}
-                      description={sing.description}
-                      cost={sing.cost ?? 0}
-                      costLabel={sing.cost === 0 ? undefined : 'PE'}
-                      secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
-                      isSelected={isSelected}
-                      canAfford={canAfford}
-                      canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
-                      onClick={() => toggleEcoarSingularity(sing.id)}
-                      requirementsText={!valid ? 'Requisitos não atendidos' : undefined}
-                      variant="teal"
-                    />
-                  )
-                })}
-              </div>
+                      return (
+                        <SingularityCard
+                          key={sing.id}
+                          name={sing.name}
+                          description={sing.description}
+                          cost={sing.cost ?? 0}
+                          costLabel={sing.cost === 0 ? undefined : 'Pts Ecoar'}
+                          secondaryCost={sing.cost === 0 ? 'Inata' : undefined}
+                          isSelected={isSelected}
+                          canAfford={canAfford}
+                          canSelect={canSelect || (isSelected && (!isBaselineLocked || hasMasterOverride))}
+                          onClick={() => toggleEcoarSingularity(sing.id)}
+                          requirementsText={!valid ? 'Requisitos não atendidos' : undefined}
+                          variant="teal"
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1307,6 +1590,237 @@ export default function CharacterEvolutionScreen({
             )}
           </div>
         )}
+
+        {singSubTab === 'trilhas' && (() => {
+          const selectedPath = draftTrilha ? getPathById(draftTrilha) : null
+          const pathBases = draftTrilha ? getPathBaseSingularitiesByPathId(draftTrilha) : []
+          const bruxariaCategories: Bruxaria['category'][] = [
+            'destruicao',
+            'terror',
+            'ilusao',
+            'agouro',
+            'protecao',
+            'reparacao',
+            'controle',
+          ]
+          const categoryLabels: Record<Bruxaria['category'], string> = {
+            destruicao: 'Destruição',
+            terror: 'Terror',
+            ilusao: 'Ilusão',
+            agouro: 'Agouro',
+            protecao: 'Proteção',
+            reparacao: 'Reparação',
+            controle: 'Controle',
+          }
+
+          return (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Trilha</label>
+                <select
+                  value={draftTrilha}
+                  onChange={(e) => handleDraftTrilhaChange(e.target.value)}
+                  className={selectEvolutionClass}
+                >
+                  <option value="">Nenhuma trilha…</option>
+                  {paths.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
+                  Pode definir ou alterar aqui, mesmo sem escolha na criação. Trocar a trilha limpa poderes/base incompatíveis do rascunho (a baseline da trilha anterior só volta se você restaurar a mesma trilha).
+                </p>
+              </div>
+
+              {!draftTrilha || !selectedPath ? (
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                  <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                    Escolha uma trilha acima para comprar a singularidade base e poderes com PE.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="p-3 rounded-lg border border-ecoar-teal/30 bg-ecoar-teal/10">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">{selectedPath.name}</div>
+                    <div className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mt-1">{selectedPath.description}</div>
+                  </div>
+
+                  {pathBases.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
+                        Singularidade base
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {pathBases.map((base) => {
+                          const isSelected = draftPathSingularityBase === base.id
+                          const isBaselineLocked = baselinePathSingularityBase === base.id
+                          const currentExtra =
+                            draftPathSingularityBase &&
+                            draftPathSingularityBase !== baselinePathSingularityBase
+                              ? (getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0)
+                              : 0
+                          const nextExtra =
+                            base.id !== baselinePathSingularityBase ? base.cost : 0
+                          const netNeeded = nextExtra - currentExtra
+                          const canAfford = netNeeded <= 0 || pontosDisponiveisAtual >= netNeeded
+                          const canSelect =
+                            isSelected
+                              ? !isBaselineLocked || hasMasterOverride
+                              : canAfford || hasMasterOverride
+
+                          return (
+                            <SingularityCard
+                              key={base.id}
+                              name={base.name}
+                              description={base.description}
+                              cost={base.cost}
+                              costLabel="PE"
+                              isSelected={isSelected}
+                              canAfford={canAfford}
+                              canSelect={canSelect}
+                              onClick={() => togglePathBase(base.id)}
+                              variant="teal"
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {draftTrilha === 'bruxaria' && draftPathSingularityBase && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+                        Bruxarias <span className="font-normal text-slate-500">(sem custo de PE)</span>
+                      </h4>
+                      {bruxariaCategories.map((category) => {
+                        const list = getBruxariasByCategory(category)
+                        if (list.length === 0) return null
+                        return (
+                          <div key={category} className="space-y-2">
+                            <h5 className="text-xs font-semibold text-slate-600 dark:text-ecoar-light-900/70 uppercase tracking-wide">
+                              {categoryLabels[category]}
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {list.map((bruxaria) => {
+                                const isSelected = draftPathBruxarias.includes(bruxaria.id)
+                                const isBaselineLocked = baselinePathBruxariaSet.has(bruxaria.id)
+                                return (
+                                  <SingularityCard
+                                    key={bruxaria.id}
+                                    name={bruxaria.name}
+                                    description={bruxaria.description}
+                                    cost={0}
+                                    secondaryCost="Livre"
+                                    isSelected={isSelected}
+                                    canAfford
+                                    canSelect={!isSelected || !isBaselineLocked || hasMasterOverride}
+                                    onClick={() => togglePathBruxaria(bruxaria.id)}
+                                    effects={bruxaria.effects}
+                                    variant="teal"
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {draftTrilha === 'cacada' && draftPathSingularityBase && (
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
+                        Poderes da Caçada
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {getAllCacadaPowers().map((power) => {
+                          const isSelected = draftPathCacadaPowers.includes(power.id)
+                          const isBaselineLocked = baselinePathPowerSet.has(power.id)
+                          const addCost = power.cost ?? 0
+                          const canAfford = pontosDisponiveisAtual >= addCost
+                          const canSelect = isSelected
+                            ? !isBaselineLocked || hasMasterOverride
+                            : canAfford || hasMasterOverride
+                          const enhancements = getCacadaEnhancementsForPower(
+                            power.id,
+                            draftPathSingularityBase,
+                          )
+
+                          return (
+                            <div key={power.id} className="space-y-2">
+                              <SingularityCard
+                                name={power.name}
+                                description={power.description}
+                                cost={power.cost}
+                                costLabel="PE"
+                                isSelected={isSelected}
+                                canAfford={canAfford}
+                                canSelect={canSelect}
+                                onClick={() => togglePathCacadaPower(power.id)}
+                                effects={power.effects}
+                                variant="teal"
+                              />
+                              {isSelected && enhancements.length > 0 && (
+                                <div className="ml-3 space-y-2 border-l-2 border-ecoar-teal/30 pl-3">
+                                  {enhancements.map((enhancement) => {
+                                    const isEnhSelected = draftPathCacadaEnhancements.includes(enhancement.id)
+                                    const isEnhLocked = baselinePathEnhSet.has(enhancement.id)
+                                    const canAffordEnh = pontosDisponiveisAtual >= enhancement.cost
+                                    const hasOtherEnh = draftPathCacadaEnhancements.some((e) => {
+                                      const data = getCacadaEnhancementById(e)
+                                      return (
+                                        data?.requirements.powerId === power.id && e !== enhancement.id
+                                      )
+                                    })
+                                    const blockedByOther =
+                                      Boolean(enhancement.requirements.noOtherEnhancement) &&
+                                      hasOtherEnh &&
+                                      !isEnhSelected
+                                    const canSelectEnh = isEnhSelected
+                                      ? !isEnhLocked || hasMasterOverride
+                                      : (canAffordEnh || hasMasterOverride) &&
+                                        (!blockedByOther || hasMasterOverride)
+
+                                    return (
+                                      <SingularityCard
+                                        key={enhancement.id}
+                                        name={enhancement.name}
+                                        description={enhancement.description}
+                                        cost={enhancement.cost}
+                                        costLabel="PE"
+                                        isSelected={isEnhSelected}
+                                        canAfford={canAffordEnh}
+                                        canSelect={canSelectEnh}
+                                        onClick={() => togglePathCacadaEnhancement(enhancement.id)}
+                                        effects={enhancement.effects}
+                                        variant="teal"
+                                        className="text-sm"
+                                      />
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {draftTrilha !== 'bruxaria' && draftTrilha !== 'cacada' && draftPathSingularityBase && (
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                      <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+                        A base desta trilha pode ser comprada com PE. Projeções, bênçãos e ultraviolências do livro entram pelo catálogo conforme forem liberadas na UI.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     )
   }

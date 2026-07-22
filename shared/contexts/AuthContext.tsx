@@ -9,7 +9,6 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<AuthResult>
-  loginDemo: (accountId?: string) => Promise<AuthResult>
   register: (email: string, password: string, fullName: string, username: string) => Promise<AuthResult>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -53,11 +52,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     try {
       const result = await authService.login(email, password)
-      
+
       if (result.success && result.user) {
         setUser(result.user)
       }
-      
+
       return result
     } catch (error) {
       console.error('Login error:', error)
@@ -68,30 +67,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
-  const loginDemo = useCallback(async (accountId?: string): Promise<AuthResult> => {
-    try {
-      const result = await authService.loginDemo(accountId)
-      if (result.success && result.user) {
-        setUser(result.user)
-      }
-      return result
-    } catch (error) {
-      console.error('Demo login error:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro ao entrar com conta de teste',
-      }
-    }
-  }, [])
-
   const register = useCallback(async (email: string, password: string, fullName: string, username: string): Promise<AuthResult> => {
     try {
       const result = await authService.register(email, password, fullName, username)
-      
+
       if (result.success && result.user) {
         setUser(result.user)
       }
-      
+
       return result
     } catch (error) {
       console.error('Register error:', error)
@@ -121,7 +104,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: user !== null,
     isLoading,
     login,
-    loginDemo,
     register,
     logout,
     refreshUser,
@@ -129,4 +111,3 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-

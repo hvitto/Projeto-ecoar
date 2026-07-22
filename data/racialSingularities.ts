@@ -1,3 +1,8 @@
+import {
+  getRuntimeCatalogSingularities,
+  mapCatalogToRacialSingularities,
+} from '@/lib/runtimeCatalogStore'
+
 export type RacialActivationType = 'passiva' | 'condicional' | 'complexa' | 'ativa'
 
 export type RacialRuleEffects = {
@@ -734,19 +739,27 @@ export const racialSingularities: RacialSingularity[] = [
   },
 ]
 
+export function getAllRacialSingularities(): RacialSingularity[] {
+  const runtime = getRuntimeCatalogSingularities()
+  if (runtime && runtime.some((s) => s.systemType === 'racial')) {
+    return mapCatalogToRacialSingularities(runtime)
+  }
+  return racialSingularities
+}
+
 export function getRacialSingularitiesByRaceId(raceId: string): RacialSingularity[] {
-  return racialSingularities.filter((s) => s.raceId === raceId)
+  return getAllRacialSingularities().filter((s) => s.raceId === raceId)
 }
 
 /** Talentos raciais adquiríveis com PE na tela de evolução (exclui talentos exclusivos da criação). */
 export function getRacialSingularitiesByRaceIdForEvolution(raceId: string): RacialSingularity[] {
-  return racialSingularities.filter(
-    (s) => s.raceId === raceId && (s.acquisitionPhase ?? 'creation') === 'evolution'
+  return getAllRacialSingularities().filter(
+    (s) => s.raceId === raceId && (s.acquisitionPhase ?? 'creation') === 'evolution',
   )
 }
 
 export function getRacialSingularityById(id: string): RacialSingularity | undefined {
-  return racialSingularities.find((s) => s.id === id)
+  return getAllRacialSingularities().find((s) => s.id === id)
 }
 
 /** Remove ids inválidos ou desconhecidos até todos os `requirements` estarem satisfeitos no próprio conjunto (cadeias e AND). */

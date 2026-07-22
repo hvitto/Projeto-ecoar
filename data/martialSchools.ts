@@ -16,7 +16,7 @@ export interface MartialSchool {
   }
 }
 
-export const martialSchools: MartialSchool[] = [
+export let martialSchools: MartialSchool[] = [
   {
     id: 'doutores-praga',
     name: 'Doutores da Praga',
@@ -88,6 +88,12 @@ export const martialSchools: MartialSchool[] = [
     },
   },
 ]
+
+const STATIC_MARTIAL_SCHOOLS: MartialSchool[] = martialSchools
+
+export function hydrateMartialSchools(list: MartialSchool[]) {
+  martialSchools = list.length > 0 ? list : STATIC_MARTIAL_SCHOOLS
+}
 
 export const getMartialSchoolById = (id: string): MartialSchool | undefined => {
   return martialSchools.find(school => school.id === id)

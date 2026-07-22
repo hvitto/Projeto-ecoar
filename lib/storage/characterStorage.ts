@@ -1,24 +1,20 @@
-﻿import { config } from '@/lib/config'
-import { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
+﻿import { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
 import * as characterApi from './characterApiService'
-import * as offlineCharacters from './offlineCharacterStorage'
-
-const store = config.OFFLINE_DEMO_MODE ? offlineCharacters : characterApi
 
 export function getUserCharacters(userId: string): Promise<CharacterWithMetadata[]> {
-  return store.getUserCharacters(userId)
+  return characterApi.getUserCharacters(userId)
 }
 
 export function saveCharacter(userId: string, characterData: CharacterData): Promise<CharacterWithMetadata> {
-  return store.saveCharacter(userId, characterData)
+  return characterApi.saveCharacter(userId, characterData)
 }
 
 export function getCharacter(userId: string, characterId: string): Promise<CharacterWithMetadata | null> {
-  return store.getCharacter(userId, characterId)
+  return characterApi.getCharacter(userId, characterId)
 }
 
 export function deleteCharacter(userId: string, characterId: string): Promise<boolean> {
-  return store.deleteCharacter(userId, characterId)
+  return characterApi.deleteCharacter(userId, characterId)
 }
 
 export async function migrateOldCharacter(oldCharacterData: unknown, userId: string): Promise<CharacterWithMetadata | null> {

@@ -6,7 +6,7 @@ export interface SoulLevel {
   estagio: string
 }
 
-export const soulLevels: SoulLevel[] = [
+export let soulLevels: SoulLevel[] = [
   // Personagem Mundano (Nível de Poder 3)
   { nivel: 1, pontosEvolucao: 0, nivelPoder: 3, estagio: 'Personagem Mundano' },
   { nivel: 2, pontosEvolucao: 10, nivelPoder: 3, estagio: 'Personagem Mundano' },
@@ -43,6 +43,12 @@ export const soulLevels: SoulLevel[] = [
   { nivel: 23, pontosEvolucao: 1130, nivelPoder: 8, estagio: 'Personagem Monstruoso' },
   { nivel: 24, pontosEvolucao: 1250, nivelPoder: 8, estagio: 'Personagem Monstruoso' },
 ]
+
+const STATIC_SOUL_LEVELS: SoulLevel[] = soulLevels
+
+export function hydrateSoulLevels(list: SoulLevel[]) {
+  soulLevels = list.length > 0 ? [...list].sort((a, b) => a.nivel - b.nivel) : STATIC_SOUL_LEVELS
+}
 
 export function getSoulLevelByNivel(nivel: number): SoulLevel | undefined {
   return soulLevels.find(sl => sl.nivel === nivel)

@@ -1,0 +1,11 @@
+---
+description: Nunca adicionar comentários em código
+alwaysApply: true
+---
+
+# Sem comentários
+
+- Nunca adicione comentários em código (nem `//`, nem `/* */`, nem JSX `{/* */}`).
+- Não crie nem deixe TODOs, notas explicativas ou blocos de documentação inline ao editar arquivos.
+- Ao escrever ou alterar código, remova apenas comentários que você mesmo teria introduzido; não faça limpeza ampla de comentários existentes sem pedido.
+- Prefira código autoexplicativo (nomes claros) em vez de comentários.

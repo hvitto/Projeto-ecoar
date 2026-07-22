@@ -99,8 +99,7 @@ export function EcoarSingularitiesList({
   selectedEcoar,
   singularidadesEcoar,
   onSingularidadesEcoarChange,
-  pontosDisponiveis,
-  pontosCriacao,
+  pontosEcoarDisponiveis,
   nivelAlma,
   attributes,
   skills,
@@ -109,8 +108,7 @@ export function EcoarSingularitiesList({
   selectedEcoar: string
   singularidadesEcoar: string[]
   onSingularidadesEcoarChange: (singularidades: string[]) => void
-  pontosDisponiveis: number
-  pontosCriacao: { obtidos: number; gastos: number; disponiveis: number }
+  pontosEcoarDisponiveis: number
   nivelAlma: number
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
@@ -118,9 +116,6 @@ export function EcoarSingularitiesList({
 }) {
   const { getEcoarSingularitiesByEcoarId, getEcoarSingularityById } = useEcoarCatalogData()
   const ecoarSingularitiesList = selectedEcoar ? getEcoarSingularitiesByEcoarId(selectedEcoar) : []
-  
-  // O cálculo do custo total é feito pelo componente pai (SingularitiesSpendingStep)
-  // através de um useEffect que monitora singularidadesEcoar
 
   // Valida todos os requisitos de uma singularidade
   const checkRequirements = useCallback((singularity: EcoarSingularity): { valid: boolean; missingReqs: string[] } => {
@@ -202,17 +197,13 @@ export function EcoarSingularitiesList({
     const isSelected = singularidadesEcoar.includes(id)
     
     if (isSelected) {
-      // Remove: o useEffect no componente pai recalculará o custo total automaticamente
       onSingularidadesEcoarChange(singularidadesEcoar.filter(s => s !== id))
     } else {
-      // Verifica requisitos
       const { valid } = checkRequirements(singularity)
       if (!valid) return
 
-      // Verifica se tem PC suficiente
-      if (pontosCriacao.disponiveis >= singularity.cost) {
+      if (pontosEcoarDisponiveis >= singularity.cost) {
         onSingularidadesEcoarChange([...singularidadesEcoar, id])
-        // O onPointsChange será chamado automaticamente pelo useEffect no componente pai
       }
     }
   }
@@ -238,18 +229,18 @@ export function EcoarSingularitiesList({
       <div className="mb-4">
         <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-2">Singularidades do Ecoar</h4>
         <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm mb-3">
-          Selecione singularidades específicas do seu Ecoar
+          Custam Pontos de Ecoar obtidos com Distúrbios
         </p>
-        <div className={`text-lg font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal' : 'text-ecoar-magenta'}`}>
-          PC Disponíveis: {pontosDisponiveis}
+        <div className={`text-lg font-semibold ${pontosEcoarDisponiveis >= 0 ? 'text-ecoar-teal' : 'text-ecoar-magenta'}`}>
+          Pontos de Ecoar disponíveis: {pontosEcoarDisponiveis}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {ecoarSingularitiesList.map((singularity) => {
           const isSelected = singularidadesEcoar.includes(singularity.id)
-          const { valid, missingReqs } = checkRequirements(singularity)
-          const canAfford = pontosCriacao.disponiveis >= singularity.cost
-          const canSelect = valid && (singularity.cost === 0 || canAfford)
+          const { valid } = checkRequirements(singularity)
+          const canAfford = pontosEcoarDisponiveis >= singularity.cost
+          const canSelect = isSelected || (valid && (singularity.cost === 0 || canAfford))
           const requirementText = getRequirementText(singularity)
           
           return (
@@ -258,7 +249,7 @@ export function EcoarSingularitiesList({
               name={singularity.name}
               description={singularity.description}
               cost={singularity.cost}
-              costLabel={singularity.cost === 0 ? undefined : 'PC'}
+              costLabel={singularity.cost === 0 ? undefined : 'Pts Ecoar'}
               secondaryCost={singularity.cost === 0 ? 'Inata' : undefined}
               isSelected={isSelected}
               canAfford={canAfford}

@@ -1,6 +1,11 @@
 // Creation Singularities (Singularidades de Criação) - Vantagens
 // As Singularidades de Criação só podem ser adquiridas durante a criação de personagem
 
+import {
+  getRuntimeCatalogSingularities,
+  mapCatalogToCreationSingularities,
+} from '@/lib/runtimeCatalogStore'
+
 export interface CreationSingularity {
   id: string
   name: string
@@ -220,11 +225,19 @@ export const creationSingularities: CreationSingularity[] = [
   },
 ]
 
+export const getAllCreationSingularities = (): CreationSingularity[] => {
+  const runtime = getRuntimeCatalogSingularities()
+  if (runtime && runtime.some((s) => s.systemType === 'criacao')) {
+    return mapCatalogToCreationSingularities(runtime)
+  }
+  return creationSingularities
+}
+
 export const getCreationSingularityById = (id: string): CreationSingularity | undefined => {
-  return creationSingularities.find(sing => sing.id === id)
+  return getAllCreationSingularities().find((sing) => sing.id === id)
 }
 
 export const getCreationSingularitiesByCategory = (category: CreationSingularity['category']): CreationSingularity[] => {
-  return creationSingularities.filter(sing => sing.category === category)
+  return getAllCreationSingularities().filter((sing) => sing.category === category)
 }
 

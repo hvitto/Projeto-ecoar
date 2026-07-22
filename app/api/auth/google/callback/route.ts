@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { signToken } from '@/lib/auth/jwt'
+import { setSessionCookie } from '@/lib/auth/sessionCookie'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
@@ -10,7 +11,7 @@ function getOrigin(request: Request): string {
 }
 
 function redirectToLogin(base: string, error?: string) {
-  const url = new URL(base)
+  const url = new URL(base || '/')
   if (error) url.searchParams.set('error', error)
   return NextResponse.redirect(url.toString())
 }
@@ -18,7 +19,7 @@ function redirectToLogin(base: string, error?: string) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const base = getOrigin(request).replace(/\/$/, '')
+  const base = getOrigin(request).replace(/\/$/, '') || new URL(request.url).origin
 
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return redirectToLogin(base, 'google_not_configured')
@@ -116,5 +117,7 @@ export async function GET(request: Request) {
   }
 
   const token = await signToken({ userId })
-  return NextResponse.redirect(`${base}/?token=${encodeURIComponent(token)}`)
+  const response = NextResponse.redirect(`${base}/`)
+  setSessionCookie(response, token)
+  return response
 }

@@ -58,7 +58,7 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
+import { getAttributeModifier, getSkillDice, formatModifier, calculateCharacterLimits } from '@/lib/calculations'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import {
@@ -108,6 +108,23 @@ export function FinalReviewVisualizer({
   const selectedPath = data.trilha ? getPathById(data.trilha) : null
   const selectedLocation = data.localizacao ? getLocationById(data.localizacao) : null
   const selectedEcoar = data.ecoar ? getEcoarById(data.ecoar) : null
+
+  const reviewLimits = useMemo(() => {
+    if (data.corpo && data.mente && data.folego && data.mana) {
+      return {
+        corpoMax: data.corpo.max,
+        menteMax: data.mente.max,
+        folegoMax: data.folego.max,
+        manaMax: data.mana.max,
+      }
+    }
+    const nivelPoder = data.nivelPoder ?? getSoulLevelByNivel(data.nivelAlma ?? 1)?.nivelPoder ?? 3
+    return calculateCharacterLimits({
+      vitalidade: data.attributes?.vitalidade ?? 0,
+      vontade: data.attributes?.vontade ?? 0,
+      nivelPoder,
+    })
+  }, [data])
 
   const reviewCardClasses =
     'p-6 rounded-xl border border-ecoar-dark/50 bg-gray-900/40 dark:bg-ecoar-light-900/10 dark:border-ecoar-light-900/20 backdrop-blur-sm'
@@ -161,6 +178,16 @@ export function FinalReviewVisualizer({
             </div>
           </div>
         )}
+
+        <div className={reviewCardClasses}>
+          <h4 className="text-slate-900 dark:text-ecoar-light-900 font-bold text-lg mb-4">Limites</h4>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Corpo:</span> <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{reviewLimits.corpoMax}</span></div>
+            <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Mente:</span> <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{reviewLimits.menteMax}</span></div>
+            <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Fôlego:</span> <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{reviewLimits.folegoMax}</span></div>
+            <div><span className="text-slate-500 dark:text-ecoar-light-900/60">Mana:</span> <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{reviewLimits.manaMax}</span></div>
+          </div>
+        </div>
 
         {/* Skills Summary */}
         {data.skills && Object.keys(data.skills).length > 0 && (

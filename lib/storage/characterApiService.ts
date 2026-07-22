@@ -1,24 +1,16 @@
 ﻿import { config } from '@/lib/config'
 import { CharacterData, CharacterWithMetadata } from '@/shared/types/auth'
 
-function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(config.STORAGE_KEYS.AUTH)
-    if (!raw) return null
-    const session = JSON.parse(raw) as { token?: string }
-    return session.token ?? null
-  } catch {
-    return null
-  }
-}
-
-async function request<T>(path: string, options: RequestInit & { token?: string | null } = {}): Promise<Response> {
-  const token = options.token ?? getStoredToken()
+async function request(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers)
-  headers.set('Content-Type', 'application/json')
-  if (token) headers.set('Authorization', `Bearer ${token}`)
-  return fetch(`${config.API.BASE_URL}${path}`, { ...options, headers })
+  if (!headers.has('Content-Type') && options.body) {
+    headers.set('Content-Type', 'application/json')
+  }
+  return fetch(`${config.API.BASE_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  })
 }
 
 function toCharacterWithMetadata(row: { id: string; userId: string; name: string; createdAt: string; updatedAt: string; data: CharacterData }): CharacterWithMetadata {

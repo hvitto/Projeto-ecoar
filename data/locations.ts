@@ -203,12 +203,18 @@ const uniaoLyriana: Location[] = [
 ]
 
 // ========== TODAS AS LOCALIZAÇÕES ==========
-export const locations: Location[] = [
+export let locations: Location[] = [
   ...aliancaResistente,
   ...ilhasDoNorte,
   ...imperioDarenviano,
   ...uniaoLyriana,
 ]
+
+const STATIC_LOCATIONS: Location[] = locations
+
+export function hydrateLocations(list: Location[]) {
+  locations = list.length > 0 ? list : STATIC_LOCATIONS
+}
 
 // ========== FUNÇÕES AUXILIARES ==========
 export const getLocationById = (id: string): Location | undefined => {
