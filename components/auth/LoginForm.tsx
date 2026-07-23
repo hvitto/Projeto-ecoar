@@ -1,9 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, FormEvent } from 'react'
-import { motion } from 'framer-motion'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { staggerContainer, staggerItem } from '@/lib/motionVariants'
 import { Input } from '@/shared/components/ui/Input'
 import Button from '@/shared/components/ui/Button'
 import AuthCard from './AuthCard'
@@ -106,10 +104,10 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
         </div>
       }
     >
-      <motion.div className="space-y-4" variants={staggerContainer} initial="hidden" animate="visible">
+      <div className="space-y-4">
         {error && (
-          <motion.div
-            variants={staggerItem}
+          <div
+           
             className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 space-y-2"
           >
             <p>{error}</p>
@@ -127,13 +125,13 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
                 {resendMessage && <p className="text-xs mt-1 text-ecoar-dark-600 dark:text-ecoar-light-900/70">{resendMessage}</p>}
               </div>
             )}
-          </motion.div>
+          </div>
         )}
 
-        <motion.form onSubmit={handleSubmit} className="space-y-4" variants={staggerContainer}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {infoMessage && (
-            <motion.div
-              variants={staggerItem}
+            <div
+             
               className="p-3 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90"
             >
               {infoMessage}
@@ -142,9 +140,9 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
                   Fechar
                 </button>
               )}
-            </motion.div>
+            </div>
           )}
-        <motion.div variants={staggerItem}>
+        <div>
           <label className="block text-xs font-medium uppercase tracking-wide text-ecoar-dark-500 dark:text-ecoar-light-900/60 mb-2">EMAIL</label>
             <Input
               type="email"
@@ -157,9 +155,9 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
               disabled={formBusy}
               error={fieldErrors.email}
             />
-          </motion.div>
+          </div>
 
-          <motion.div variants={staggerItem}>
+          <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-xs font-medium uppercase tracking-wide text-ecoar-dark-500 dark:text-ecoar-light-900/60">SENHA</label>
               <button type="button" className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/55 hover:underline">Esqueceu a senha?</button>
@@ -175,9 +173,9 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
               disabled={formBusy}
               error={fieldErrors.password}
             />
-          </motion.div>
+          </div>
 
-          <motion.div variants={staggerItem}>
+          <div>
             <Button
               type="submit"
               disabled={formBusy || !email.trim() || !password.trim()}
@@ -187,19 +185,19 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
             >
               {loginSubmitting ? 'Entrando...' : 'Entrar'}
             </Button>
-          </motion.div>
+          </div>
 
-          <motion.div className="relative my-4" variants={staggerItem}>
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-ecoar-dark-200 dark:border-ecoar-light-900/20" />
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-ecoar-light dark:bg-ecoar-dark-900 text-ecoar-dark-500 dark:text-ecoar-light-900/60">ou</span>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.a
-            variants={staggerItem}
+          <a
+           
             href={typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google` : '/api/auth/google'}
             className="flex items-center justify-center gap-2 w-full min-h-[44px] py-3 px-4 rounded-lg border border-ecoar-dark-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-800 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-dark-50 dark:hover:bg-ecoar-dark-700 transition-colors duration-fast font-medium text-sm"
           >
@@ -210,9 +208,9 @@ export default function LoginForm({ onSwitchToRegister, onSuccess, initialMessag
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             Entrar com Google
-          </motion.a>
-        </motion.form>
-      </motion.div>
+          </a>
+        </form>
+      </div>
     </AuthCard>
   )
 }

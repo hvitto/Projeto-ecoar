@@ -1,7 +1,6 @@
 'use client'
 
 import { CSSProperties } from 'react'
-import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { RaceImageHeroConfig } from '@/data/races'
 
@@ -35,16 +34,12 @@ export default function RaceImage({
   variant,
   src,
   alt,
-  delay = 0,
   className = '',
   heroConfig,
 }: RaceImageProps) {
   if (variant === 'card') {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay }}
+      <div
         className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-300 overflow-hidden ${className}`}
       >
         <Image
@@ -55,7 +50,7 @@ export default function RaceImage({
           className="w-10 h-10 object-cover"
           sizes="40px"
         />
-      </motion.div>
+      </div>
     )
   }
 
@@ -84,14 +79,7 @@ export default function RaceImage({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{
-        delay,
-        duration: 0.6,
-        ease: [0.25, 0.1, 0.25, 1],
-      }}
+    <div
       className={`pointer-events-none absolute ${className}`}
       style={wrapperStyle}
     >
@@ -104,7 +92,6 @@ export default function RaceImage({
         style={imageStyle}
         priority
       />
-    </motion.div>
+    </div>
   )
 }
-

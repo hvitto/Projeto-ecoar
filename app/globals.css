@@ -166,11 +166,11 @@
 
   /* Section Cards - Glassmorphism */
   .section-card {
-    @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-800/80 backdrop-blur-xl rounded-t-2xl rounded-b-xl shadow-2xl 
+    @apply bg-ecoar-light-700 dark:bg-ecoar-dark-800 rounded-t-2xl rounded-b-xl shadow-lg 
            border border-ecoar-dark-300/30 dark:border-ecoar-dark-700/50 p-6
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30 hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10
+           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30
            relative overflow-hidden;
-    transition: all var(--duration-smooth) var(--ease-out-expo);
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
 
   .section-card::before {
@@ -197,11 +197,10 @@
 
   /* Stat Boxes - Design sutil */
   .stat-box {
-    @apply bg-ecoar-light-700/80 dark:bg-ecoar-dark-700/[0.03] backdrop-blur-sm rounded-lg 
+    @apply bg-ecoar-light-700 dark:bg-ecoar-dark-700/[0.03] rounded-lg 
            border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3 text-center 
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30
-           hover:shadow-lg hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10;
-    transition: all var(--duration-fast) var(--ease-out);
+           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30;
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
 
   .stat-label {
@@ -222,8 +221,8 @@
            text-white rounded-lg font-semibold 
            hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 
            shadow-lg shadow-ecoar-teal-300/30
-           active:scale-95;
-    transition: all var(--duration-fast) var(--ease-out);
+           active:opacity-90;
+    transition: background-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
   }
   
   .btn-secondary {
@@ -285,7 +284,7 @@
 }
 
 .animate-blob {
-  animation: blob 7s infinite;
+  animation: none;
 }
 
 .animation-delay-2000 {
@@ -322,40 +321,11 @@
   75% { transform: translate(-40px, -32px) scale(1.05); }
 }
 
-.login-disperse1 {
-  animation: login-disperse1 12s ease-in-out infinite;
-}
-
-.login-disperse2 {
-  animation: login-disperse2 10s ease-in-out infinite;
-}
-
-.login-disperse3 {
-  animation: login-disperse3 14s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-disperse1,
-  .login-disperse2,
-  .login-disperse3 {
-    animation: none;
-  }
-}
-
-/* Login background – reflexo animado (gradiente animado) */
-@keyframes login-bg-shine {
-  0%, 100% { opacity: 1; transform: translate(0, 0); }
-  50% { opacity: 0.7; transform: translate(2%, 1%); }
-}
-
+.login-disperse1,
+.login-disperse2,
+.login-disperse3,
 .login-bg-shine {
-  animation: login-bg-shine 18s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-bg-shine {
-    animation: none;
-  }
+  animation: none;
 }
 
 /* Oculta a barra de rolagem mantendo scroll (rodinha, toque) */

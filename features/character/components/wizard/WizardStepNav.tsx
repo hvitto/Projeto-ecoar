@@ -1,9 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { motion } from 'framer-motion'
 import { CheckCircle2, Circle, Sparkles, Zap } from 'lucide-react'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
 import { WIZARD_STEP_ICONS, WIZARD_STEP_TITLES, WIZARD_TOTAL_STEPS } from '@/features/character/constants/wizardSteps'
 
 export type WizardStepNavProps = {
@@ -26,26 +24,20 @@ function WizardStepNav({
   const stepTitles = [...WIZARD_STEP_TITLES]
   const stepIcons = WIZARD_STEP_ICONS
   const totalSteps = WIZARD_TOTAL_STEPS
+  const progressPct = ((currentStep + 1) / (totalSteps + 1)) * 100
 
   return (
     <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
-      <motion.div
-        variants={fadeInUp}
-        initial="hidden"
-        animate="visible"
-        className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/70 backdrop-blur-xl border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden"
-      >
+      <div className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden">
         <div className="mb-5 pb-4 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
           <h1 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1.5">
             Criação de Personagem
           </h1>
           <p className="text-[11px] text-slate-600 dark:text-ecoar-light-900/50">Nível {initialLevel}</p>
           <div className="mt-3 w-full bg-ecoar-dark-300/20 dark:bg-white/[0.03] rounded-full h-1 overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal dark:to-ecoar-magenta"
-              initial={{ width: 0 }}
-              animate={{ width: `${((currentStep + 1) / (totalSteps + 1)) * 100}%` }}
-              transition={motionTransition.smooth}
+            <div
+              className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal dark:to-ecoar-magenta transition-[width] duration-200"
+              style={{ width: `${progressPct}%` }}
             />
           </div>
           <p className="text-[11px] text-ecoar-dark-500 dark:text-ecoar-light-900/40 mt-1.5 text-center">
@@ -64,7 +56,7 @@ function WizardStepNav({
 
             return (
               <div key={idx} className="space-y-1">
-                <motion.button
+                <button
                   type="button"
                   onClick={() => {
                     if (isClickable && stepNum <= totalSteps) {
@@ -73,7 +65,7 @@ function WizardStepNav({
                     }
                   }}
                   disabled={!isClickable}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-left ${
                     isActive
                       ? 'bg-teal-50 dark:bg-ecoar-teal-600/15 border border-teal-300 dark:border-ecoar-teal-500/20 text-slate-900 dark:text-ecoar-light-900/90'
                       : isCompleted
@@ -102,7 +94,7 @@ function WizardStepNav({
                       {title}
                     </div>
                   </div>
-                </motion.button>
+                </button>
 
                 {isPCStep && isActive && (
                   <div className="ml-4 space-y-1 border-l-2 border-ecoar-teal/30 pl-2">
@@ -118,7 +110,7 @@ function WizardStepNav({
                           key={id}
                           type="button"
                           onClick={() => onPcSubStepChange(id)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left text-sm ${
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left text-sm ${
                             isSubActive
                               ? 'bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 border border-ecoar-teal-400 dark:border-ecoar-teal-500/30 text-ecoar-dark-900 dark:text-ecoar-light-900'
                               : 'bg-ecoar-light-800 dark:bg-ecoar-light-900/10 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/10 text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:bg-ecoar-light-700 dark:hover:bg-ecoar-light-900/15'
@@ -137,7 +129,7 @@ function WizardStepNav({
             )
           })}
         </div>
-      </motion.div>
+      </div>
     </aside>
   )
 }

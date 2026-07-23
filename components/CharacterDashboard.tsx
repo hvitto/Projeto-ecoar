@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { fadeInUp, staggerContainer, staggerItem } from '@/lib/motionVariants'
 import { getUserCharacters, deleteCharacter } from '@/lib/storage/characterStorage'
 import { getUserTables } from '@/lib/storage/tablesApiService'
 import { CharacterWithMetadata } from '@/shared/types/auth'
@@ -108,7 +106,7 @@ export default function CharacterDashboard({
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8">
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
+        <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-1">
@@ -139,9 +137,9 @@ export default function CharacterDashboard({
               </Button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
+        <section className="mb-8">
           <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/70 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -166,9 +164,9 @@ export default function CharacterDashboard({
               </div>
             </div>
           </div>
-        </motion.section>
+        </section>
 
-        <motion.section variants={fadeInUp} initial="hidden" animate="visible" className="mb-10">
+        <section className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900/90">
               Suas mesas
@@ -193,7 +191,7 @@ export default function CharacterDashboard({
               Você não está em nenhuma mesa. Crie uma ou peça o link/código ao GM.
             </p>
           ) : (
-            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" variants={staggerContainer} initial="hidden" animate="visible">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {tables.map((t) => {
                 const nextSession = t.nextSessionAt
                   ? new Date(t.nextSessionAt).toLocaleDateString('pt-BR', {
@@ -205,12 +203,7 @@ export default function CharacterDashboard({
                   : null
                 return (
                   <Link key={t.id} href={`/mesas/${t.id}`}>
-                    <motion.div
-                      variants={staggerItem}
-                      whileHover={{ y: -2 }}
-                      transition={{ duration: 0.2 }}
-                      className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 hover:border-ecoar-teal-300 dark:hover:border-ecoar-teal/40 hover:shadow-md dark:hover:shadow-ecoar-teal-600/10 transition-all duration-normal cursor-pointer"
-                    >
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 hover:border-ecoar-teal-300 dark:hover:border-ecoar-teal/40 transition-colors duration-normal cursor-pointer">
                       {t.coverImageUrl ? (
                         <img
                           src={t.coverImageUrl}
@@ -230,20 +223,20 @@ export default function CharacterDashboard({
                           Próxima sessão: {nextSession}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
                   </Link>
                 )
               })}
-            </motion.div>
+            </div>
           )}
-        </motion.section>
+        </section>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-slate-600 dark:text-ecoar-light-900/60">Carregando fichas...</div>
           </div>
         ) : characters.length === 0 ? (
-          <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="flex flex-col items-center justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-20">
             <div className="w-24 h-24 bg-slate-50 dark:bg-ecoar-light-900/[0.03] rounded-full flex items-center justify-center border border-slate-200 dark:border-ecoar-light-900/[0.08] mb-6">
               <FileText className="w-12 h-12 text-slate-400 dark:text-ecoar-light-900/40" />
             </div>
@@ -261,29 +254,22 @@ export default function CharacterDashboard({
             >
               Criar Primeira Ficha
             </Button>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {characters.map((character) => (
-              <motion.div key={character.id} variants={staggerItem}>
-                <CharacterCard
-                  character={character}
-                  onView={() => onViewCharacter(character)}
-                  onEdit={() => onEditCharacter(character)}
-                  onDelete={deletingId === character.id ? undefined : () => handleDelete(character.id)}
-                />
-              </motion.div>
+              <CharacterCard
+                key={character.id}
+                character={character}
+                onView={() => onViewCharacter(character)}
+                onEdit={() => onEditCharacter(character)}
+                onDelete={deletingId === character.id ? undefined : () => handleDelete(character.id)}
+              />
             ))}
-          </motion.div>
+          </div>
         )}
         </div>
       </div>
     </div>
   )
 }
-

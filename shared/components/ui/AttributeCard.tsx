@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { LucideIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import Badge from './Badge'
 
@@ -36,7 +35,6 @@ export default function AttributeCard({
   canDecrease,
   onIncrease,
   onDecrease,
-  description,
   isEvolutionStep = false,
   pcCost,
   className = '',
@@ -44,14 +42,12 @@ export default function AttributeCard({
   const totalBonus = raceBonus + martialSchoolBonus
   const progressPercentage = (value / maxValue) * 100
   
-  // Determina cor baseada no valor - cores mais suaves
   const getValueColor = () => {
     if (value <= 2) return 'text-ecoar-teal-600 dark:text-ecoar-teal/90'
     if (value <= 5) return 'text-ecoar-teal-500 dark:text-ecoar-teal-400/90'
     return 'text-ecoar-magenta-600 dark:text-ecoar-magenta/90'
   }
   
-  // Cor da barra de progresso - mais suave
   const getProgressColor = () => {
     if (progressPercentage <= 50) return 'bg-ecoar-teal-500/60 dark:bg-ecoar-teal/60'
     if (progressPercentage <= 75) return 'bg-ecoar-teal-400/60 dark:bg-ecoar-teal-400/60'
@@ -59,18 +55,15 @@ export default function AttributeCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={`
         relative p-3 rounded-lg border bg-ecoar-light-700/80 dark:bg-ecoar-light-900/[0.03] 
         border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] 
-        hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30 hover:shadow-lg hover:shadow-ecoar-teal-400/20 dark:hover:shadow-ecoar-teal-600/10
-        transition-all duration-200 h-full min-h-[190px] flex flex-col overflow-hidden
+        hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30
+        transition-colors duration-200 h-full min-h-[190px] flex flex-col overflow-hidden
         ${className}
       `}
     >
-      {/* Header: Ícone e Nome - mais compacto com altura fixa */}
       <div className="flex items-center gap-1.5 mb-2.5 min-h-[38px]">
         <div className="w-6 h-6 rounded-md bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20 flex items-center justify-center flex-shrink-0">
           <Icon className="w-3 h-3 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
@@ -83,7 +76,6 @@ export default function AttributeCard({
             Mod: {modifier >= 0 ? '+' : ''}{modifier}
           </p>
         </div>
-        {/* Badges de Bônus - sempre reserva espaço para manter uniformidade */}
         <div className="flex items-center gap-1 flex-shrink-0 min-w-[32px] justify-end">
           {raceBonus !== 0 && (
             <Badge 
@@ -106,18 +98,15 @@ export default function AttributeCard({
         </div>
       </div>
 
-      {/* Valor Central com Controles Intuitivos - altura fixa */}
       <div className="flex flex-row items-center justify-center mb-2.5 gap-2 flex-1 min-h-[75px]">
-        {/* Botão Diminuir - Esquerda */}
-        <motion.button
+        <button
+          type="button"
           onClick={canDecrease ? onDecrease : undefined}
           disabled={!canDecrease}
-          whileHover={canDecrease ? { scale: 1.05 } : {}}
-          whileTap={canDecrease ? { scale: 0.95 } : {}}
           className={`
             w-5 h-5 rounded-full border flex-shrink-0
             flex items-center justify-center
-            transition-all duration-150
+            transition-colors duration-150
             ${canDecrease
               ? 'bg-ecoar-magenta-100/80 dark:bg-ecoar-magenta/15 border-ecoar-magenta-300/50 dark:border-ecoar-magenta/30 hover:bg-ecoar-magenta-200/80 dark:hover:bg-ecoar-magenta/20 hover:border-ecoar-magenta-400/60 dark:hover:border-ecoar-magenta/40 text-ecoar-magenta-700 dark:text-ecoar-magenta/80 cursor-pointer'
               : 'bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.08] text-ecoar-dark-300 dark:text-ecoar-light-900/20 cursor-not-allowed opacity-40'
@@ -125,29 +114,20 @@ export default function AttributeCard({
           `}
         >
           <ChevronLeft className="w-3 h-3" />
-        </motion.button>
+        </button>
 
-        {/* Valor Central */}
-        <motion.div
-          key={value}
-          initial={{ scale: 1.1, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.15 }}
-          className={`text-2xl font-bold leading-none ${getValueColor()} flex-shrink-0`}
-        >
+        <div className={`text-2xl font-bold leading-none ${getValueColor()} flex-shrink-0`}>
           {value}
-        </motion.div>
+        </div>
 
-        {/* Botão Aumentar - Direita */}
-        <motion.button
+        <button
+          type="button"
           onClick={canIncrease ? onIncrease : undefined}
           disabled={!canIncrease}
-          whileHover={canIncrease ? { scale: 1.05 } : {}}
-          whileTap={canIncrease ? { scale: 0.95 } : {}}
           className={`
             w-5 h-5 rounded-full border flex-shrink-0
             flex items-center justify-center
-            transition-all duration-150
+            transition-colors duration-150
             ${canIncrease
               ? 'bg-ecoar-teal-100/80 dark:bg-ecoar-teal/15 border-ecoar-teal-300/50 dark:border-ecoar-teal/30 hover:bg-ecoar-teal-200/80 dark:hover:bg-ecoar-teal/20 hover:border-ecoar-teal-400/60 dark:hover:border-ecoar-teal/40 text-ecoar-teal-700 dark:text-ecoar-teal/80 cursor-pointer'
               : 'bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.08] text-ecoar-dark-300 dark:text-ecoar-light-900/20 cursor-not-allowed opacity-40'
@@ -155,22 +135,18 @@ export default function AttributeCard({
           `}
         >
           <ChevronRight className="w-3 h-3" />
-        </motion.button>
+        </button>
       </div>
 
-      {/* Barra de Progresso - mais sutil */}
       <div className="mb-2">
         <div className="w-full h-0.5 bg-ecoar-dark-300/20 dark:bg-ecoar-light-900/[0.03] rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPercentage}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className={`h-full ${getProgressColor()} rounded-full`}
+          <div
+            className={`h-full ${getProgressColor()} rounded-full transition-[width] duration-200`}
+            style={{ width: `${progressPercentage}%` }}
           />
         </div>
       </div>
 
-      {/* Informações Adicionais - footer com altura fixa para uniformidade */}
       <div className="flex items-center justify-between text-[10px] pt-2 border-t border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.06] min-h-[30px]">
         <div className="flex-shrink-0">
           <span className="text-ecoar-dark-600 dark:text-ecoar-light-900/50">Base: </span>
@@ -193,6 +169,6 @@ export default function AttributeCard({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

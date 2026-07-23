@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { ReactNode } from 'react'
 import Badge from './Badge'
 
@@ -24,7 +23,7 @@ export default function SelectableCard({
   className = '',
 }: SelectableCardProps) {
   const baseClasses = `
-    p-4 rounded-lg border text-left transition-all duration-200 overflow-hidden
+    p-4 rounded-lg border text-left transition-colors duration-200 overflow-hidden
     ${isSelected
       ? 'border-ecoar-teal-400 dark:border-ecoar-teal-500/60 bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20'
       : disabled
@@ -49,15 +48,14 @@ export default function SelectableCard({
 
   if (onClick && !disabled) {
     return (
-      <motion.button
+      <button
+        type="button"
         onClick={onClick}
         disabled={disabled}
-        whileHover={disabled ? {} : { scale: 1.01 }}
-        whileTap={disabled ? {} : { scale: 0.99 }}
         className={`${baseClasses} ${className}`}
       >
         {content}
-      </motion.button>
+      </button>
     )
   }
 
@@ -67,4 +65,3 @@ export default function SelectableCard({
     </div>
   )
 }
-

@@ -1,6 +1,5 @@
 ﻿'use client'
 
-import { motion } from 'framer-motion'
 import { User, Calendar, Edit, Trash2, Eye } from 'lucide-react'
 import Card from './Card'
 import Button from './Button'
@@ -56,7 +55,7 @@ export default function CharacterCard({ character, onView, onEdit, onDelete }: C
   return (
     <Card
       variant="default"
-      className="p-4 rounded-xl hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 hover:shadow-md dark:hover:shadow-ecoar-teal-600/10 transition-all duration-normal"
+      className="p-4 rounded-xl hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 transition-colors duration-normal"
     >
       <div className="flex flex-col h-full">
         {/* Header */}

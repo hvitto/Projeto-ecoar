@@ -1,15 +1,13 @@
 'use client'
 
-import { motion, MotionProps } from 'framer-motion'
-import { ReactNode } from 'react'
+import { HTMLAttributes, ReactNode } from 'react'
 
-interface CardProps extends Omit<MotionProps, 'children'> {
+interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   children: ReactNode
   variant?: 'default' | 'selectable' | 'info' | 'stat'
   selected?: boolean
   disabled?: boolean
   onClick?: () => void
-  className?: string
 }
 
 export default function Card({
@@ -19,9 +17,9 @@ export default function Card({
   disabled = false,
   onClick,
   className = '',
-  ...motionProps
+  ...rest
 }: CardProps) {
-  const baseClasses = 'rounded-lg border transition-all duration-normal overflow-hidden'
+  const baseClasses = 'rounded-lg border transition-colors duration-normal overflow-hidden'
   
   const variantClasses = {
     default: 'bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
@@ -34,30 +32,35 @@ export default function Card({
       }
       ${onClick && !disabled ? 'cursor-pointer' : ''}
     `,
-    info: 'bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
-    stat: 'bg-ecoar-light-700 dark:bg-ecoar-dark-700/[0.05] backdrop-blur-sm border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3.5 text-center hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-400/30 hover:shadow-md hover:shadow-ecoar-dark-300/20 dark:hover:shadow-ecoar-teal-600/10'
+    info: 'bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-4 shadow-sm',
+    stat: 'bg-ecoar-light-700 dark:bg-ecoar-dark-700/[0.05] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3.5 text-center hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-400/30'
   }
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`
 
   if (onClick && !disabled) {
     return (
-      <motion.div
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        whileHover={disabled ? {} : { y: -2, transition: { duration: 0.2 } }}
-        whileTap={disabled ? {} : { scale: 0.99, transition: { duration: 0.15 } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        }}
         className={`${classes} hover:shadow-md dark:hover:shadow-ecoar-teal-600/10`}
-        {...motionProps}
+        {...rest}
       >
         {children}
-      </motion.div>
+      </div>
     )
   }
 
   return (
-    <motion.div className={classes} {...motionProps}>
+    <div className={classes} {...rest}>
       {children}
-    </motion.div>
+    </div>
   )
 }
-

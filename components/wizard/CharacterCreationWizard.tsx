@@ -1162,7 +1162,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/60 backdrop-blur-sm border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-6 md:p-8 shadow-lg"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-6 md:p-8 shadow-lg"
             >
               <div className="mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-3 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
@@ -1255,7 +1255,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           variants={stepVariants}
           initial="hidden"
           animate="visible"
-          className="bg-ecoar-light-700 dark:bg-ecoar-dark-800/85 backdrop-blur-xl border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col w-full min-h-0 flex-1"
+          className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col w-full min-h-0 flex-1"
         >
           <WizardStepRenderer
             currentStep={currentStep}

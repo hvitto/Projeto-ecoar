@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { CheckCircle2, LucideIcon } from 'lucide-react'
 import { ReactNode } from 'react'
 
@@ -24,24 +23,19 @@ export default function SelectionCard({
   children,
 }: SelectionCardProps) {
   return (
-    <motion.button
+    <button
+      type="button"
       onClick={onClick}
-      whileHover={{ scale: 1.01, y: -1 }}
-      whileTap={{ scale: 0.99 }}
-      className={`relative p-3.5 rounded-lg border transition-all duration-200 overflow-hidden ${
+      className={`relative p-3.5 rounded-lg border transition-colors duration-200 overflow-hidden ${
         isSelected
           ? 'border-ecoar-teal-400 dark:border-ecoar-teal-500/60 bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20'
           : 'bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30'
       } ${className}`}
     >
       {isSelected && (
-        <motion.div
-          className="absolute top-1.5 right-1.5"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-        >
+        <div className="absolute top-1.5 right-1.5">
           <CheckCircle2 className="w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400/80" />
-        </motion.div>
+        </div>
       )}
       <div className="text-center">
         {Icon && (
@@ -59,7 +53,6 @@ export default function SelectionCard({
         )}
         {children}
       </div>
-    </motion.button>
+    </button>
   )
 }
-

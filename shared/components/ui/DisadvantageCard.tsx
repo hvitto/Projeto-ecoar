@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { CheckCircle2 } from 'lucide-react'
 import Badge from './Badge'
 
@@ -24,12 +23,11 @@ export default function DisadvantageCard({
   disabled = false,
 }: DisadvantageCardProps) {
   return (
-    <motion.button
+    <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      whileHover={disabled ? undefined : { y: -1 }}
-      className={`p-3.5 rounded-lg border transition-all duration-200 text-left ${
+      className={`p-3.5 rounded-lg border transition-colors duration-200 text-left ${
         disabled
           ? 'opacity-50 cursor-not-allowed border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.06] bg-ecoar-light-700/30 dark:bg-ecoar-light-900/[0.02]'
           : isSelected
@@ -53,7 +51,6 @@ export default function DisadvantageCard({
           +{pontosCriacao} PC
         </Badge>
       </div>
-    </motion.button>
+    </button>
   )
 }
-

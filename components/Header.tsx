@@ -1,6 +1,5 @@
 ﻿'use client'
 
-import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Crown, UserPlus, User, LogOut, Home } from 'lucide-react'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
@@ -40,14 +39,12 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
   }
 
   return (
-    <header className="bg-white/90 dark:bg-ecoar-dark-800/80 backdrop-blur-xl border-b border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.05] sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-ecoar-dark-800 border-b border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.05] sticky top-0 z-50 shadow-sm">
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo/Brand */}
-          <motion.button
+          <button
+            type="button"
             onClick={handleGoToDashboard}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-fast cursor-pointer"
           >
             <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
@@ -57,9 +54,8 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
               <h1 className="text-lg font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90">ECOAR</h1>
               <p className="text-[10px] text-ecoar-dark-600 dark:text-ecoar-light-900/50">Beyond</p>
             </div>
-          </motion.button>
+          </button>
 
-          {/* Navigation */}
           <nav className="hidden md:flex items-center gap-2.5">
             {user && (
               <Button
@@ -73,8 +69,9 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             )}
             <ThemeSwitcher />
             <button
+              type="button"
               onClick={handleNewCharacter}
-              className="px-3 py-1.5 bg-ecoar-teal-100/80 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal-200/80 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal-700 dark:text-ecoar-light-900/90 rounded-lg text-sm font-medium transition-all duration-fast flex items-center gap-2 border border-ecoar-teal-300/50 dark:border-ecoar-teal-500/20"
+              className="px-3 py-1.5 bg-ecoar-teal-100/80 dark:bg-ecoar-teal-600/15 hover:bg-ecoar-teal-200/80 dark:hover:bg-ecoar-teal-600/20 text-ecoar-teal-700 dark:text-ecoar-light-900/90 rounded-lg text-sm font-medium transition-colors duration-fast flex items-center gap-2 border border-ecoar-teal-300/50 dark:border-ecoar-teal-500/20"
             >
               <UserPlus className="w-3.5 h-3.5" />
               Novo Personagem
@@ -88,8 +85,9 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="px-3 py-1.5 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.03] text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 rounded-lg transition-all duration-fast"
+                  className="px-3 py-1.5 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.03] text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 rounded-lg transition-colors duration-fast"
                   aria-label="Sair"
                   title="Sair"
                 >
@@ -99,10 +97,10 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             )}
           </nav>
 
-          {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2.5">
             {user && onGoToDashboard && (
               <button
+                type="button"
                 onClick={onGoToDashboard}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
                 aria-label="Dashboard"
@@ -111,7 +109,8 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
               </button>
             )}
             <ThemeSwitcher />
-            <button 
+            <button
+              type="button"
               onClick={handleNewCharacter}
               className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
               aria-label="Novo personagem"
@@ -120,6 +119,7 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             </button>
             {user && (
               <button
+                type="button"
                 onClick={handleLogout}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
                 aria-label="Sair"
@@ -133,4 +133,3 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
     </header>
   )
 }
-

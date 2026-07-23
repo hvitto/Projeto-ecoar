@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { DiceFaceResult } from '@/lib/dice/rollExpression'
-import { mountDiceThrowScene } from '@/features/dice/threeDiceScene'
+import type { DiceSceneHandle } from '@/features/dice/threeDiceScene'
 
 export const DICE_THROW_EVENT = 'ecoar-dice-throw'
 
@@ -60,20 +60,29 @@ export function DiceThrowStage() {
   useEffect(() => {
     if (!active || !hostRef.current) return
     const host = hostRef.current
-    const handle = mountDiceThrowScene(host, active.dice, {
-      durationMs: 1800,
-      onSettled: () => {
-        setShowHud(true)
-        hideTimerRef.current = window.setTimeout(() => {
-          setVisible(false)
-          setActive(null)
-          setShowHud(false)
-          hideTimerRef.current = null
-        }, 1600)
-      },
-    })
+    let disposed = false
+    let handle: DiceSceneHandle | null = null
+
+    ;(async () => {
+      const { mountDiceThrowScene } = await import('@/features/dice/threeDiceScene')
+      if (disposed || !hostRef.current) return
+      handle = mountDiceThrowScene(host, active.dice, {
+        durationMs: 1800,
+        onSettled: () => {
+          setShowHud(true)
+          hideTimerRef.current = window.setTimeout(() => {
+            setVisible(false)
+            setActive(null)
+            setShowHud(false)
+            hideTimerRef.current = null
+          }, 1600)
+        },
+      })
+    })()
+
     return () => {
-      handle.dispose()
+      disposed = true
+      handle?.dispose()
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current)
         hideTimerRef.current = null
@@ -90,7 +99,7 @@ export function DiceThrowStage() {
     >
       <div ref={hostRef} className="absolute inset-0 h-full w-full" />
       {showHud && active.total != null ? (
-        <div className="absolute bottom-8 left-1/2 z-[101] max-w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-dark-900/80 px-4 py-2.5 text-center shadow-lg backdrop-blur-sm">
+        <div className="absolute bottom-8 left-1/2 z-[101] max-w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-dark-900/80 px-4 py-2.5 text-center shadow-lg">
           {active.label ? (
             <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-ecoar-teal-300/90">
               {active.label}

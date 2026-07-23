@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import Badge from './Badge'
 import { ReactNode } from 'react'
 
@@ -31,7 +30,6 @@ export default function SingularityCard({
   costLabel = 'PC',
   secondaryCost,
   isSelected,
-  canAfford,
   canSelect,
   onClick,
   requirements,
@@ -56,11 +54,11 @@ export default function SingularityCard({
   }
 
   return (
-    <motion.button
+    <button
+      type="button"
       onClick={onClick}
       disabled={!isSelected && !canSelect}
-      whileHover={!isSelected && canSelect ? { scale: 1.01 } : {}}
-      className={`p-3.5 rounded-lg border text-left transition-all duration-200 overflow-hidden ${
+      className={`p-3.5 rounded-lg border text-left transition-colors duration-200 overflow-hidden ${
         isSelected
           ? selectedClasses[variant]
           : canSelect
@@ -99,7 +97,6 @@ export default function SingularityCard({
         </div>
       )}
       {footer}
-    </motion.button>
+    </button>
   )
 }
-

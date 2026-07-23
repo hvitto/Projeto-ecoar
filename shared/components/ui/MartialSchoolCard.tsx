@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { CheckCircle2 } from 'lucide-react'
 import { MartialSchoolData } from '@/data/martialSchoolSingularities'
 
@@ -16,24 +15,18 @@ export default function MartialSchoolCard({
   school,
   isSelected,
   onClick,
-  index = 0,
   className = '',
 }: MartialSchoolCardProps) {
   return (
-    <motion.button
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+    <button
+      type="button"
       onClick={onClick}
-      whileHover={{ y: -1, scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
-      className={`relative p-4 rounded-lg border transition-all duration-200 text-left overflow-hidden ${
+      className={`relative p-4 rounded-lg border transition-colors duration-200 text-left overflow-hidden ${
         isSelected
           ? 'bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 border-ecoar-teal-400 dark:border-ecoar-teal-500/60 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20'
           : 'bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30'
       } ${className}`}
     >
-      {/* Ícone e Título */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h4 className={`font-bold text-lg mb-1 ${
@@ -47,23 +40,16 @@ export default function MartialSchoolCard({
           </div>
         </div>
         {isSelected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-          >
-            <CheckCircle2 className="w-6 h-6 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
-          </motion.div>
+          <CheckCircle2 className="w-6 h-6 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
         )}
       </div>
 
-      {/* Descrição */}
       <p className={`text-sm leading-relaxed mb-3 ${
         isSelected ? 'text-ecoar-dark-700 dark:text-ecoar-light-900/80' : 'text-ecoar-dark-600 dark:text-ecoar-light-900/60'
       }`}>
         {school.description}
       </p>
 
-      {/* Informações da Escola */}
       <div className="space-y-1 text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50">
         <div><span className="font-medium">Ferramenta:</span> {school.tool}</div>
         {school.toolNote && (
@@ -76,7 +62,6 @@ export default function MartialSchoolCard({
           <span className="font-medium">Habilidades sugeridas:</span> {school.suggestedSkills?.join(', ')}
         </div>
       </div>
-    </motion.button>
+    </button>
   )
 }
-

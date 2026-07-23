@@ -1,9 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState, FormEvent } from 'react'
-import { motion } from 'framer-motion'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { staggerContainer, staggerItem } from '@/lib/motionVariants'
 import { Input } from '@/shared/components/ui/Input'
 import Button from '@/shared/components/ui/Button'
 import AuthCard from './AuthCard'
@@ -157,15 +155,15 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
         </div>
       }
     >
-      <motion.form onSubmit={handleSubmit} className="space-y-4" variants={staggerContainer} initial="hidden" animate="visible">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <motion.div variants={staggerItem} className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
             {error}
-          </motion.div>
+          </div>
         )}
 
         {success && (
-          <motion.div variants={staggerItem} className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2">
+          <div className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2">
             {successMessage ? (
               <p>{successMessage}</p>
             ) : (
@@ -181,7 +179,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
               {resendLoading ? 'Enviando...' : 'Reenviar email'}
             </button>
             {resendMessage && <p className="text-xs mt-1">{resendMessage}</p>}
-          </motion.div>
+          </div>
         )}
 
         <Input
@@ -332,7 +330,7 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
           </svg>
           Entrar com Google
         </a>
-      </motion.form>
+      </form>
     </AuthCard>
   )
 }
