@@ -177,7 +177,9 @@ export interface CatalogOwnedItem {
   kind: 'weapon' | 'armor' | 'utility'
   nome: string
   custoCeros: number
-  /** Linha exibida e salva em equipamentos[] / armas[] para compatibilidade. */
+  custoBaseCeros?: number
+  qualidadeNivel?: number
+  banhadoPrata?: boolean
   displayLine: string
 }
 

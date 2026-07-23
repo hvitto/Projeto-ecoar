@@ -11,7 +11,7 @@ import {
   Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
   CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
   Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
+  Scroll, Crown, Coins, Hammer, Map as MapIcon, Globe, Star, Waves, Info, X, ExternalLink
 } from 'lucide-react'
 import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
 import SingularityCard from '@/shared/components/ui/SingularityCard'
@@ -91,8 +91,15 @@ import {
 } from '@/data/pathSingularities'
 import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
+import OwnedWeaponQualityControls from '@/components/equipment/OwnedWeaponQualityControls'
+import OwnedCatalogItemStats from '@/components/equipment/OwnedCatalogItemStats'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
-import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
+import {
+  applyOwnedItemQuality,
+  catalogDisplayLine,
+  formatCerosDisplay,
+  newCatalogInstanceId,
+} from '@/lib/equipmentCost'
 
 
 export function EquipmentStep({
@@ -109,8 +116,16 @@ export function EquipmentStep({
   const [pickerOpen, setPickerOpen] = useState(false)
   const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
 
+  const catalogById = useMemo(() => {
+    const m = new Map<string, CatalogEntry>()
+    for (const w of weapons) m.set(w.id, w)
+    for (const a of armor) m.set(a.id, a)
+    for (const u of utilities) m.set(u.id, u)
+    return m
+  }, [weapons, armor, utilities])
+
   const handlePickCatalog = (entry: CatalogEntry, custoCeros: number) => {
-    const displayLine = catalogDisplayLine(entry, custoCeros)
+    const displayLine = catalogDisplayLine(entry, custoCeros, { qualidadeNivel: 0 })
     onItensCatalogoChange([
       ...itensCatalogo,
       {
@@ -119,6 +134,8 @@ export function EquipmentStep({
         kind: entry.kind,
         nome: entry.name,
         custoCeros,
+        custoBaseCeros: custoCeros,
+        qualidadeNivel: 0,
         displayLine,
       },
     ])
@@ -128,9 +145,19 @@ export function EquipmentStep({
     onItensCatalogoChange(itensCatalogo.filter((i) => i.instanceId !== instanceId))
   }
 
+  const changeItemQuality = (instanceId: string, nextNivel: number) => {
+    const current = itensCatalogo.find((i) => i.instanceId === instanceId)
+    if (!current || current.kind !== 'weapon') return
+    const next = applyOwnedItemQuality(current, nextNivel)
+    const delta = next.custoCeros - current.custoCeros
+    if (delta > 0 && delta > saldoRestanteCeros) return
+    onItensCatalogoChange(
+      itensCatalogo.map((i) => (i.instanceId === instanceId ? next : i)),
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
@@ -141,7 +168,7 @@ export function EquipmentStep({
               Equipamentos & Armas
             </h3>
             <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
-              Escolha itens no catálogo; o custo é descontado do orçamento. Na ficha você pode anotar itens extras à mão, se precisar.
+              Escolha itens no catálogo; o custo é descontado do orçamento. Armas podem subir de qualidade (Inferior a Artefato) pagando o multiplicador do livro.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <div className="inline-flex p-3 bg-ecoar-teal/10 border border-ecoar-teal/30 rounded-lg">
@@ -185,20 +212,36 @@ export function EquipmentStep({
             Nenhum item ainda. Use &quot;Abrir catálogo&quot; para adicionar equipamentos e armas.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {itensCatalogo.map((item) => (
-              <li
-                key={item.instanceId}
-                className="flex items-center justify-between gap-2 text-sm text-slate-800 dark:text-ecoar-light-900/90 py-2 px-3 rounded-md bg-white dark:bg-ecoar-dark-800/60 border border-slate-200 dark:border-ecoar-light-900/15"
-              >
-                <span className="min-w-0 break-words">{item.displayLine}</span>
-                <button
-                  type="button"
-                  onClick={() => removeCatalogItem(item.instanceId)}
-                  className="shrink-0 text-ecoar-magenta hover:underline text-xs"
-                >
-                  Remover
-                </button>
+              <li key={item.instanceId} className="space-y-2">
+                <OwnedCatalogItemStats
+                  item={item}
+                  entry={catalogById.get(item.catalogId)}
+                  headerRight={
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs tabular-nums text-slate-600 dark:text-ecoar-light-900/70">
+                        {formatCerosDisplay(item.custoCeros)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeCatalogItem(item.instanceId)}
+                        className="text-ecoar-magenta hover:underline text-xs"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  }
+                  footer={
+                    item.kind === 'weapon' ? (
+                      <OwnedWeaponQualityControls
+                        item={item}
+                        saldoDisponivel={saldoRestanteCeros}
+                        onChangeQuality={(next) => changeItemQuality(item.instanceId, next)}
+                      />
+                    ) : undefined
+                  }
+                />
               </li>
             ))}
           </ul>

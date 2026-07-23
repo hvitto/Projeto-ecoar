@@ -121,7 +121,8 @@ export function EcoarStep({
           {playableEcoarTypes.map((ecoa) => (
             <button
               key={ecoa.id}
-              onClick={() => onEcoarSelect(ecoa.id)}
+              type="button"
+              onClick={() => onEcoarSelect(selectedEcoar === ecoa.id ? '' : ecoa.id)}
               className={`p-4 rounded-lg border transition-all transform hover:scale-101 text-left ${
                 selectedEcoar === ecoa.id
                   ? 'border-ecoar-teal/60 bg-ecoar-teal/15 shadow-lg shadow-ecoar-teal/10'

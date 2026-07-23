@@ -22,10 +22,16 @@ describe('wizardFormReducer', () => {
       selectedTrilha: 'a',
       pathSingularityBase: 'x',
       pathBruxarias: ['b'],
+      pathExtraIds: ['proj-barda-1'],
+      pathPatronChoice: 'caeruleum',
+      pathHonorCode: 'honor-jogo-limpo',
     }
     const next = wizardFormReducer(state, { type: 'CLEAR_PATH_ON_TRILHA_CHANGE', trilha: 'c' })
     expect(next.selectedTrilha).toBe('c')
     expect(next.pathSingularityBase).toBe('')
     expect(next.pathBruxarias).toEqual([])
+    expect(next.pathExtraIds).toEqual([])
+    expect(next.pathPatronChoice).toBe('')
+    expect(next.pathHonorCode).toBe('')
   })
 })

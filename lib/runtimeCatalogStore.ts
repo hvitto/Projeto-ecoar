@@ -31,15 +31,29 @@ function asBonuses(s: EcoarSingularity): CreationSingularity['bonuses'] {
   return s.bonuses
 }
 
+function normalizeCreationCategory(raw: unknown): CreationSingularity['category'] | null {
+  const v = String(raw ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+  if (v === 'atributos' || v === 'atributo') return 'atributos'
+  if (v === 'habilidades' || v === 'habilidade') return 'habilidades'
+  if (v === 'genetica') return 'genetica'
+  if (v === 'talentos' || v === 'talento' || v === 'evolucao' || v === '') return 'talentos'
+  return null
+}
+
 export function mapCatalogToCreationSingularities(list: EcoarSingularity[]): CreationSingularity[] {
   return list
     .filter((s) => s.systemType === 'criacao')
-    .map((s) => {
-      const category = (s.sourceMeta?.category as CreationSingularity['category'] | undefined) ?? 'talentos'
+    .flatMap((s) => {
+      const category = normalizeCreationCategory(s.sourceMeta?.category)
+      if (!category) return []
       const conflicts = (s.requirementEntries ?? [])
         .filter((e) => e.type === 'conflict')
         .map((e) => e.value)
-      return {
+      return [{
         id: s.id,
         name: s.name,
         category,
@@ -48,7 +62,7 @@ export function mapCatalogToCreationSingularities(list: EcoarSingularity[]): Cre
         requirements: conflicts.length ? conflicts : undefined,
         bonuses: asBonuses(s),
         penalties: s.penalties,
-      }
+      }]
     })
 }
 

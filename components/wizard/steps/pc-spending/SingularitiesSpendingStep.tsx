@@ -119,6 +119,12 @@ export function SingularitiesSpendingStep({
   onPathCacadaPowersChange,
   pathCacadaEnhancements,
   onPathCacadaEnhancementsChange,
+  pathExtraIds,
+  onPathExtraIdsChange,
+  pathPatronChoice,
+  onPathPatronChoiceChange,
+  pathHonorCode,
+  onPathHonorCodeChange,
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
   singularidadesMarciais,
@@ -154,6 +160,12 @@ export function SingularitiesSpendingStep({
   onPathCacadaPowersChange: (ids: string[]) => void
   pathCacadaEnhancements: string[]
   onPathCacadaEnhancementsChange: (ids: string[]) => void
+  pathExtraIds: string[]
+  onPathExtraIdsChange: (ids: string[]) => void
+  pathPatronChoice: string
+  onPathPatronChoiceChange: (id: string) => void
+  pathHonorCode: string
+  onPathHonorCodeChange: (id: string) => void
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
   singularidadesMarciais: string[]
@@ -385,12 +397,18 @@ export function SingularitiesSpendingStep({
             selectedBruxarias={pathBruxarias}
             selectedCacadaPowers={pathCacadaPowers}
             selectedCacadaEnhancements={pathCacadaEnhancements}
+            pathExtraIds={pathExtraIds}
+            pathPatronChoice={pathPatronChoice}
+            pathHonorCode={pathHonorCode}
             onTrilhaSelect={(id) => {
               if (id !== selectedTrilha) {
                 onPathSingularityBaseChange('')
                 onPathBruxariasChange([])
                 onPathCacadaPowersChange([])
                 onPathCacadaEnhancementsChange([])
+                onPathExtraIdsChange([])
+                onPathPatronChoiceChange('')
+                onPathHonorCodeChange('')
               }
               onTrilhaSelect(id)
             }}
@@ -398,7 +416,12 @@ export function SingularitiesSpendingStep({
             onBruxariasChange={onPathBruxariasChange}
             onCacadaPowersChange={onPathCacadaPowersChange}
             onCacadaEnhancementsChange={onPathCacadaEnhancementsChange}
+            onPathExtraIdsChange={onPathExtraIdsChange}
+            onPathPatronChoiceChange={onPathPatronChoiceChange}
+            onPathHonorCodeChange={onPathHonorCodeChange}
             pontosDisponiveis={pontosDisponiveis}
+            martialSingularityIds={singularidadesMarciais}
+            nivelAlma={nivelAlma}
           />
         )}
 

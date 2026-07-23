@@ -24,21 +24,21 @@ export let paths: Path[] = [
     id: 'esperanca',
     name: 'Trilha da Esperança',
     description:
-      'Ímpetos que inspiram aliados através da arte (Vox) e projetam escolas marciais artísticas.',
+      'Aqueles que seguem esta Trilha se tornam ímpetos: arautos da esperança que, através da arte (Vox), inspiram aliados e projetam escolas marciais artísticas.',
     type: 'esperanca',
   },
   {
     id: 'patronos',
     name: 'Trilha dos Patronos',
     description:
-      'Campeões vinculados a uma divindade, entidade menor ou entidade planar (ex.: Caeruleum).',
+      'Campeões de fé inabalável vinculados a uma divindade, entidade menor ou entidade planar (ex.: Caeruleum), imunes à infecção da Praga.',
     type: 'patronos',
   },
   {
     id: 'violencia',
     name: 'Trilha da Violência',
     description:
-      'Carrascos que canalizam ultraviolência sob um código de honra.',
+      'Carrascos que canalizam ultraviolência sob um código de honra — oficiais, soldados, mercenários ou criminosos com violência disciplinada.',
     type: 'violencia',
   },
   {

@@ -98,6 +98,7 @@ export type SheetRuntimeValue = {
   setEquippedWeaponSlot: (slot: EquippedWeaponSlotId, next: EquippedWeaponState | undefined) => void
   removeSheetCatalogItem: (instanceId: string) => void
   handleEquipmentCatalogPick: (entry: CatalogEntry, custoCeros: number) => void
+  changeSheetCatalogItemQuality: (instanceId: string, nextNivel: number) => void
   applyRaceBonuses: (raceId: string) => void
   weaponCatalogById: Map<string, WeaponCatalogEntry>
   armorCatalogById: Map<string, ArmorCatalogEntry>

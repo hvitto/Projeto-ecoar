@@ -45,6 +45,7 @@ import type {
   CharacterSkillState,
 } from '@/features/character/hooks/sheetInitialState'
 import {
+  applyOwnedItemQuality,
   catalogDisplayLine,
   formatCerosDisplay,
   newCatalogInstanceId,
@@ -657,7 +658,7 @@ export default function CharacterSheet({
         livresEq = String(equipLegacy)
         equipLegacy = ''
       }
-      const displayLine = catalogDisplayLine(entry, custoCeros)
+      const displayLine = catalogDisplayLine(entry, custoCeros, { qualidadeNivel: 0 })
       const kind = resolveCatalogEntryKind(entry)
       return {
         ...prev,
@@ -672,6 +673,8 @@ export default function CharacterSheet({
             kind,
             nome: entry.name,
             custoCeros,
+            custoBaseCeros: custoCeros,
+            qualidadeNivel: 0,
             displayLine,
           },
         ],
@@ -679,6 +682,22 @@ export default function CharacterSheet({
       }
     })
   }, [resolveCatalogEntryKind])
+
+  const changeSheetCatalogItemQuality = useCallback((instanceId: string, nextNivel: number) => {
+    setCharacterData((prev) => {
+      if (!canEditSheet) return prev
+      const current = prev.itensCatalogo.find((i) => i.instanceId === instanceId)
+      if (!current || current.kind !== 'weapon') return prev
+      const next = applyOwnedItemQuality(current, nextNivel)
+      const delta = next.custoCeros - current.custoCeros
+      if (delta > 0 && prev.saldoMoedas < delta) return prev
+      return {
+        ...prev,
+        itensCatalogo: prev.itensCatalogo.map((i) => (i.instanceId === instanceId ? next : i)),
+        saldoMoedas: Math.max(0, prev.saldoMoedas - delta),
+      }
+    })
+  }, [canEditSheet])
 
   const handleToggleSystemSingularity = useCallback(
     (args: { id: string; kind: SystemSingularityKind; selected: boolean; cost: number }) => {
@@ -1975,6 +1994,7 @@ export default function CharacterSheet({
     setEquippedWeaponSlot,
     removeSheetCatalogItem,
     handleEquipmentCatalogPick,
+    changeSheetCatalogItemQuality,
     applyRaceBonuses,
     weaponCatalogById,
     armorCatalogById: armorCatalogById as Map<string, ArmorCatalogEntry>,
@@ -2026,6 +2046,7 @@ export default function CharacterSheet({
     setEquippedWeaponSlot,
     removeSheetCatalogItem,
     handleEquipmentCatalogPick,
+    changeSheetCatalogItemQuality,
     weaponCatalogById,
     armorCatalogById,
     utilityCatalogById,

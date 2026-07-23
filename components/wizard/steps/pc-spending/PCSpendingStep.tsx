@@ -130,6 +130,12 @@ export function PCSpendingStep({
   onPathCacadaPowersChange,
   pathCacadaEnhancements,
   onPathCacadaEnhancementsChange,
+  pathExtraIds,
+  onPathExtraIdsChange,
+  pathPatronChoice,
+  onPathPatronChoiceChange,
+  pathHonorCode,
+  onPathHonorCodeChange,
   attributes,
   skills,
   aptitudes,
@@ -172,6 +178,12 @@ export function PCSpendingStep({
   onPathCacadaPowersChange: (ids: string[]) => void
   pathCacadaEnhancements: string[]
   onPathCacadaEnhancementsChange: (ids: string[]) => void
+  pathExtraIds: string[]
+  onPathExtraIdsChange: (ids: string[]) => void
+  pathPatronChoice: string
+  onPathPatronChoiceChange: (id: string) => void
+  pathHonorCode: string
+  onPathHonorCodeChange: (id: string) => void
   attributes: Record<string, number>
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
@@ -219,6 +231,12 @@ export function PCSpendingStep({
             onPathCacadaPowersChange={onPathCacadaPowersChange}
             pathCacadaEnhancements={pathCacadaEnhancements}
             onPathCacadaEnhancementsChange={onPathCacadaEnhancementsChange}
+            pathExtraIds={pathExtraIds}
+            onPathExtraIdsChange={onPathExtraIdsChange}
+            pathPatronChoice={pathPatronChoice}
+            onPathPatronChoiceChange={onPathPatronChoiceChange}
+            pathHonorCode={pathHonorCode}
+            onPathHonorCodeChange={onPathHonorCodeChange}
             selectedEscolaMarcial={selectedEscolaMarcial}
             onEscolaMarcialSelect={onEscolaMarcialSelect}
             singularidadesMarciais={singularidadesMarciais}

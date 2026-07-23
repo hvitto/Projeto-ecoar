@@ -2,6 +2,8 @@
 import { armorCatalog } from '@/data/equipment/armor'
 import { utilityCatalog } from '@/data/equipment/utilities'
 import { weaponCatalog } from '@/data/equipment/weapons'
+import { getEquipmentQualityTier, clampEquipmentQualityNivel, computeOwnedEquipmentCostCeros, resolveOwnedBaseCeros } from '@/lib/equipmentQuality'
+import type { CatalogOwnedItem } from '@/shared/types/equipment'
 
 /** Formata ceros como no livro (ex.: 1525 → ȼ1.525). */
 export function formatCerosDisplay(n: number): string {
@@ -55,12 +57,67 @@ export function getCatalogEntryById(id: string): CatalogEntry | undefined {
   return getCatalogEntryFromMap(staticCatalogById, id)
 }
 
-export function catalogDisplayLine(entry: CatalogEntry, custoCeros: number): string {
-  const label =
-    entry.costLabel && entry.costLabel.trim() && entry.costLabel.trim() !== '—'
+function qualitySuffix(qualidadeNivel?: number, banhadoPrata?: boolean): string {
+  const parts: string[] = []
+  if (banhadoPrata) parts.push('Prata')
+  const nivel = qualidadeNivel ?? 0
+  if (nivel !== 0) {
+    const tier = getEquipmentQualityTier(nivel)
+    const sign = nivel > 0 ? '+' : ''
+    parts.push(`${tier.name} [${sign}${nivel}]`)
+  }
+  return parts.length ? ` · ${parts.join(' · ')}` : ''
+}
+
+export function catalogDisplayLine(
+  entry: CatalogEntry,
+  custoCeros: number,
+  opts?: { qualidadeNivel?: number; banhadoPrata?: boolean },
+): string {
+  const qualidadeNivel = opts?.qualidadeNivel ?? 0
+  const costLabel =
+    qualidadeNivel === 0 &&
+    !opts?.banhadoPrata &&
+    entry.costLabel &&
+    entry.costLabel.trim() &&
+    entry.costLabel.trim() !== '—'
       ? entry.costLabel.trim()
       : formatCerosDisplay(custoCeros)
-  return `${entry.name} (${label})`
+  return `${entry.name}${qualitySuffix(qualidadeNivel, opts?.banhadoPrata)} (${costLabel})`
+}
+
+export function ownedCatalogDisplayLine(item: {
+  nome: string
+  custoCeros: number
+  qualidadeNivel?: number
+  banhadoPrata?: boolean
+}): string {
+  return `${item.nome}${qualitySuffix(item.qualidadeNivel, item.banhadoPrata)} (${formatCerosDisplay(item.custoCeros)})`
+}
+
+export function applyOwnedItemQuality(
+  item: CatalogOwnedItem,
+  nextNivel: number,
+): CatalogOwnedItem {
+  const qualidadeNivel = clampEquipmentQualityNivel(nextNivel)
+  const custoBaseCeros = resolveOwnedBaseCeros(item)
+  const custoCeros = computeOwnedEquipmentCostCeros({
+    baseCeros: custoBaseCeros,
+    qualidadeNivel,
+    banhadoPrata: item.banhadoPrata,
+  })
+  return {
+    ...item,
+    qualidadeNivel,
+    custoBaseCeros,
+    custoCeros,
+    displayLine: ownedCatalogDisplayLine({
+      nome: item.nome,
+      custoCeros,
+      qualidadeNivel,
+      banhadoPrata: item.banhadoPrata,
+    }),
+  }
 }
 
 export function sumCatalogItemsCeros(items: { custoCeros: number }[]): number {

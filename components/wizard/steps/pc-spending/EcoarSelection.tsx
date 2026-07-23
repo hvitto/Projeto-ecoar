@@ -142,7 +142,18 @@ export function EcoarSelection({
           {playableEcoarTypes.map((ecoa) => (
             <motion.button
               key={ecoa.id}
-              onClick={() => onEcoarSelect(ecoa.id)}
+              type="button"
+              onClick={() => {
+                if (selectedEcoar === ecoa.id) {
+                  onEcoarSelect('')
+                  onSingularidadesEcoarChange([])
+                  return
+                }
+                if (selectedEcoar && selectedEcoar !== ecoa.id) {
+                  onSingularidadesEcoarChange([])
+                }
+                onEcoarSelect(ecoa.id)
+              }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`p-5 rounded-xl border-2 text-left transition-all ${

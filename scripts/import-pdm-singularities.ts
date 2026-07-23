@@ -323,7 +323,7 @@ function groupMechanicalRows(
       sourceMeta: {
         classificacao: bucket.cls,
         subclassificacao: bucket.sub,
-        category: CREATION_CATEGORY_MAP[bucket.sub] ?? bucket.sub,
+        category: CREATION_CATEGORY_MAP[bucket.sub] ?? 'talentos',
         pdm: true,
       },
       name: bucket.name,
@@ -434,7 +434,7 @@ function importComuns(): ImportRow[] {
       sourceMeta: {
         ...row.sourceMeta,
         raceId,
-        acquisitionPhase: 'creation',
+        acquisitionPhase: row.cost === 0 ? 'creation' : 'evolution',
         pdm: true,
       },
     }

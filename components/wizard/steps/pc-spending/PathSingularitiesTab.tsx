@@ -87,10 +87,20 @@ import {
   getCacadaEnhancementsForPower,
   getCacadaEnhancementById,
   getPathLevelFromSoulLevel,
+  BRUXARIA_FREE_SLOTS,
+  BRUXARIA_EXTRA_COST,
+  getBruxariaMaxSlots,
+  getBruxariaExtraCount,
+  getBruxariaExtraCostTotal,
   Bruxaria,
   CacadaPower,
   CacadaEnhancement,
 } from '@/data/pathSingularities'
+import {
+  EsperancaPathExtras,
+  PatronosPathExtras,
+  ViolenciaPathExtras,
+} from '@/components/wizard/steps/pc-spending/PathExtrasPanels'
 import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
@@ -103,46 +113,47 @@ export function PathSingularitiesTab({
   selectedBruxarias,
   selectedCacadaPowers,
   selectedCacadaEnhancements,
+  pathExtraIds,
+  pathPatronChoice,
+  pathHonorCode,
   onTrilhaSelect,
   onPathBaseSelect,
   onBruxariasChange,
   onCacadaPowersChange,
   onCacadaEnhancementsChange,
+  onPathExtraIdsChange,
+  onPathPatronChoiceChange,
+  onPathHonorCodeChange,
   pontosDisponiveis,
+  martialSingularityIds = [],
+  nivelAlma = 1,
 }: {
   selectedTrilha: string
   selectedPathBase: string
   selectedBruxarias: string[]
   selectedCacadaPowers: string[]
   selectedCacadaEnhancements: string[]
+  pathExtraIds: string[]
+  pathPatronChoice: string
+  pathHonorCode: string
   onTrilhaSelect: (id: string) => void
   onPathBaseSelect: (id: string) => void
   onBruxariasChange: (ids: string[]) => void
   onCacadaPowersChange: (ids: string[]) => void
   onCacadaEnhancementsChange: (ids: string[]) => void
+  onPathExtraIdsChange: (ids: string[]) => void
+  onPathPatronChoiceChange: (id: string) => void
+  onPathHonorCodeChange: (id: string) => void
   pontosDisponiveis: number
+  martialSingularityIds?: string[]
+  nivelAlma?: number
 }) {
   const selectedPath = selectedTrilha ? getPathById(selectedTrilha) : null
   const pathBasesForTrilha = selectedTrilha ? getPathBaseSingularitiesByPathId(selectedTrilha) : []
-  const selectedBaseSingularity = selectedPathBase
-    ? getPathBaseSingularityById(selectedPathBase)
-    : undefined
-
-  const calculateTotalCost = () => {
-    let total = 0
-    if (selectedPathBase && selectedBaseSingularity) {
-      total += selectedBaseSingularity.cost
-    }
-    selectedCacadaPowers.forEach(powerId => {
-      const power = getCacadaPowerById(powerId)
-      if (power) total += power.cost
-    })
-    selectedCacadaEnhancements.forEach(enhId => {
-      const enh = getCacadaEnhancementById(enhId)
-      if (enh) total += enh.cost
-    })
-    return total
-  }
+  const nivelPoder = getSoulLevelByNivel(nivelAlma)?.nivelPoder ?? 1
+  const bruxariaMaxSlots = getBruxariaMaxSlots(nivelPoder)
+  const bruxariaExtraCount = getBruxariaExtraCount(selectedBruxarias.length)
+  const bruxariaExtraCost = getBruxariaExtraCostTotal(selectedBruxarias.length)
 
   const togglePathBase = (id: string) => {
     if (selectedPathBase === id) {
@@ -154,11 +165,15 @@ export function PathSingularitiesTab({
 
   const toggleBruxaria = (id: string) => {
     if (selectedBruxarias.includes(id)) {
-      onBruxariasChange(selectedBruxarias.filter(b => b !== id))
-    } else {
-      // Bruxarias are free, just add to selection
-      onBruxariasChange([...selectedBruxarias, id])
+      onBruxariasChange(selectedBruxarias.filter((b) => b !== id))
+      return
     }
+    if (selectedBruxarias.length >= bruxariaMaxSlots) return
+    const nextCount = selectedBruxarias.length + 1
+    const addedCost =
+      getBruxariaExtraCostTotal(nextCount) - getBruxariaExtraCostTotal(selectedBruxarias.length)
+    if (addedCost > 0 && pontosDisponiveis < addedCost) return
+    onBruxariasChange([...selectedBruxarias, id])
   }
 
   const toggleCacadaPower = (id: string) => {
@@ -166,23 +181,21 @@ export function PathSingularitiesTab({
     if (!power) return
 
     const isSelected = selectedCacadaPowers.includes(id)
-    const currentCost = calculateTotalCost()
-    
+
     if (isSelected) {
-      // Remove power and any associated enhancements
-      const newPowers = selectedCacadaPowers.filter(p => p !== id)
-      const newEnhancements = selectedCacadaEnhancements.filter(e => {
+      const newPowers = selectedCacadaPowers.filter((p) => p !== id)
+      const newEnhancements = selectedCacadaEnhancements.filter((e) => {
         const enh = getCacadaEnhancementById(e)
         return enh?.requirements.powerId !== id
       })
       onCacadaPowersChange(newPowers)
       onCacadaEnhancementsChange(newEnhancements)
-    } else {
-      // Add power if can afford
-      if (pontosDisponiveis >= (currentCost + power.cost)) {
-        onCacadaPowersChange([...selectedCacadaPowers, id])
-      }
+      return
     }
+
+    if (selectedCacadaPowers.length >= nivelPoder) return
+    if (pontosDisponiveis < power.cost) return
+    onCacadaPowersChange([...selectedCacadaPowers, id])
   }
 
   const toggleCacadaEnhancement = (id: string) => {
@@ -191,29 +204,25 @@ export function PathSingularitiesTab({
 
     const isSelected = selectedCacadaEnhancements.includes(id)
     const hasPower = selectedCacadaPowers.includes(enhancement.requirements.powerId)
-    
-    if (!hasPower) return // Can't select enhancement without power
 
-    const currentCost = calculateTotalCost()
-    
+    if (!hasPower) return
+
     if (isSelected) {
-      const newEnhancements = selectedCacadaEnhancements.filter(e => e !== id)
-      onCacadaEnhancementsChange(newEnhancements)
-    } else {
-      // Check if another enhancement for same power is selected
-      const otherEnhancements = selectedCacadaEnhancements.filter(e => {
-        const eData = getCacadaEnhancementById(e)
-        return eData?.requirements.powerId === enhancement.requirements.powerId
-      })
-      
-      if (enhancement.requirements.noOtherEnhancement && otherEnhancements.length > 0) {
-        return // Can't select if another enhancement is selected
-      }
-
-      if (pontosDisponiveis >= (currentCost + enhancement.cost)) {
-        onCacadaEnhancementsChange([...selectedCacadaEnhancements, id])
-      }
+      onCacadaEnhancementsChange(selectedCacadaEnhancements.filter((e) => e !== id))
+      return
     }
+
+    const otherEnhancements = selectedCacadaEnhancements.filter((e) => {
+      const eData = getCacadaEnhancementById(e)
+      return eData?.requirements.powerId === enhancement.requirements.powerId
+    })
+
+    if (enhancement.requirements.noOtherEnhancement && otherEnhancements.length > 0) {
+      return
+    }
+
+    if (pontosDisponiveis < enhancement.cost) return
+    onCacadaEnhancementsChange([...selectedCacadaEnhancements, id])
   }
 
   if (!selectedPath) {
@@ -282,6 +291,9 @@ export function PathSingularitiesTab({
             onBruxariasChange([])
             onCacadaPowersChange([])
             onCacadaEnhancementsChange([])
+            onPathExtraIdsChange([])
+            onPathPatronChoiceChange('')
+            onPathHonorCodeChange('')
             onTrilhaSelect('')
           }}
           className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 transition-colors text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-900 dark:text-ecoar-light-900"
@@ -320,14 +332,19 @@ export function PathSingularitiesTab({
       {/* Bruxarias (for Bruxaria path) */}
       {selectedTrilha === 'bruxaria' && selectedPathBase && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">Bruxarias</h4>
             <Badge variant="bonus">
-              {selectedBruxarias.length} selecionadas
+              {selectedBruxarias.length}/{bruxariaMaxSlots} · {BRUXARIA_FREE_SLOTS} gratis
+              {bruxariaExtraCount > 0
+                ? ` · ${bruxariaExtraCount} extras (${bruxariaExtraCost} PC)`
+                : ''}
             </Badge>
           </div>
           <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
-            Escolha um número de bruxarias igual ao seu Nível de Trilha. Você pode substituir uma bruxaria por outra durante um descanso.
+            Você começa com {BRUXARIA_FREE_SLOTS} bruxarias gratuitas. Pode comprar até {nivelPoder} extras
+            (igual ao Nível de Poder) por {BRUXARIA_EXTRA_COST} PC cada. Durante um descanso, você pode
+            substituir uma bruxaria por outra.
           </p>
           {bruxariaCategories.map((category) => {
             const categoryBruxarias = getBruxariasByCategory(category)
@@ -341,22 +358,33 @@ export function PathSingularitiesTab({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {categoryBruxarias.map((bruxaria) => {
                     const isSelected = selectedBruxarias.includes(bruxaria.id)
+                    const atCap = !isSelected && selectedBruxarias.length >= bruxariaMaxSlots
+                    const nextExtraCost =
+                      getBruxariaExtraCostTotal(selectedBruxarias.length + 1) -
+                      getBruxariaExtraCostTotal(selectedBruxarias.length)
+                    const canAfford = isSelected || nextExtraCost <= 0 || pontosDisponiveis >= nextExtraCost
+                    const canSelect = isSelected || (!atCap && canAfford)
                     return (
                       <Card
                         key={bruxaria.id}
-                        className={`p-3 cursor-pointer transition-all ${
+                        className={`p-3 transition-all ${
+                          canSelect || isSelected ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                        } ${
                           isSelected
                             ? 'border-ecoar-teal bg-ecoar-teal/10'
                             : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50'
                         }`}
-                        onClick={() => toggleBruxaria(bruxaria.id)}
+                        onClick={() => {
+                          if (!canSelect && !isSelected) return
+                          toggleBruxaria(bruxaria.id)
+                        }}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <h6 className="font-semibold text-slate-900 dark:text-ecoar-light-900 text-sm leading-tight flex-1">{bruxaria.name}</h6>
                           {isSelected && <CheckCircle2 className="w-4 h-4 text-ecoar-teal flex-shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-ecoar-light-900/70 leading-relaxed line-clamp-2">{bruxaria.description}</p>
-                        <div className="flex gap-2 text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                        <div className="flex gap-2 text-xs text-slate-500 dark:text-ecoar-light-900/60 flex-wrap">
                           <span>Mana: {bruxaria.manaCost}</span>
                           <span>•</span>
                           <span>Ação: {bruxaria.action}</span>
@@ -366,8 +394,20 @@ export function PathSingularitiesTab({
                               <span>Alcance: {bruxaria.range}</span>
                             </>
                           )}
+                          {!isSelected && nextExtraCost > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>{nextExtraCost} PC</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-xs text-slate-700 dark:text-ecoar-light-900/80 mt-2">{bruxaria.effects}</p>
+                        {atCap && (
+                          <p className="text-xs text-ecoar-magenta mt-2">Limite de bruxarias atingido</p>
+                        )}
+                        {!atCap && !isSelected && !canAfford && (
+                          <p className="text-xs text-ecoar-magenta mt-2">PC insuficiente para extra</p>
+                        )}
                       </Card>
                     )
                   })}
@@ -393,8 +433,10 @@ export function PathSingularitiesTab({
               {getAllCacadaPowers().map((power) => {
                 const isSelected = selectedCacadaPowers.includes(power.id)
                 const canAfford = pontosDisponiveis >= power.cost
+                const atPowerCap = !isSelected && selectedCacadaPowers.length >= nivelPoder
+                const canSelect = isSelected || (canAfford && !atPowerCap)
                 const enhancements = getCacadaEnhancementsForPower(power.id, selectedPathBase)
-                
+
                 return (
                   <div key={power.id} className="space-y-2">
                     <SingularityCard
@@ -403,23 +445,24 @@ export function PathSingularitiesTab({
                       cost={power.cost}
                       isSelected={isSelected}
                       canAfford={canAfford}
-                      canSelect={canAfford}
+                      canSelect={canSelect}
                       onClick={() => toggleCacadaPower(power.id)}
                       variant="teal"
                     />
-                    {/* Enhancements for this power */}
                     {isSelected && enhancements.length > 0 && (
                       <div className="ml-4 space-y-2 border-l-2 border-ecoar-teal/30 pl-4">
                         <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 font-semibold">Aprimoramentos:</p>
                         {enhancements.map((enhancement) => {
                           const isEnhSelected = selectedCacadaEnhancements.includes(enhancement.id)
-                          const canAffordEnh = pontosDisponiveis >= enhancement.cost
-                          const hasOtherEnh = selectedCacadaEnhancements.some(e => {
+                          const canAffordEnh = isEnhSelected || pontosDisponiveis >= enhancement.cost
+                          const hasOtherEnh = selectedCacadaEnhancements.some((e) => {
                             const eData = getCacadaEnhancementById(e)
                             return eData?.requirements.powerId === power.id && e !== enhancement.id
                           })
-                          const canSelectEnh = canAffordEnh && !(enhancement.requirements.noOtherEnhancement && hasOtherEnh)
-                          
+                          const canSelectEnh =
+                            isEnhSelected ||
+                            (canAffordEnh && !(enhancement.requirements.noOtherEnhancement && hasOtherEnh))
+
                           return (
                             <SingularityCard
                               key={enhancement.id}
@@ -443,6 +486,43 @@ export function PathSingularitiesTab({
             </div>
           </div>
         </div>
+      )}
+
+      {selectedTrilha === 'esperanca' && selectedPathBase && (
+        <EsperancaPathExtras
+          pathSingularityBase={selectedPathBase}
+          pathExtraIds={pathExtraIds}
+          onPathExtraIdsChange={onPathExtraIdsChange}
+          pontosDisponiveis={pontosDisponiveis}
+          martialSingularityIds={martialSingularityIds}
+          nivelAlma={nivelAlma}
+        />
+      )}
+
+      {selectedTrilha === 'patronos' && selectedPathBase && (
+        <PatronosPathExtras
+          pathSingularityBase={selectedPathBase}
+          pathExtraIds={pathExtraIds}
+          onPathExtraIdsChange={onPathExtraIdsChange}
+          pathPatronChoice={pathPatronChoice}
+          onPathPatronChoiceChange={onPathPatronChoiceChange}
+          pontosDisponiveis={pontosDisponiveis}
+          martialSingularityIds={martialSingularityIds}
+          nivelAlma={nivelAlma}
+        />
+      )}
+
+      {selectedTrilha === 'violencia' && selectedPathBase && (
+        <ViolenciaPathExtras
+          pathSingularityBase={selectedPathBase}
+          pathExtraIds={pathExtraIds}
+          onPathExtraIdsChange={onPathExtraIdsChange}
+          pathHonorCode={pathHonorCode}
+          onPathHonorCodeChange={onPathHonorCodeChange}
+          pontosDisponiveis={pontosDisponiveis}
+          martialSingularityIds={martialSingularityIds}
+          nivelAlma={nivelAlma}
+        />
       )}
     </div>
   )

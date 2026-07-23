@@ -1,7 +1,7 @@
 ﻿'use client'
 
 // Shell legado. Estado do wizard em features/character/wizard.
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react'
 import { WizardFormProvider, useWizardForm } from '@/features/character/wizard/WizardFormContext'
 import { LazySoulLevelSelectionStep } from '@/components/wizard/wizardLazySteps'
 import CharacterCreationWizardShell from '@/features/character/components/wizard/CharacterCreationWizardShell'
@@ -60,6 +60,7 @@ import {
   anySelectedSingularityForbidsDisadvantage,
   requirementsConflictWithSelection,
 } from '@/lib/creationSingularityDisadvantageConflict'
+import { sumPathExtraCosts } from '@/data/pathExtraOptions'
 import {
   pathBaseSingularities,
   getPathBaseSingularityByPathId,
@@ -74,6 +75,7 @@ import {
   getCacadaEnhancementsByPowerId,
   getCacadaEnhancementById,
   getPathLevelFromSoulLevel,
+  getBruxariaExtraCostTotal,
   Bruxaria,
   CacadaPower,
   CacadaEnhancement,
@@ -154,6 +156,9 @@ export interface CharacterCreationData {
   singularidadesPath?: string[]
   pathCacadaPowers?: string[]
   pathCacadaEnhancements?: string[]
+  pathExtraIds?: string[]
+  pathPatronChoice?: string
+  pathHonorCode?: string
   pathSingularityBase?: string
   pathBruxarias?: string[]
 
@@ -253,6 +258,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     pathBruxarias,
     pathCacadaPowers,
     pathCacadaEnhancements,
+    pathExtraIds,
+    pathPatronChoice,
+    pathHonorCode,
     pontosCriacao,
     nome,
     backstory,
@@ -307,6 +315,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const setPathBruxarias = useCallback((v: string[]) => patch({ pathBruxarias: v }), [patch])
   const setPathCacadaPowers = useCallback((v: string[]) => patch({ pathCacadaPowers: v }), [patch])
   const setPathCacadaEnhancements = useCallback((v: string[]) => patch({ pathCacadaEnhancements: v }), [patch])
+  const setPathExtraIds = useCallback((v: string[]) => patch({ pathExtraIds: v }), [patch])
+  const setPathPatronChoice = useCallback((v: string) => patch({ pathPatronChoice: v }), [patch])
+  const setPathHonorCode = useCallback((v: string) => patch({ pathHonorCode: v }), [patch])
   const setPontosCriacao = useCallback((v: typeof pontosCriacao) => dispatch({ type: 'SET_PONTOS_CRIACAO', pontosCriacao: v }), [dispatch])
   const setNome = useCallback((v: string) => patch({ nome: v }), [patch])
   const setBackstory = useCallback((v: string) => patch({ backstory: v }), [patch])
@@ -395,6 +406,29 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             ...(initialData.equipamentos ? { equipamentos: initialData.equipamentos } : {}),
             ...(initialData.armas ? { armas: initialData.armas } : {}),
           }),
+      ...(typeof initialData.pathSingularityBase === 'string'
+        ? { pathSingularityBase: initialData.pathSingularityBase }
+        : {}),
+      ...(Array.isArray(initialData.pathBruxarias) ? { pathBruxarias: initialData.pathBruxarias } : {}),
+      ...(Array.isArray(initialData.pathCacadaPowers)
+        ? { pathCacadaPowers: initialData.pathCacadaPowers }
+        : {}),
+      ...(Array.isArray(initialData.pathCacadaEnhancements)
+        ? { pathCacadaEnhancements: initialData.pathCacadaEnhancements }
+        : {}),
+      ...(Array.isArray(initialData.pathExtraIds) ? { pathExtraIds: initialData.pathExtraIds } : {}),
+      ...(typeof initialData.pathPatronChoice === 'string'
+        ? { pathPatronChoice: initialData.pathPatronChoice }
+        : {}),
+      ...(typeof initialData.pathHonorCode === 'string'
+        ? { pathHonorCode: initialData.pathHonorCode }
+        : {}),
+      ...(Array.isArray(initialData.singularidadesRaciais)
+        ? { singularidadesRaciais: initialData.singularidadesRaciais }
+        : {}),
+      ...(Array.isArray(initialData.desvantagens)
+        ? { selectedDisadvantages: initialData.desvantagens }
+        : {}),
     })
 
     setShowIntroduction(false)
@@ -495,7 +529,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     if (race) {
       setSingularidadesRaciais(
         getRacialSingularitiesByRaceId(race.id)
-          .filter((s) => (s.acquisitionPhase ?? 'creation') === 'creation')
+          .filter((s) => (s.acquisitionPhase ?? 'creation') === 'creation' && (s.cost ?? 0) === 0)
           .map((s) => s.id),
       )
     } else {
@@ -695,8 +729,10 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       const enh = getCacadaEnhancementById(enhId)
       if (enh) total += enh.cost
     })
+    total += sumPathExtraCosts(pathExtraIds)
+    total += getBruxariaExtraCostTotal(pathBruxarias.length)
     return total
-  }, [pathSingularityBase, pathCacadaPowers, pathCacadaEnhancements])
+  }, [pathSingularityBase, pathCacadaPowers, pathCacadaEnhancements, pathExtraIds, pathBruxarias])
 
   /** PC gasto em atributos (além dos 12) e aptidões (além dos 3). */
   const gastosPCEmTracos = useMemo(() => {
@@ -718,11 +754,21 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     [gastosPCEmSingularidades, gastosPCEmTrilha],
   )
 
-  /** Sincroniza gastos de PC na etapa "Gastando PC" a partir do estado (singularidades + trilha + traços). */
-  useEffect(() => {
+  /** Sincroniza gastos de PC na etapa "Gastando PC" antes do paint (evita flash 30 → valor real). */
+  useLayoutEffect(() => {
     if (currentStep !== 5) return
     handleCreationPointsSpentChange(gastosPCNaoTracos + gastosPCEmTracos)
   }, [currentStep, gastosPCNaoTracos, gastosPCEmTracos, handleCreationPointsSpentChange])
+
+  const pontosCriacaoExibicao = useMemo(() => {
+    if (currentStep !== 5) return pontosCriacao
+    const gastos = gastosPCNaoTracos + gastosPCEmTracos
+    return {
+      obtidos: pontosCriacao.obtidos,
+      gastos,
+      disponiveis: pontosCriacao.obtidos - gastos,
+    }
+  }, [currentStep, pontosCriacao, gastosPCNaoTracos, gastosPCEmTracos])
 
   const systemSingularities = useMemo(() => buildSystemSingularities(ecoarSingularities), [ecoarSingularities])
   const systemSingularityById = useMemo(() => {
@@ -739,7 +785,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           singularidadesEcoar,
           singularidadesMarciais: singularidadesMarciaisFiltered,
           singularidadesRaciais,
-          singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements],
+          singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements, ...pathExtraIds],
           singularidadesCondicionaisCriacaoAtivas: [],
           singularidadesCondicionaisAtivas: [],
           singularidadesCondicionaisMarciaisAtivas: [],
@@ -755,6 +801,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
       singularidadesRaciais,
       pathCacadaPowers,
       pathCacadaEnhancements,
+      pathExtraIds,
       systemSingularityById,
     ],
   )
@@ -894,9 +941,12 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         },
         singularidadesMarciais: singularidades.filter((s) => Boolean(getMartialSchoolSingularityById(s))),
         singularidadesRaciais,
-        singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements],
+        singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements, ...pathExtraIds],
         pathCacadaPowers,
         pathCacadaEnhancements,
+        pathExtraIds,
+        pathPatronChoice,
+        pathHonorCode,
         pathSingularityBase,
         pathBruxarias,
         desvantagens: selectedDisadvantages,
@@ -1188,7 +1238,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           aptitudes={aptitudes}
           selectedDisadvantages={selectedDisadvantages}
           singularidades={singularidades}
-          pontosCriacao={pontosCriacao}
+          pontosCriacao={pontosCriacaoExibicao}
           mergedEquipamentosLista={mergedEquipamentosLista}
           mergedArmasLista={mergedArmasLista}
           effectiveAttributesCreation={effectiveAttributesCreation}
@@ -1215,7 +1265,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             availableRaces={availableRaces}
             attributes={attributes}
             attributePoints={attributePoints}
-            pontosCriacao={pontosCriacao}
+            pontosCriacao={pontosCriacaoExibicao}
             skills={skills}
             skillPoints={skillPoints}
             aptitudes={aptitudes}
@@ -1230,6 +1280,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             pathBruxarias={pathBruxarias}
             pathCacadaPowers={pathCacadaPowers}
             pathCacadaEnhancements={pathCacadaEnhancements}
+            pathExtraIds={pathExtraIds}
+            pathPatronChoice={pathPatronChoice}
+            pathHonorCode={pathHonorCode}
             selectedEscolaMarcial={selectedEscolaMarcial}
             singularidadesRaciais={singularidadesRaciais}
             selectedDisadvantages={selectedDisadvantages}
@@ -1264,6 +1317,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             setPathBruxarias={setPathBruxarias}
             setPathCacadaPowers={setPathCacadaPowers}
             setPathCacadaEnhancements={setPathCacadaEnhancements}
+            setPathExtraIds={setPathExtraIds}
+            setPathPatronChoice={setPathPatronChoice}
+            setPathHonorCode={setPathHonorCode}
             setSelectedEscolaMarcial={setSelectedEscolaMarcial}
             setSingularidades={setSingularidades}
             setSingularidadesRaciais={setSingularidadesRaciais}

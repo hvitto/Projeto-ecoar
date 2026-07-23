@@ -40,8 +40,21 @@ import {
   getCacadaEnhancementsForPower,
   getCacadaEnhancementById,
   getBruxariasByCategory,
+  BRUXARIA_FREE_SLOTS,
+  BRUXARIA_EXTRA_COST,
+  getBruxariaMaxSlots,
+  getBruxariaExtraCostTotal,
   type Bruxaria,
 } from '@/data/pathSingularities'
+import {
+  getPathBookEntryById,
+  sumPathExtraCosts,
+} from '@/data/pathExtraOptions'
+import {
+  EsperancaPathExtras,
+  PatronosPathExtras,
+  ViolenciaPathExtras,
+} from '@/components/wizard/steps/pc-spending/PathExtrasPanels'
 import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
 import { DisturbiosEcoarPanel } from '@/components/disturbios/DisturbiosEcoarPanel'
@@ -222,6 +235,31 @@ export default function CharacterEvolutionScreen({
     () => baselinePathIds.filter((id) => Boolean(getCacadaEnhancementById(id))),
     [baselinePathIds],
   )
+  const baselinePathExtraIds = useMemo(() => {
+    if (Array.isArray(initialCharacterData?.pathExtraIds)) {
+      return initialCharacterData.pathExtraIds as string[]
+    }
+    return baselinePathIds.filter((id) => {
+      const e = getPathBookEntryById(id)
+      if (!e) return false
+      const kind = e.meta?.kind
+      return kind === 'projection' || kind === 'blessing' || kind === 'ultraviolence' || (kind === 'enhancement' && e.meta?.patron)
+    })
+  }, [baselinePathIds, initialCharacterData?.pathExtraIds])
+  const baselinePathPatronChoice = useMemo(
+    () =>
+      typeof initialCharacterData?.pathPatronChoice === 'string'
+        ? (initialCharacterData.pathPatronChoice as string)
+        : '',
+    [initialCharacterData?.pathPatronChoice],
+  )
+  const baselinePathHonorCode = useMemo(
+    () =>
+      typeof initialCharacterData?.pathHonorCode === 'string'
+        ? (initialCharacterData.pathHonorCode as string)
+        : '',
+    [initialCharacterData?.pathHonorCode],
+  )
 
   const baselineCreationSet = useMemo(() => new Set(baselineSingularidadesCriacao), [baselineSingularidadesCriacao])
   const baselineEcoarSet = useMemo(() => new Set(baselineSingularidadesEcoar), [baselineSingularidadesEcoar])
@@ -229,6 +267,7 @@ export default function CharacterEvolutionScreen({
   const baselineRacialSet = useMemo(() => new Set(baselineSingularidadesRaciais), [baselineSingularidadesRaciais])
   const baselinePathPowerSet = useMemo(() => new Set(baselinePathCacadaPowers), [baselinePathCacadaPowers])
   const baselinePathEnhSet = useMemo(() => new Set(baselinePathCacadaEnhancements), [baselinePathCacadaEnhancements])
+  const baselinePathExtraSet = useMemo(() => new Set(baselinePathExtraIds), [baselinePathExtraIds])
   const baselinePathBruxariaSet = useMemo(() => new Set(baselinePathBruxarias), [baselinePathBruxarias])
 
   const baselineDisturbios = useMemo<DisturbioOwnedEntry[]>(() => {
@@ -268,6 +307,9 @@ export default function CharacterEvolutionScreen({
   const [draftPathBruxarias, setDraftPathBruxarias] = useState<string[]>(baselinePathBruxarias)
   const [draftPathCacadaPowers, setDraftPathCacadaPowers] = useState<string[]>(baselinePathCacadaPowers)
   const [draftPathCacadaEnhancements, setDraftPathCacadaEnhancements] = useState<string[]>(baselinePathCacadaEnhancements)
+  const [draftPathExtraIds, setDraftPathExtraIds] = useState<string[]>(baselinePathExtraIds)
+  const [draftPathPatronChoice, setDraftPathPatronChoice] = useState(baselinePathPatronChoice)
+  const [draftPathHonorCode, setDraftPathHonorCode] = useState(baselinePathHonorCode)
   const [draftDisturbios, setDraftDisturbios] = useState<DisturbioOwnedEntry[]>(baselineDisturbios)
   const [draftEcoarAcoes, setDraftEcoarAcoes] = useState<string[]>(baselineEcoarAcoes)
 
@@ -316,12 +358,18 @@ export default function CharacterEvolutionScreen({
         setDraftPathBruxarias([...baselinePathBruxarias])
         setDraftPathCacadaPowers([...baselinePathCacadaPowers])
         setDraftPathCacadaEnhancements([...baselinePathCacadaEnhancements])
+        setDraftPathExtraIds([...baselinePathExtraIds])
+        setDraftPathPatronChoice(baselinePathPatronChoice)
+        setDraftPathHonorCode(baselinePathHonorCode)
         return
       }
       setDraftPathSingularityBase('')
       setDraftPathBruxarias([])
       setDraftPathCacadaPowers([])
       setDraftPathCacadaEnhancements([])
+      setDraftPathExtraIds([])
+      setDraftPathPatronChoice('')
+      setDraftPathHonorCode('')
     },
     [
       baselineTrilhaId,
@@ -329,6 +377,9 @@ export default function CharacterEvolutionScreen({
       baselinePathBruxarias,
       baselinePathCacadaPowers,
       baselinePathCacadaEnhancements,
+      baselinePathExtraIds,
+      baselinePathPatronChoice,
+      baselinePathHonorCode,
     ],
   )
 
@@ -429,25 +480,63 @@ export default function CharacterEvolutionScreen({
 
   const costTrilhaPE = useMemo(() => {
     let total = 0
-    if (draftPathSingularityBase && draftPathSingularityBase !== baselinePathSingularityBase) {
-      total += getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0
+
+    const draftBaseCost = draftPathSingularityBase
+      ? (getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0)
+      : 0
+    const baselineBaseCost = baselinePathSingularityBase
+      ? (getPathBaseSingularityById(baselinePathSingularityBase)?.cost ?? 0)
+      : 0
+    if (draftPathSingularityBase !== baselinePathSingularityBase) {
+      total += draftBaseCost - baselineBaseCost
     }
+
     for (const id of draftPathCacadaPowers) {
       if (baselinePathPowerSet.has(id)) continue
       total += getCacadaPowerById(id)?.cost ?? 0
     }
+    for (const id of baselinePathCacadaPowers) {
+      if (draftPathCacadaPowers.includes(id)) continue
+      total -= getCacadaPowerById(id)?.cost ?? 0
+    }
+
     for (const id of draftPathCacadaEnhancements) {
       if (baselinePathEnhSet.has(id)) continue
       total += getCacadaEnhancementById(id)?.cost ?? 0
     }
+    for (const id of baselinePathCacadaEnhancements) {
+      if (draftPathCacadaEnhancements.includes(id)) continue
+      total -= getCacadaEnhancementById(id)?.cost ?? 0
+    }
+
+    for (const id of draftPathExtraIds) {
+      if (baselinePathExtraSet.has(id)) continue
+      total += getPathBookEntryById(id)?.cost ?? 0
+    }
+    for (const id of baselinePathExtraIds) {
+      if (draftPathExtraIds.includes(id)) continue
+      total -= getPathBookEntryById(id)?.cost ?? 0
+    }
+
+    total +=
+      getBruxariaExtraCostTotal(draftPathBruxarias.length) -
+      getBruxariaExtraCostTotal(baselinePathBruxarias.length)
+
     return total
   }, [
     draftPathSingularityBase,
     baselinePathSingularityBase,
     draftPathCacadaPowers,
     draftPathCacadaEnhancements,
+    draftPathExtraIds,
+    draftPathBruxarias,
+    baselinePathBruxarias,
+    baselinePathCacadaPowers,
+    baselinePathCacadaEnhancements,
+    baselinePathExtraIds,
     baselinePathPowerSet,
     baselinePathEnhSet,
+    baselinePathExtraSet,
   ])
 
   const totalCostPE = useMemo(() => {
@@ -495,6 +584,9 @@ export default function CharacterEvolutionScreen({
     if (!eqArr(draftPathBruxarias, baselinePathBruxarias)) return true
     if (!eqArr(draftPathCacadaPowers, baselinePathCacadaPowers)) return true
     if (!eqArr(draftPathCacadaEnhancements, baselinePathCacadaEnhancements)) return true
+    if (!eqArr(draftPathExtraIds, baselinePathExtraIds)) return true
+    if (draftPathPatronChoice !== baselinePathPatronChoice) return true
+    if (draftPathHonorCode !== baselinePathHonorCode) return true
 
     for (const k of ATTRIBUTE_KEYS) {
       if ((draftAttributes[k] ?? 0) !== (baselineAttributes[k] ?? 0)) return true
@@ -551,6 +643,9 @@ export default function CharacterEvolutionScreen({
     baselinePathBruxarias,
     baselinePathCacadaPowers,
     baselinePathCacadaEnhancements,
+    baselinePathExtraIds,
+    baselinePathPatronChoice,
+    baselinePathHonorCode,
     baselineSkills,
     baselineSingularidadesCriacao,
     baselineSingularidadesEcoar,
@@ -568,6 +663,9 @@ export default function CharacterEvolutionScreen({
     draftPathBruxarias,
     draftPathCacadaPowers,
     draftPathCacadaEnhancements,
+    draftPathExtraIds,
+    draftPathPatronChoice,
+    draftPathHonorCode,
     draftSkills,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
@@ -775,15 +873,23 @@ export default function CharacterEvolutionScreen({
     if (draftPathSingularityBase === id) {
       if (baselinePathSingularityBase === id && !hasMasterOverride) return
       setDraftPathSingularityBase('')
+      setDraftPathBruxarias([])
+      setDraftPathCacadaPowers([])
+      setDraftPathCacadaEnhancements([])
+      setDraftPathExtraIds([])
+      setDraftPathPatronChoice('')
+      setDraftPathHonorCode('')
       return
     }
-    const currentExtra =
-      draftPathSingularityBase && draftPathSingularityBase !== baselinePathSingularityBase
-        ? (getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0)
-        : 0
-    const nextExtra =
-      id !== baselinePathSingularityBase ? (getPathBaseSingularityById(id)?.cost ?? 0) : 0
-    const netNeeded = nextExtra - currentExtra
+    const baselineBaseCost = baselinePathSingularityBase
+      ? (getPathBaseSingularityById(baselinePathSingularityBase)?.cost ?? 0)
+      : 0
+    const deltaFor = (baseId: string) => {
+      if (!baseId) return baselinePathSingularityBase ? -baselineBaseCost : 0
+      if (baseId === baselinePathSingularityBase) return 0
+      return (getPathBaseSingularityById(baseId)?.cost ?? 0) - baselineBaseCost
+    }
+    const netNeeded = deltaFor(id) - deltaFor(draftPathSingularityBase)
     if (!hasMasterOverride && netNeeded > 0 && pontosDisponiveisAtual < netNeeded) return
     setDraftPathSingularityBase(id)
   }
@@ -795,6 +901,11 @@ export default function CharacterEvolutionScreen({
         if (baselinePathBruxariaSet.has(id) && !hasMasterOverride) return prev
         return prev.filter((x) => x !== id)
       }
+      const maxSlots = getBruxariaMaxSlots(nivelPoder)
+      if (prev.length >= maxSlots) return prev
+      const addedCost =
+        getBruxariaExtraCostTotal(prev.length + 1) - getBruxariaExtraCostTotal(prev.length)
+      if (!hasMasterOverride && addedCost > 0 && pontosDisponiveisAtual < addedCost) return prev
       return [...prev, id]
     })
   }
@@ -867,6 +978,9 @@ export default function CharacterEvolutionScreen({
       pathBruxarias: draftPathBruxarias,
       pathCacadaPowers: draftPathCacadaPowers,
       pathCacadaEnhancements: draftPathCacadaEnhancements,
+      pathExtraIds: draftPathExtraIds,
+      pathPatronChoice: draftPathPatronChoice,
+      pathHonorCode: draftPathHonorCode,
       pontosEvolucao: {
         ...initialPontosEvolucao,
         atual: hasMasterOverride
@@ -880,7 +994,7 @@ export default function CharacterEvolutionScreen({
       singularidadesEcoar: draftSingularidadesEcoar,
       singularidadesMarciais: draftSingularidadesMarciais,
       singularidadesRaciais: draftSingularidadesRaciais,
-      singularidadesPath: [...draftPathCacadaPowers, ...draftPathCacadaEnhancements],
+      singularidadesPath: [...draftPathCacadaPowers, ...draftPathCacadaEnhancements, ...draftPathExtraIds],
       disturbios: draftDisturbios,
       ecoarAcoes: draftEcoarAcoes,
       pontosEcoar: {
@@ -911,6 +1025,9 @@ export default function CharacterEvolutionScreen({
     draftPathBruxarias,
     draftPathCacadaPowers,
     draftPathCacadaEnhancements,
+    draftPathExtraIds,
+    draftPathPatronChoice,
+    draftPathHonorCode,
     draftSingularidadesCriacao,
     draftSingularidadesEcoar,
     draftSingularidadesMarciais,
@@ -1630,7 +1747,7 @@ export default function CharacterEvolutionScreen({
                   ))}
                 </select>
                 <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
-                  Pode definir ou alterar aqui, mesmo sem escolha na criação. Trocar a trilha limpa poderes/base incompatíveis do rascunho (a baseline da trilha anterior só volta se você restaurar a mesma trilha).
+                  Pode definir ou alterar aqui, mesmo sem escolha na criação. Trocar a trilha limpa a base e os poderes do rascunho e devolve o PE investido na trilha anterior ao salvar.
                 </p>
               </div>
 
@@ -1656,14 +1773,15 @@ export default function CharacterEvolutionScreen({
                         {pathBases.map((base) => {
                           const isSelected = draftPathSingularityBase === base.id
                           const isBaselineLocked = baselinePathSingularityBase === base.id
-                          const currentExtra =
-                            draftPathSingularityBase &&
-                            draftPathSingularityBase !== baselinePathSingularityBase
-                              ? (getPathBaseSingularityById(draftPathSingularityBase)?.cost ?? 0)
-                              : 0
-                          const nextExtra =
-                            base.id !== baselinePathSingularityBase ? base.cost : 0
-                          const netNeeded = nextExtra - currentExtra
+                          const baselineBaseCost = baselinePathSingularityBase
+                            ? (getPathBaseSingularityById(baselinePathSingularityBase)?.cost ?? 0)
+                            : 0
+                          const deltaFor = (baseId: string) => {
+                            if (!baseId) return baselinePathSingularityBase ? -baselineBaseCost : 0
+                            if (baseId === baselinePathSingularityBase) return 0
+                            return (getPathBaseSingularityById(baseId)?.cost ?? 0) - baselineBaseCost
+                          }
+                          const netNeeded = deltaFor(base.id) - deltaFor(draftPathSingularityBase)
                           const canAfford = netNeeded <= 0 || pontosDisponiveisAtual >= netNeeded
                           const canSelect =
                             isSelected
@@ -1675,8 +1793,15 @@ export default function CharacterEvolutionScreen({
                               key={base.id}
                               name={base.name}
                               description={base.description}
-                              cost={base.cost}
+                              cost={Math.max(0, netNeeded)}
                               costLabel="PE"
+                              secondaryCost={
+                                netNeeded < 0
+                                  ? `Reembolso ${Math.abs(netNeeded)} PE`
+                                  : netNeeded === 0 && base.id !== baselinePathSingularityBase
+                                    ? 'Troca sem custo líquido'
+                                    : undefined
+                              }
                               isSelected={isSelected}
                               canAfford={canAfford}
                               canSelect={canSelect}
@@ -1691,9 +1816,22 @@ export default function CharacterEvolutionScreen({
 
                   {draftTrilha === 'bruxaria' && draftPathSingularityBase && (
                     <div className="space-y-4">
-                      <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
-                        Bruxarias <span className="font-normal text-slate-500">(sem custo de PE)</span>
-                      </h4>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+                          Bruxarias ({draftPathBruxarias.length}/{getBruxariaMaxSlots(nivelPoder)})
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
+                          {BRUXARIA_FREE_SLOTS} gratuitas; até {nivelPoder} extras por {BRUXARIA_EXTRA_COST} PE
+                          cada
+                          {getBruxariaExtraCostTotal(draftPathBruxarias.length) >
+                          getBruxariaExtraCostTotal(baselinePathBruxarias.length)
+                            ? ` · +${
+                                getBruxariaExtraCostTotal(draftPathBruxarias.length) -
+                                getBruxariaExtraCostTotal(baselinePathBruxarias.length)
+                              } PE nesta sessão`
+                            : ''}
+                        </p>
+                      </div>
                       {bruxariaCategories.map((category) => {
                         const list = getBruxariasByCategory(category)
                         if (list.length === 0) return null
@@ -1706,18 +1844,33 @@ export default function CharacterEvolutionScreen({
                               {list.map((bruxaria) => {
                                 const isSelected = draftPathBruxarias.includes(bruxaria.id)
                                 const isBaselineLocked = baselinePathBruxariaSet.has(bruxaria.id)
+                                const maxSlots = getBruxariaMaxSlots(nivelPoder)
+                                const atCap = !isSelected && draftPathBruxarias.length >= maxSlots
+                                const addCost =
+                                  getBruxariaExtraCostTotal(draftPathBruxarias.length + 1) -
+                                  getBruxariaExtraCostTotal(draftPathBruxarias.length)
+                                const canAfford = addCost <= 0 || pontosDisponiveisAtual >= addCost
+                                const canSelect = isSelected
+                                  ? !isBaselineLocked || hasMasterOverride
+                                  : (!atCap && (canAfford || hasMasterOverride)) || hasMasterOverride
                                 return (
                                   <SingularityCard
                                     key={bruxaria.id}
                                     name={bruxaria.name}
                                     description={bruxaria.description}
-                                    cost={0}
-                                    secondaryCost="Livre"
+                                    cost={isSelected ? 0 : addCost}
+                                    costLabel={addCost > 0 && !isSelected ? 'PE' : undefined}
+                                    secondaryCost={
+                                      isSelected || addCost === 0 ? 'Livre / slot gratis' : undefined
+                                    }
                                     isSelected={isSelected}
-                                    canAfford
-                                    canSelect={!isSelected || !isBaselineLocked || hasMasterOverride}
+                                    canAfford={canAfford}
+                                    canSelect={canSelect}
                                     onClick={() => togglePathBruxaria(bruxaria.id)}
                                     effects={bruxaria.effects}
+                                    requirementsText={
+                                      atCap ? 'Limite de bruxarias atingido' : undefined
+                                    }
                                     variant="teal"
                                   />
                                 )
@@ -1809,10 +1962,51 @@ export default function CharacterEvolutionScreen({
                     </div>
                   )}
 
-                  {draftTrilha !== 'bruxaria' && draftTrilha !== 'cacada' && draftPathSingularityBase && (
+                  {draftTrilha === 'esperanca' && draftPathSingularityBase && (
+                    <EsperancaPathExtras
+                      pathSingularityBase={draftPathSingularityBase}
+                      pathExtraIds={draftPathExtraIds}
+                      onPathExtraIdsChange={setDraftPathExtraIds}
+                      pontosDisponiveis={pontosDisponiveisAtual}
+                      martialSingularityIds={draftSingularidadesMarciais}
+                      nivelAlma={nivelAlma}
+                      costLabel="PE"
+                    />
+                  )}
+
+                  {draftTrilha === 'patronos' && draftPathSingularityBase && (
+                    <PatronosPathExtras
+                      pathSingularityBase={draftPathSingularityBase}
+                      pathExtraIds={draftPathExtraIds}
+                      onPathExtraIdsChange={setDraftPathExtraIds}
+                      pathPatronChoice={draftPathPatronChoice}
+                      onPathPatronChoiceChange={setDraftPathPatronChoice}
+                      pontosDisponiveis={pontosDisponiveisAtual}
+                      martialSingularityIds={draftSingularidadesMarciais}
+                      nivelAlma={nivelAlma}
+                      costLabel="PE"
+                    />
+                  )}
+
+                  {draftTrilha === 'violencia' && draftPathSingularityBase && (
+                    <ViolenciaPathExtras
+                      pathSingularityBase={draftPathSingularityBase}
+                      pathExtraIds={draftPathExtraIds}
+                      onPathExtraIdsChange={setDraftPathExtraIds}
+                      pathHonorCode={draftPathHonorCode}
+                      onPathHonorCodeChange={setDraftPathHonorCode}
+                      pontosDisponiveis={pontosDisponiveisAtual}
+                      martialSingularityIds={draftSingularidadesMarciais}
+                      nivelAlma={nivelAlma}
+                      costLabel="PE"
+                    />
+                  )}
+
+                  {draftTrilha === 'anti-cacada' && draftPathSingularityBase && (
                     <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
                       <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
-                        A base desta trilha pode ser comprada com PE. Projeções, bênçãos e ultraviolências do livro entram pelo catálogo conforme forem liberadas na UI.
+                        A base Anti-Caçador concede Corrupção, Imunidade, Cultista e Promessa de Poder. Conteúdo
+                        adicional desta trilha ainda não está catalogado além da singularidade base.
                       </div>
                     </div>
                   )}

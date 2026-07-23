@@ -35,6 +35,9 @@ export function wizardFormReducer(state: WizardFormState, action: WizardFormActi
         pathBruxarias: [],
         pathCacadaPowers: [],
         pathCacadaEnhancements: [],
+        pathExtraIds: [],
+        pathPatronChoice: '',
+        pathHonorCode: '',
       }
     case 'RESET':
       return action.state ?? createInitialWizardFormState()

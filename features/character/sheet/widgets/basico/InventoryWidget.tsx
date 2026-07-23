@@ -3,6 +3,7 @@
 import { ExternalLink } from 'lucide-react'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
+import OwnedWeaponQualityControls from '@/components/equipment/OwnedWeaponQualityControls'
 import { formatCerosDisplay } from '@/lib/equipmentCost'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
@@ -34,6 +35,7 @@ export function InventoryWidget() {
     isAccessoryCatalogItem,
     removeSheetCatalogItem,
     handleEquipmentCatalogPick,
+    changeSheetCatalogItemQuality,
     equippedMainArmorEntries,
     equippedAccessoryEntries,
     equippedUtilityEntries,
@@ -174,6 +176,24 @@ export function InventoryWidget() {
                         >
                           <td className="max-w-[28rem] px-2 py-1 text-slate-800 dark:text-ecoar-light-900/85">
                             <span className="line-clamp-2 break-words">{item.displayLine}</span>
+                            {item.kind === 'weapon' && isEditing ? (
+                              <div className="mt-1.5">
+                                <OwnedWeaponQualityControls
+                                  compact
+                                  item={item}
+                                  saldoDisponivel={characterData.saldoMoedas}
+                                  disabled={!canEditSheet}
+                                  onChangeQuality={(next) => {
+                                    changeSheetCatalogItemQuality(item.instanceId, next)
+                                  }}
+                                />
+                              </div>
+                            ) : item.kind === 'weapon' && (item.qualidadeNivel ?? 0) !== 0 ? (
+                              <div className="mt-1 text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
+                                Qualidade [{(item.qualidadeNivel ?? 0) > 0 ? '+' : ''}
+                                {item.qualidadeNivel}]
+                              </div>
+                            ) : null}
                           </td>
                           <td className="px-2 py-1">
                             {eq ? (

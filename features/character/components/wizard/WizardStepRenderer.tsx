@@ -44,6 +44,9 @@ export type WizardStepRendererProps = {
   pathBruxarias: string[]
   pathCacadaPowers: string[]
   pathCacadaEnhancements: string[]
+  pathExtraIds: string[]
+  pathPatronChoice: string
+  pathHonorCode: string
   selectedEscolaMarcial: string
   singularidadesRaciais: string[]
   selectedDisadvantages: string[]
@@ -78,6 +81,9 @@ export type WizardStepRendererProps = {
   setPathBruxarias: (ids: string[]) => void
   setPathCacadaPowers: (ids: string[]) => void
   setPathCacadaEnhancements: (ids: string[]) => void
+  setPathExtraIds: (ids: string[]) => void
+  setPathPatronChoice: (id: string) => void
+  setPathHonorCode: (id: string) => void
   setSelectedEscolaMarcial: (id: string) => void
   setSingularidades: (ids: string[]) => void
   setSingularidadesRaciais: (ids: string[]) => void
@@ -118,6 +124,9 @@ function WizardStepRenderer({
   pathBruxarias,
   pathCacadaPowers,
   pathCacadaEnhancements,
+  pathExtraIds,
+  pathPatronChoice,
+  pathHonorCode,
   selectedEscolaMarcial,
   singularidadesRaciais,
   selectedDisadvantages,
@@ -152,6 +161,9 @@ function WizardStepRenderer({
   setPathBruxarias,
   setPathCacadaPowers,
   setPathCacadaEnhancements,
+  setPathExtraIds,
+  setPathPatronChoice,
+  setPathHonorCode,
   setSelectedEscolaMarcial,
   setSingularidades,
   setSingularidadesRaciais,
@@ -288,6 +300,12 @@ function WizardStepRenderer({
             onPathCacadaPowersChange={setPathCacadaPowers}
             pathCacadaEnhancements={pathCacadaEnhancements}
             onPathCacadaEnhancementsChange={setPathCacadaEnhancements}
+            pathExtraIds={pathExtraIds}
+            onPathExtraIdsChange={setPathExtraIds}
+            pathPatronChoice={pathPatronChoice}
+            onPathPatronChoiceChange={setPathPatronChoice}
+            pathHonorCode={pathHonorCode}
+            onPathHonorCodeChange={setPathHonorCode}
             attributes={attributes}
             skills={skills}
             aptitudes={aptitudes}

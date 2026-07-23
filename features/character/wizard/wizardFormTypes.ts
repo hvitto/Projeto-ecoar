@@ -45,6 +45,9 @@ export type WizardFormState = {
   pathBruxarias: string[]
   pathCacadaPowers: string[]
   pathCacadaEnhancements: string[]
+  pathExtraIds: string[]
+  pathPatronChoice: string
+  pathHonorCode: string
   pontosCriacao: WizardPontosCriacao
   nome: string
   backstory: string
@@ -97,6 +100,9 @@ export function createInitialWizardFormState(): WizardFormState {
     pathBruxarias: [],
     pathCacadaPowers: [],
     pathCacadaEnhancements: [],
+    pathExtraIds: [],
+    pathPatronChoice: '',
+    pathHonorCode: '',
     pontosCriacao: { obtidos: 30, gastos: 0, disponiveis: 30 },
     nome: '',
     backstory: '',

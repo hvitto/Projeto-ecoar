@@ -101,6 +101,17 @@ export const creationSingularities: CreationSingularity[] = [
       attributes: { percepcao: 1 },
     },
   },
+  {
+    id: 'robusto',
+    name: 'Robusto',
+    category: 'atributos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Vitalidade.',
+    cost: 10,
+    requirements: ['fragil'],
+    bonuses: {
+      attributes: { vitalidade: 1 },
+    },
+  },
 
   // ========== HABILIDADES ==========
   {
@@ -221,6 +232,59 @@ export const creationSingularities: CreationSingularity[] = [
       deslocamento: {
         terrestre: 1,
       },
+    },
+  },
+  {
+    id: 'carismatico',
+    name: 'Carismático',
+    category: 'talentos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Carisma, e um bônus de +2 em testes de Convencer e Mentir.',
+    cost: 20,
+    bonuses: {
+      attributes: { carisma: 1 },
+    },
+  },
+  {
+    id: 'mente-prodigiosa',
+    name: 'Mente Prodigiosa',
+    category: 'talentos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Inteligência, e um incremento de +2 em Mente.',
+    cost: 15,
+    requirements: ['desinteligente'],
+    bonuses: {
+      attributes: { inteligencia: 1 },
+      mente: 2,
+    },
+  },
+  {
+    id: 'precisao-cirurgica',
+    name: 'Precisão Cirúrgica',
+    category: 'talentos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Finesse, e um bônus de +2 em cálculos de dano de ataques que somam o seu modificador de Finesse.',
+    cost: 20,
+    requirements: ['devagar'],
+    bonuses: {
+      attributes: { finesse: 1 },
+    },
+  },
+  {
+    id: 'sentidos-afiados',
+    name: 'Sentidos Afiados',
+    category: 'talentos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Percepção, e um bônus de +1 em testes de Atenção e Reflexos.',
+    cost: 20,
+    bonuses: {
+      attributes: { percepcao: 1 },
+    },
+  },
+  {
+    id: 'vontade-inabalavel',
+    name: 'Vontade Inabalável',
+    category: 'talentos',
+    description: 'Você recebe um bônus de +1 no seu modificador de Vontade, e um bônus de +1 em testes de Compostura.',
+    cost: 15,
+    bonuses: {
+      attributes: { vontade: 1 },
     },
   },
 ]

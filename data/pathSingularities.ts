@@ -165,7 +165,8 @@ export const pathBaseSingularities: PathBaseSingularity[] = [
     id: 'impeto',
     pathId: 'esperanca',
     name: 'Ímpeto',
-    description: 'Arauto da esperança e da arte (Vox).',
+    description:
+      'Ao se tornar Ímpeto (30 PE; não seguir outra Trilha): Esperança (cura Infectado ao descansar), Remorso Subconsciente (ataques de cultistas/trilhas desfavoráveis), Canalização Voxi (+2 em ataques com canalizador/arma artística) e Projeção Artística (projeções de escolas Vox; nível I de cada escola concedido ao preencher o requisito).',
     cost: 30,
     requirements: { noOtherPath: true },
     effects: ['Esperança', 'Remorso Subconsciente', 'Canalização Voxi', 'Projeção Artística'],
@@ -174,7 +175,8 @@ export const pathBaseSingularities: PathBaseSingularity[] = [
     id: 'campeao',
     pathId: 'patronos',
     name: 'Campeão(ã)',
-    description: 'Servo de um patrono (divindade, entidade menor ou planar).',
+    description:
+      'Ao se tornar Campeão (30 PE; Natura 2; não seguir outra Trilha): Contrabalanço, Proteção do Patrono (imune a Infectado), Canalização Naturi e Manifestações do Patrono. Escolha um patrono; a primeira bênção é concedida automaticamente.',
     cost: 30,
     requirements: {
       skills: { natura: 2 },
@@ -186,7 +188,8 @@ export const pathBaseSingularities: PathBaseSingularity[] = [
     id: 'carrasco',
     pathId: 'violencia',
     name: 'Carrasco(a)',
-    description: 'Ultraviolência sob código de honra.',
+    description:
+      'Ao se tornar Carrasco (30 PE; não seguir outra Trilha): Resistência à Praga, Identificação do Carrasco, Canalização Lethalis e Código de Violência. Escolha um código de honra; ultraviolências (máx. = Nível de Poder) só valem sob o código.',
     cost: 30,
     requirements: { noOtherPath: true },
     effects: [
@@ -987,5 +990,20 @@ export function getAllCacadaEnhancements(): CacadaEnhancement[] {
 
 export function getAllBruxarias(): Bruxaria[] {
   return bruxarias
+}
+
+export const BRUXARIA_FREE_SLOTS = 3
+export const BRUXARIA_EXTRA_COST = 5
+
+export function getBruxariaMaxSlots(nivelPoder: number): number {
+  return BRUXARIA_FREE_SLOTS + Math.max(0, nivelPoder)
+}
+
+export function getBruxariaExtraCount(selectedCount: number): number {
+  return Math.max(0, selectedCount - BRUXARIA_FREE_SLOTS)
+}
+
+export function getBruxariaExtraCostTotal(selectedCount: number): number {
+  return getBruxariaExtraCount(selectedCount) * BRUXARIA_EXTRA_COST
 }
 

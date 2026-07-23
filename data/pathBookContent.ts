@@ -133,7 +133,7 @@ export const pathBookEntries: PathBookEntry[] = [
     id: 'path-impeto',
     name: 'Ímpeto',
     description:
-      'Trilha da Esperança: Esperança, Remorso Subconsciente, Canalização Voxi, Projeção Artística (aprimoramentos das escolas Vox; nível I de cada escola Vox concedido ao preencher requisito).',
+      'Trilha da Esperança (30 PE). Concede Esperança (cura Infectado ao finalizar descanso), Remorso Subconsciente (ataques de cultistas ou personas com Trilha contra você são desfavoráveis), Canalização Voxi (próprio canalizador; +2 em ataques com canalizador/arma artística) e Projeção Artística (projeções de escolas Vox; singularidade de nível I de cada escola concedida ao preencher o requisito).',
     cost: 30,
     sourceGroup: 'path-esperanca',
     pathKind: 'esperanca',
@@ -144,7 +144,7 @@ export const pathBookEntries: PathBookEntry[] = [
     id: 'path-campeao',
     name: 'Campeão(ã)',
     description:
-      'Trilha dos Patronos: Contrabalanço, Proteção do Patrono, Canalização Naturi, Manifestações do Patrono (escolha tipo de patrono e entidade).',
+      'Trilha dos Patronos (30 PE; Natura 2). Concede Contrabalanço (+metade ↑ NdT em resistência vs Cultista/Caçador), Proteção do Patrono (imune a Infectado), Canalização Naturi (+2 em ataques com canalizador) e Manifestações do Patrono. Escolha um patrono; a primeira bênção é automática.',
     cost: 30,
     sourceGroup: 'path-patronos',
     pathKind: 'patronos',
@@ -155,7 +155,7 @@ export const pathBookEntries: PathBookEntry[] = [
     id: 'path-carrasco',
     name: 'Carrasco(a)',
     description:
-      'Trilha da Violência: Resistência à Praga, Identificação do Carrasco, Canalização Lethalis, Código de Violência e Ultraviolências (máx. = Nível de Poder; só sob o código).',
+      'Trilha da Violência (30 PE). Concede Resistência à Praga, Identificação do Carrasco, Canalização Lethalis (+2 em ataques não mágicos / sem Armas Especiais) e Código de Violência. Escolha um código de honra; adquira até NdP ultraviolências (só sob o código).',
     cost: 30,
     sourceGroup: 'path-violencia',
     pathKind: 'violencia',
@@ -732,7 +732,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-barda-1',
     name: 'Projeção da Barda I',
-    description: 'Aliado sob Barda I cura Corpo/Mente = NdT no início de cada rodada dele. Concedida ao preencher Barda I.',
+    description:
+      'Concedida ao preencher Barda I. Uma criatura sob seus efeitos de Barda I cura Corpo e Mente iguais ao seu Nível de Trilha no início de cada rodada dela.',
     cost: 0,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -742,7 +743,7 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-barda-2',
     name: 'Projeção da Barda II',
-    description: 'Canção no livro: +1 em testes de ataque.',
+    description: 'Aqueles com a canção no seu livro recebem +1 adicional em testes de ataque.',
     cost: 10,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -752,7 +753,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-barda-3',
     name: 'Projeção da Barda III',
-    description: 'Primeira resistência a dano físico da rodada (persona com canção): +NdT.',
+    description:
+      'O primeiro cálculo de resistência a dano físico da primeira persona com a canção no livro a receber dano na rodada recebe bônus igual ao seu Nível de Trilha.',
     cost: 15,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -762,7 +764,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-barda-4',
     name: 'Projeção da Barda IV',
-    description: 'Efeitos da Barda a 5 m mesmo sem canção; metade (↓) dos bônus.',
+    description:
+      'Personas a até 5 m sem a canção no livro também podem ser afetadas pelos efeitos da Barda, recebendo metade (↓) de qualquer bônus concedido.',
     cost: 25,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -772,7 +775,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-desenhista-1',
     name: 'Projeção da Desenhista I',
-    description: 'Ação desenhista extra; aliado a 5 m cura Mente = NdT. Concedida com Desenhista I.',
+    description:
+      'Concedida com Desenhista I. Aprende uma ação adicional de Desenhista I. Ao usar ação de desenhista, aliado a 5 m (pode ser você) cura Mente = Nível de Trilha.',
     cost: 0,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -782,7 +786,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-desenhista-2',
     name: 'Projeção da Desenhista II',
-    description: 'Desenho de dano/terror/atordoamento/medo: aliados reagem com ataque.',
+    description:
+      'Ao usar desenho de dano, terror, atordoamento ou medo, aliados com o alvo no alcance de suas armas podem reagir com um ataque imediato.',
     cost: 10,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -792,7 +797,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-desenhista-3',
     name: 'Projeção da Desenhista III',
-    description: 'Próxima cura ou dano no alvo: +mod Vox (conforme tipo de desenho).',
+    description:
+      'Ao usar ação de desenhista, a próxima cura (se desenho de cura/conforto) ou dano (se dano/terror/atordoamento/medo) no alvo dentro de uma rodada recebe bônus igual ao seu modificador de Vox.',
     cost: 15,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -802,7 +808,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-desenhista-4',
     name: 'Projeção da Desenhista IV',
-    description: 'Aprende ação de Desenhista VII; com Desenhista XII, +2 em ações de desenhista.',
+    description:
+      'Aprende uma ação de Desenhista VII. Com Desenhista XII, todas as ações de desenhista recebem +2.',
     cost: 25,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -812,7 +819,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'proj-musicista-1',
     name: 'Projeção do Musicista I',
-    description: 'Aliado sob Musicista I: +NdT em testes (exceto esquiva/coragem); cura Mente = NdT no início da sua rodada. Concedida com Musicista I.',
+    description:
+      'Concedida com Musicista I. Aliado sob Musicista I: +Nível de Trilha em testes (exceto esquiva e coragem). No início da sua rodada, cure Mente = NdT em um aliado afetado pela música.',
     cost: 0,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -821,8 +829,9 @@ export const pathBookEntries: PathBookEntry[] = [
   }),
   pe({
     id: 'proj-musicista-2',
-    name: 'Projeção da Musicista II',
-    description: 'Música afeta inimigos a 15 m: −NdT em esquiva.',
+    name: 'Projeção do Musicista II',
+    description:
+      'Sua música também afeta inimigos a 15 m: penalidade em esquiva igual ao seu Nível de Trilha.',
     cost: 10,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -831,8 +840,9 @@ export const pathBookEntries: PathBookEntry[] = [
   }),
   pe({
     id: 'proj-musicista-3',
-    name: 'Projeção da Musicista III',
-    description: '1×/turno/personagem: ataque de ação curta com ação menor se alvo também sob música.',
+    name: 'Projeção do Musicista III',
+    description:
+      'Uma vez por turno por personagem, aliados sob a música (incluindo você com Musicista III) podem fazer um ataque de ação curta com ação menor se o alvo também estiver sob a música.',
     cost: 15,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -841,8 +851,9 @@ export const pathBookEntries: PathBookEntry[] = [
   }),
   pe({
     id: 'proj-musicista-4',
-    name: 'Projeção da Musicista IV',
-    description: 'Aliado sob música pode refazer um teste falho 1×/turno.',
+    name: 'Projeção do Musicista IV',
+    description:
+      'Quando um aliado sob a música falha em um teste, pode refazê-lo e ficar com o novo resultado (1×/turno; inclui você com Musicista III).',
     cost: 25,
     sourceGroup: 'path-esperanca-proj',
     pathKind: 'esperanca',
@@ -1234,7 +1245,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-ataque',
     name: 'Ultraviolência: Ataque',
-    description: '+metade (↑) NdT em testes de ataque (não mágicas / Armas Especiais).',
+    description:
+      '+metade (↑) do Nível de Trilha em testes de ataque. Não se aplica a armas mágicas nem a ataques com Armas Especiais. Só sob o código de honra.',
     cost: 5,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1244,7 +1256,7 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-dano',
     name: 'Ultraviolência: Dano',
-    description: '+NdT em cálculos de dano físico.',
+    description: '+Nível de Trilha em cálculos de dano físico. Só sob o código de honra.',
     cost: 5,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1254,7 +1266,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-resistencia',
     name: 'Ultraviolência: Resistência',
-    description: '+metade (↑) NdT em resistência a dano físico.',
+    description:
+      '+metade (↑) do Nível de Trilha em resistência a dano físico. Só sob o código de honra.',
     cost: 15,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1264,7 +1277,7 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-esquiva',
     name: 'Ultraviolência: Esquiva',
-    description: '+metade (↑) NdT em esquiva.',
+    description: '+metade (↑) do Nível de Trilha em testes de esquiva. Só sob o código de honra.',
     cost: 5,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1274,7 +1287,7 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-critico',
     name: 'Ultraviolência: Acerto crítico',
-    description: '+metade (↑) NdT em Acerto Crítico.',
+    description: '+metade (↑) do Nível de Trilha em Acerto Crítico. Só sob o código de honra.',
     cost: 5,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1284,7 +1297,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-penetracao',
     name: 'Ultraviolência: Penetração',
-    description: 'Penetração = metade (↑) NdT.',
+    description:
+      'Penetração igual a metade (↑) do Nível de Trilha (cada ponto reduz resistência do alvo em 1). Só sob o código de honra.',
     cost: 5,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1294,7 +1308,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-dano-maximo',
     name: 'Ultraviolência: Dano Máximo',
-    description: '+3 × metade (↑) NdT em Dano Máximo (não mágicas / Armas Especiais).',
+    description:
+      '+3 × metade (↑) do Nível de Trilha em Dano Máximo. Não se aplica a armas mágicas / Armas Especiais. Só sob o código de honra.',
     cost: 10,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
@@ -1304,7 +1319,8 @@ export const pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'uv-aprimoramento',
     name: 'Ultraviolência: Aprimoramento',
-    description: 'Todos os bônus de ultraviolência passam a ser iguais ao NdT (não metade). Requer ≥3 ultraviolências.',
+    description:
+      'Todos os bônus de ultraviolência passam a ser iguais ao Nível de Trilha (não metade). Requer pelo menos três outras ultraviolências.',
     cost: 40,
     sourceGroup: 'path-violencia-uv',
     pathKind: 'violencia',
