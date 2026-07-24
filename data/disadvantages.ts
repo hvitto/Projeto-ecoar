@@ -197,7 +197,7 @@ export const getAllDisadvantages = (): Disadvantage[] => {
   if (runtime && runtime.some((s) => s.systemType === 'desvantagem')) {
     return mapCatalogToDisadvantages(runtime)
   }
-  return disadvantages
+  return []
 }
 
 export const getDisadvantageById = (id: string): Disadvantage | undefined => {

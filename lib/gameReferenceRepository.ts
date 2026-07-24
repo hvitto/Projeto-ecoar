@@ -7,6 +7,7 @@ import type { Location } from '@/data/locations'
 import type { SoulLevel } from '@/data/soulLevels'
 import type { MartialSchool } from '@/data/martialSchools'
 import type { DisturbioIdentityPart, DisturbioComum, EcoarAcao } from '@/data/disturbios'
+import type { PathPatronOption, PathHonorCode } from '@/data/pathExtraOptions'
 
 export type GameReferenceKind =
   | 'race'
@@ -21,6 +22,8 @@ export type GameReferenceKind =
   | 'disturbio_penalidade'
   | 'disturbio_comum'
   | 'ecoar_acao'
+  | 'path_patron'
+  | 'path_honor_code'
 
 export type GameReferencePayload = {
   races: Race[]
@@ -35,6 +38,8 @@ export type GameReferencePayload = {
   disturbioPenalidades: DisturbioIdentityPart[]
   disturbiosComuns: DisturbioComum[]
   ecoarAcoes: EcoarAcao[]
+  pathPatrons: PathPatronOption[]
+  pathHonorCodes: PathHonorCode[]
   source: 'database' | 'empty'
 }
 
@@ -51,6 +56,8 @@ const EMPTY_PAYLOAD: GameReferencePayload = {
   disturbioPenalidades: [],
   disturbiosComuns: [],
   ecoarAcoes: [],
+  pathPatrons: [],
+  pathHonorCodes: [],
   source: 'empty',
 }
 
@@ -89,6 +96,8 @@ export async function getGameReferencePayloadFromDb(): Promise<GameReferencePayl
     disturbioPenalidades: asArray<DisturbioIdentityPart>(rows, 'disturbio_penalidade'),
     disturbiosComuns: asArray<DisturbioComum>(rows, 'disturbio_comum'),
     ecoarAcoes: asArray<EcoarAcao>(rows, 'ecoar_acao'),
+    pathPatrons: asArray<PathPatronOption>(rows, 'path_patron'),
+    pathHonorCodes: asArray<PathHonorCode>(rows, 'path_honor_code'),
     source: 'database',
   }
 }

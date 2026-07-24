@@ -2,7 +2,15 @@
 
 import { ReactNode } from 'react'
 import { EquipmentCatalogProvider } from '@/shared/contexts/EquipmentCatalogContext'
+import { EcoarCatalogProvider } from '@/lib/ecoarCatalogClient'
+import { CatalogBootstrapGate } from '@/shared/components/CatalogBootstrapGate'
 
 export default function ReferenciaLayout({ children }: { children: ReactNode }) {
-  return <EquipmentCatalogProvider>{children}</EquipmentCatalogProvider>
+  return (
+    <EquipmentCatalogProvider>
+      <EcoarCatalogProvider>
+        <CatalogBootstrapGate>{children}</CatalogBootstrapGate>
+      </EcoarCatalogProvider>
+    </EquipmentCatalogProvider>
+  )
 }

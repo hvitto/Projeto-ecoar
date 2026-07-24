@@ -34,10 +34,8 @@ export let aptitudes: Aptitude[] = [
   },
 ]
 
-const STATIC_APTITUDES: Aptitude[] = aptitudes
-
 export function hydrateAptitudes(list: Aptitude[]) {
-  aptitudes = list.length > 0 ? list : STATIC_APTITUDES
+  if (list.length > 0) aptitudes = list
 }
 
 export const getAptitudeById = (id: string): Aptitude | undefined => {

@@ -50,10 +50,8 @@ export let paths: Path[] = [
   },
 ]
 
-const STATIC_PATHS: Path[] = paths
-
 export function hydratePaths(list: Path[]) {
-  paths = list.length > 0 ? list : STATIC_PATHS
+  if (list.length > 0) paths = list
 }
 
 export const getPathById = (id: string): Path | undefined => {

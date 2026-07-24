@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { isEquipmentCatalogSchemaMissingError } from '@/lib/equipmentCatalogDbErrors'
 import {
-  defaultMultiplierTables,
   getMultiplierTablesFromDb,
   listActiveCatalogItems,
   splitItemsByKind,
@@ -11,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 let warnedMissingDatabaseUrl = false
 
-/** Resposta alinhada ao cliente: vazio → fallback para dados estáticos (sem 500). */
+/** Resposta vazia: o cliente não usa mais fallback estático. */
 function emptyCatalogResponse() {
   return NextResponse.json({
     weapons: [],
@@ -27,7 +26,7 @@ export async function GET() {
     if (!warnedMissingDatabaseUrl) {
       warnedMissingDatabaseUrl = true
       console.warn(
-        'GET equipment-catalog: DATABASE_URL não definido. Resposta vazia; o cliente usa o catálogo estático (data/equipment).'
+        'GET equipment-catalog: DATABASE_URL não definido. Resposta vazia.',
       )
     }
     return emptyCatalogResponse()
@@ -40,18 +39,20 @@ export async function GET() {
     }
     const { weapons, armor, utilities } = splitItemsByKind(items)
     const fromDb = await getMultiplierTablesFromDb()
-    const multiplierTables = fromDb?.length ? fromDb : defaultMultiplierTables()
+    if (!fromDb?.length) {
+      return emptyCatalogResponse()
+    }
     return NextResponse.json({
       weapons,
       armor,
       utilities,
-      multiplierTables,
+      multiplierTables: fromDb,
       source: 'database' as const,
     })
   } catch (err) {
     if (isEquipmentCatalogSchemaMissingError(err)) {
       console.warn(
-        'GET equipment-catalog: tabelas ausentes (aplique scripts/migrations/002_equipment_catalog.sql e npm run seed:catalog). Usando fallback vazio.'
+        'GET equipment-catalog: tabelas ausentes (aplique scripts/migrations/002_equipment_catalog.sql e yarn seed:catalog).',
       )
       return emptyCatalogResponse()
     }

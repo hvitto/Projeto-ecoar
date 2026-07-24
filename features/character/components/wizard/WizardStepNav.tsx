@@ -27,9 +27,9 @@ function WizardStepNav({
   const progressPct = ((currentStep + 1) / (totalSteps + 1)) * 100
 
   return (
-    <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
-      <div className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden">
-        <div className="mb-5 pb-4 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 min-h-0 lg:max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
+      <div className="bg-transparent lg:bg-ecoar-light-700 dark:lg:bg-ecoar-dark-800 lg:border-r border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-2 lg:p-4 flex flex-col min-h-0 flex-1 lg:shadow-sm overflow-hidden">
+        <div className="hidden lg:block mb-5 pb-4 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
           <h1 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1.5">
             Criação de Personagem
           </h1>
@@ -45,7 +45,7 @@ function WizardStepNav({
           </p>
         </div>
 
-        <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar overflow-x-hidden">
+        <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar overflow-x-hidden">
           {stepTitles.map((title, idx) => {
             const stepNum = idx
             const StepIcon = stepIcons[idx] || Circle

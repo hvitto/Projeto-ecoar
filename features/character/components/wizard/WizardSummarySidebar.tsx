@@ -81,9 +81,9 @@ function WizardSummarySidebar({
   creationLimits,
 }: WizardSummarySidebarProps) {
   return (
-    <aside className="hidden lg:flex flex-col w-72 flex-shrink-0 p-3 min-h-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
-      <div className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-4 flex flex-col min-h-0 flex-1 shadow-sm overflow-hidden">
-        <h3 className="text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/70 uppercase tracking-wider mb-3 shrink-0">
+    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 min-h-0 lg:max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
+      <div className="bg-transparent lg:bg-ecoar-light-700 dark:lg:bg-ecoar-dark-800 lg:border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-2 lg:p-4 flex flex-col min-h-0 flex-1 lg:shadow-sm overflow-hidden">
+        <h3 className="hidden lg:block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/70 uppercase tracking-wider mb-3 shrink-0">
           Resumo
         </h3>
         <div className="space-y-3 text-xs flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">

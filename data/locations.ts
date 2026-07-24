@@ -210,10 +210,8 @@ export let locations: Location[] = [
   ...uniaoLyriana,
 ]
 
-const STATIC_LOCATIONS: Location[] = locations
-
 export function hydrateLocations(list: Location[]) {
-  locations = list.length > 0 ? list : STATIC_LOCATIONS
+  if (list.length > 0) locations = list
 }
 
 // ========== FUNÇÕES AUXILIARES ==========

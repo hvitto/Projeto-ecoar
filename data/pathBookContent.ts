@@ -46,7 +46,7 @@ function pe(
   }
 }
 
-export const pathBookEntries: PathBookEntry[] = [
+export let pathBookEntries: PathBookEntry[] = [
   pe({
     id: 'path-bruxo',
     name: 'Bruxo(a)',
@@ -1328,3 +1328,7 @@ export const pathBookEntries: PathBookEntry[] = [
     meta: { kind: 'ultraviolence', requiresThree: true },
   }),
 ]
+
+export function hydratePathBookEntries(list: PathBookEntry[]) {
+  if (list.length > 0) pathBookEntries = list
+}

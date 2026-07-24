@@ -744,7 +744,7 @@ export function getAllRacialSingularities(): RacialSingularity[] {
   if (runtime && runtime.some((s) => s.systemType === 'racial')) {
     return mapCatalogToRacialSingularities(runtime)
   }
-  return racialSingularities
+  return []
 }
 
 export function getRacialSingularitiesByRaceId(raceId: string): RacialSingularity[] {

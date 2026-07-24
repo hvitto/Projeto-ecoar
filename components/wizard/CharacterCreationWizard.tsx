@@ -226,7 +226,6 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const searchParams = useSearchParams()
   const { state: form, dispatch, patch } = useWizardForm()
   const [showIntroduction, setShowIntroduction] = useState(true)
-  const [initialLevel] = useState(1)
   const [pcSubStep, setPCSubStep] = useState<'singularidades' | 'traços' | 'escola-marcial'>('singularidades')
   const hasInitialized = useRef(false)
   const hasSyncedStepFromUrl = useRef(false)
@@ -1151,24 +1150,23 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
 
   const totalSteps = WIZARD_TOTAL_STEPS
 
-  // Tela de Introdução: Header + conteúdo largo; CTA e Footer ficam abaixo, é preciso rolar para alcançar
   if (showIntroduction) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-[100dvh] flex flex-col">
         <Header onGoToDashboard={onGoToDashboard} />
-        <main className="flex-1 w-full min-h-[calc(100vh-4rem)] px-3 sm:px-4 md:px-6 py-6 md:py-8">
+        <main className="flex-1 w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-28">
           <div className="max-w-[1600px] mx-auto">
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-6 md:p-8 shadow-lg"
+              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-4 sm:p-6 md:p-8 shadow-lg"
             >
-              <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-3 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-                  <ScrollText className="w-6 h-6 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
+              <div className="mb-5 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-3 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+                  <ScrollText className="w-5 h-5 sm:w-6 sm:h-6 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
                 </div>
-                <h1 className="text-xl font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
+                <h1 className="text-lg sm:text-xl font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
                   Bem-vindo ao ECOAR
                 </h1>
                 <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-sm max-w-xl">
@@ -1187,8 +1185,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
                 onSelect={setNivelAlmaInicial}
               />
 
-              {/* CTA abaixo do conteúdo: é preciso rolar para alcançar */}
-              <div className="mt-8 pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="hidden sm:flex mt-8 pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/60">
                   Nível {nivelAlmaInicial} selecionado
                 </p>
@@ -1202,7 +1199,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full sm:w-auto min-w-[200px] py-2.5 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm transition-all shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20"
+                  className="w-full sm:w-auto min-w-[200px] min-h-[44px] py-2.5 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm transition-all shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20"
                 >
                   Começar Criação
                 </motion.button>
@@ -1210,7 +1207,29 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
             </motion.div>
           </div>
         </main>
-        <Footer />
+
+        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/15 bg-ecoar-light-700/95 dark:bg-ecoar-dark-800/95 backdrop-blur-md px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <p className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60 mb-2 text-center">
+            Nível {nivelAlmaInicial} selecionado
+          </p>
+          <motion.button
+            onClick={() => {
+              setShowIntroduction(false)
+              setCurrentStep(0)
+              const params = new URLSearchParams(searchParams.toString())
+              params.set('step', '0')
+              router.replace(`${pathname}?${params.toString()}`)
+            }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full min-h-[48px] py-3 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm shadow-lg shadow-ecoar-teal/10"
+          >
+            Começar Criação
+          </motion.button>
+        </div>
+
+        <div className="hidden lg:block">
+          <Footer />
+        </div>
       </div>
     )
   }
@@ -1218,11 +1237,13 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   return (
     <CharacterCreationWizardShell
       onGoToDashboard={onGoToDashboard}
+      currentStep={currentStep}
+      initialLevel={nivelAlmaInicial}
       leftNav={
         <WizardStepNav
           currentStep={currentStep}
           maxStepVisited={maxStepVisited}
-          initialLevel={initialLevel}
+          initialLevel={nivelAlmaInicial}
           pcSubStep={pcSubStep}
           onVisitStep={onVisitStep}
           onPcSubStepChange={setPCSubStep}
@@ -1255,7 +1276,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           variants={stepVariants}
           initial="hidden"
           animate="visible"
-          className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-5 flex flex-col w-full min-h-0 flex-1"
+          className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-3 sm:p-5 flex flex-col w-full min-h-0 flex-1"
         >
           <WizardStepRenderer
             currentStep={currentStep}

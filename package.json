@@ -14,7 +14,9 @@
     "seed:ecoar": "tsx scripts/seed-ecoar-catalog.ts",
     "seed:system": "tsx scripts/seed-system-singularities.ts",
     "seed:reference": "tsx scripts/seed-game-reference-catalog.ts",
-    "import:pdm": "tsx scripts/import-pdm-singularities.ts"
+    "import:pdm": "tsx scripts/import-pdm-singularities.ts",
+    "validate:parity": "tsx scripts/validate-catalog-parity.ts",
+    "export:catalog": "tsx scripts/export-catalog-backup.ts"
   },
   "dependencies": {
     "@dice-roller/rpg-dice-roller": "^5.5.1",

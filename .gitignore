@@ -28,6 +28,10 @@ yarn-error.log*
 .env
 .env*.local
 
+# catalog audit / backups
+parity-report.json
+/backups/
+
 # vercel
 .vercel
 

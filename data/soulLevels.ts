@@ -44,10 +44,8 @@ export let soulLevels: SoulLevel[] = [
   { nivel: 24, pontosEvolucao: 1250, nivelPoder: 8, estagio: 'Personagem Monstruoso' },
 ]
 
-const STATIC_SOUL_LEVELS: SoulLevel[] = soulLevels
-
 export function hydrateSoulLevels(list: SoulLevel[]) {
-  soulLevels = list.length > 0 ? [...list].sort((a, b) => a.nivel - b.nivel) : STATIC_SOUL_LEVELS
+  if (list.length > 0) soulLevels = [...list].sort((a, b) => a.nivel - b.nivel)
 }
 
 export function getSoulLevelByNivel(nivel: number): SoulLevel | undefined {

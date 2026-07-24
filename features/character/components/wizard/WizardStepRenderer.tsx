@@ -181,17 +181,38 @@ function WizardStepRenderer({
   setPersonalidade,
 }: WizardStepRendererProps) {
   const navButtons = (extra?: ReactNode) => (
-    <div className="flex justify-end gap-2 shrink-0 pb-4">
+    <div className="sticky bottom-0 z-20 -mx-3 sm:-mx-5 mt-auto px-3 sm:px-5 py-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 border-t border-ecoar-dark-300/20 dark:border-ecoar-light-900/10 bg-ecoar-light-700/95 dark:bg-ecoar-dark-800/95 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
       {extra}
-      <Button variant="secondary" size="md" leftIcon={ChevronLeft} onClick={onBack} disabled={currentStep === 0} className="min-h-[44px]">
+      <Button
+        variant="secondary"
+        size="md"
+        leftIcon={ChevronLeft}
+        onClick={onBack}
+        disabled={currentStep === 0}
+        className="min-h-[44px] w-full sm:w-auto"
+      >
         Voltar
       </Button>
       {currentStep < totalSteps ? (
-        <Button variant="primary" size="md" rightIcon={ChevronRight} onClick={onNext} disabled={!canProceed} className="min-h-[44px]">
+        <Button
+          variant="primary"
+          size="md"
+          rightIcon={ChevronRight}
+          onClick={onNext}
+          disabled={!canProceed}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           Próximo
         </Button>
       ) : (
-        <Button variant="primary" size="md" leftIcon={Sparkle} onClick={onFinish} disabled={!canProceed} className="min-h-[44px]">
+        <Button
+          variant="primary"
+          size="md"
+          leftIcon={Sparkle}
+          onClick={onFinish}
+          disabled={!canProceed}
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           Finalizar
         </Button>
       )}
@@ -200,9 +221,7 @@ function WizardStepRenderer({
 
   return (
     <>
-      {!(currentStep === 0 && selectedRaca) && navButtons()}
-
-      <div className="flex flex-col w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-5 scrollbar-hide pr-1">
+      <div className="flex flex-col w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3 scrollbar-hide pr-1">
         {currentStep === 0 &&
           (selectedRaca ? (
             <LazySelectionDetailsPanel
@@ -212,7 +231,7 @@ function WizardStepRenderer({
               onBack={onRacaClear}
               onSelect={(id) => onRacaSelect(id)}
               headerActions={
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button variant="secondary" size="md" leftIcon={ChevronLeft} onClick={onBack} disabled={currentStep === 0} className="min-h-[44px]">
                     Voltar
                   </Button>
@@ -374,6 +393,8 @@ function WizardStepRenderer({
           />
         )}
       </div>
+
+      {!(currentStep === 0 && selectedRaca) && navButtons()}
     </>
   )
 }

@@ -19,7 +19,7 @@ export type PathHonorCode = {
   benefit: string
 }
 
-export const PATH_PATRONS: PathPatronOption[] = [
+export let PATH_PATRONS: PathPatronOption[] = [
   {
     id: 'caeruleum',
     name: 'Caeruleum',
@@ -96,7 +96,7 @@ export const PATH_PATRONS: PathPatronOption[] = [
   },
 ]
 
-export const PATH_HONOR_CODES: PathHonorCode[] = [
+export let PATH_HONOR_CODES: PathHonorCode[] = [
   {
     id: 'honor-forca-equivalente',
     name: 'Força Equivalente',
@@ -170,6 +170,14 @@ export function getPathPatronById(id: string): PathPatronOption | undefined {
 
 export function getPathHonorCodeById(id: string): PathHonorCode | undefined {
   return PATH_HONOR_CODES.find((c) => c.id === id)
+}
+
+export function hydratePathExtraOptions(input: {
+  patrons?: PathPatronOption[]
+  honorCodes?: PathHonorCode[]
+}) {
+  if (input.patrons && input.patrons.length > 0) PATH_PATRONS = input.patrons
+  if (input.honorCodes && input.honorCodes.length > 0) PATH_HONOR_CODES = input.honorCodes
 }
 
 export function getEsperancaProjections(): PathBookEntry[] {

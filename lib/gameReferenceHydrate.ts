@@ -6,6 +6,7 @@ import type { Location } from '@/data/locations'
 import type { SoulLevel } from '@/data/soulLevels'
 import type { MartialSchool } from '@/data/martialSchools'
 import type { DisturbioIdentityPart, DisturbioComum, EcoarAcao } from '@/data/disturbios'
+import type { PathPatronOption, PathHonorCode } from '@/data/pathExtraOptions'
 import type { GameReferencePayload } from '@/lib/gameReferenceRepository'
 import * as racesMod from '@/data/races'
 import * as pathsMod from '@/data/paths'
@@ -15,6 +16,7 @@ import * as locationsMod from '@/data/locations'
 import * as soulLevelsMod from '@/data/soulLevels'
 import * as martialSchoolsMod from '@/data/martialSchools'
 import * as disturbiosMod from '@/data/disturbios'
+import * as pathExtraMod from '@/data/pathExtraOptions'
 
 export function hydrateGameReferenceFromPayload(payload: GameReferencePayload): boolean {
   if (payload.source !== 'database') return false
@@ -42,6 +44,10 @@ export function hydrateGameReferenceFromPayload(payload: GameReferencePayload): 
     penalidades: payload.disturbioPenalidades as DisturbioIdentityPart[],
     comuns: payload.disturbiosComuns as DisturbioComum[],
     acoes: payload.ecoarAcoes as EcoarAcao[],
+  })
+  pathExtraMod.hydratePathExtraOptions({
+    patrons: payload.pathPatrons as PathPatronOption[],
+    honorCodes: payload.pathHonorCodes as PathHonorCode[],
   })
   return true
 }

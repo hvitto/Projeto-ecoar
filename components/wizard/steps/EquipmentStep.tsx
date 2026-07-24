@@ -251,17 +251,17 @@ export function EquipmentStep({
       {pickerOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
           <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
+            <div className="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
               <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">Catálogo de aquisição</span>
               <button
                 type="button"
                 onClick={() => setPickerOpen(false)}
-                className="px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
+                className="min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
               >
                 Fechar
               </button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4">
               <EquipmentCatalogBrowser
                 mode="picker"
                 urlSync={false}

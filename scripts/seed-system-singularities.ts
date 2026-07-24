@@ -15,6 +15,7 @@ import { races } from '../data/races'
 import { racialSingularities } from '../data/racialSingularities'
 import { pathBookEntries } from '../data/pathBookContent'
 import {
+  bruxarias,
   cacadaEnhancements,
   cacadaPowers,
   pathBaseSingularities,
@@ -340,6 +341,7 @@ async function main() {
   pathGroups.set('path-bases-ui', 'Trilha: bases (UI)')
   pathGroups.set('path-cacada-powers-ui', 'Trilha: poderes da Caçada')
   pathGroups.set('path-cacada-enh-ui', 'Trilha: aprimoramentos da Caçada')
+  pathGroups.set('path-bruxarias-ui', 'Trilha: bruxarias (UI)')
   for (const [groupId, label] of pathGroups) {
     await ensureGroup(sql, groupId, 'path', label)
   }
@@ -556,6 +558,55 @@ async function main() {
     await sql`
       INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
       VALUES (${`${enh.id}-fx-main`}, ${enh.id}, ${'main'}, ${enh.name}, ${fullDescription}, 1, now())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        updated_at = now()
+    `
+  }
+
+  for (const bx of bruxarias) {
+    const fullDescription = `${bx.description}${bx.effects ? `\n${bx.effects}` : ''}`
+    const activationType = inferActivationType(fullDescription)
+    await sql`
+      INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
+      VALUES (
+        ${bx.id},
+        ${'path-bruxarias-ui'},
+        ${'path'},
+        ${'path-bruxarias-ui'},
+        ${JSON.stringify({
+          kind: 'bruxaria',
+          category: bx.category,
+          manaCost: bx.manaCost,
+          action: bx.action,
+          range: bx.range ?? null,
+        })}::jsonb,
+        ${bx.name},
+        ${fullDescription},
+        ${0},
+        null,
+        ${activationType},
+        ${JSON.stringify({})}::jsonb,
+        false,
+        true,
+        now()
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        ecoar_id = EXCLUDED.ecoar_id,
+        system_type = EXCLUDED.system_type,
+        source_group = EXCLUDED.source_group,
+        source_meta = EXCLUDED.source_meta,
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        activation_type = EXCLUDED.activation_type,
+        is_active = true,
+        updated_at = now()
+    `
+    await sql`DELETE FROM ecoar_singularity_requirements WHERE singularity_id = ${bx.id}`
+    await sql`
+      INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
+      VALUES (${`${bx.id}-fx-main`}, ${bx.id}, ${'main'}, ${bx.name}, ${fullDescription}, 1, now())
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,

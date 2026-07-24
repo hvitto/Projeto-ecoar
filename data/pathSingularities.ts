@@ -64,7 +64,7 @@ export function getPathLevelFromSoulLevel(soulLevel: number): number {
 
 // ========== BASE PATH SINGULARITIES ==========
 
-export const pathBaseSingularities: PathBaseSingularity[] = [
+export let pathBaseSingularities: PathBaseSingularity[] = [
   {
     id: 'bruxo',
     pathId: 'bruxaria',
@@ -213,7 +213,7 @@ export const pathBaseSingularities: PathBaseSingularity[] = [
 
 // ========== BRUXARIAS ==========
 
-export const bruxarias: Bruxaria[] = [
+export let bruxarias: Bruxaria[] = [
   // ========== BRUXARIAS DE DESTRUIÇÃO ==========
   {
     id: 'confissao',
@@ -581,7 +581,7 @@ export const bruxarias: Bruxaria[] = [
 
 // ========== PODERES DA CAÇADA ==========
 
-export const cacadaPowers: CacadaPower[] = [
+export let cacadaPowers: CacadaPower[] = [
   {
     id: 'agilidade-da-cacada',
     name: 'Agilidade da Caçada',
@@ -723,7 +723,7 @@ export const cacadaPowers: CacadaPower[] = [
 
 // ========== APRIMORAMENTOS DA CAÇADA ==========
 
-export const cacadaEnhancements: CacadaEnhancement[] = [
+export let cacadaEnhancements: CacadaEnhancement[] = [
   {
     id: 'aliado-das-feras',
     name: 'Aliado das Feras',
@@ -1005,5 +1005,17 @@ export function getBruxariaExtraCount(selectedCount: number): number {
 
 export function getBruxariaExtraCostTotal(selectedCount: number): number {
   return getBruxariaExtraCount(selectedCount) * BRUXARIA_EXTRA_COST
+}
+
+export function hydratePathUiCatalog(input: {
+  bases?: PathBaseSingularity[]
+  bruxarias?: Bruxaria[]
+  powers?: CacadaPower[]
+  enhancements?: CacadaEnhancement[]
+}) {
+  if (input.bases && input.bases.length > 0) pathBaseSingularities = input.bases
+  if (input.bruxarias && input.bruxarias.length > 0) bruxarias = input.bruxarias
+  if (input.powers && input.powers.length > 0) cacadaPowers = input.powers
+  if (input.enhancements && input.enhancements.length > 0) cacadaEnhancements = input.enhancements
 }
 

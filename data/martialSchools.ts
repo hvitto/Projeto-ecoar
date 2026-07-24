@@ -89,10 +89,8 @@ export let martialSchools: MartialSchool[] = [
   },
 ]
 
-const STATIC_MARTIAL_SCHOOLS: MartialSchool[] = martialSchools
-
 export function hydrateMartialSchools(list: MartialSchool[]) {
-  martialSchools = list.length > 0 ? list : STATIC_MARTIAL_SCHOOLS
+  if (list.length > 0) martialSchools = list
 }
 
 export const getMartialSchoolById = (id: string): MartialSchool | undefined => {

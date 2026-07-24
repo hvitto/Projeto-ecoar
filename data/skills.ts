@@ -341,10 +341,8 @@ export let skills: Skill[] = [
   },
 ]
 
-const STATIC_SKILLS: Skill[] = skills
-
 export function hydrateSkills(list: Skill[]) {
-  skills = list.length > 0 ? list : STATIC_SKILLS
+  if (list.length > 0) skills = list
 }
 
 export const getSkillsByCategory = (category: Skill['category']): Skill[] => {

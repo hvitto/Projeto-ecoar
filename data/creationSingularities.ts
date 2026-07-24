@@ -294,7 +294,7 @@ export const getAllCreationSingularities = (): CreationSingularity[] => {
   if (runtime && runtime.some((s) => s.systemType === 'criacao')) {
     return mapCatalogToCreationSingularities(runtime)
   }
-  return creationSingularities
+  return []
 }
 
 export const getCreationSingularityById = (id: string): CreationSingularity | undefined => {

@@ -6,15 +6,38 @@ import { hydrateGameReferenceFromPayload } from '@/lib/gameReferenceHydrate'
 
 type GameReferenceContextValue = {
   ready: boolean
-  source: GameReferencePayload['source'] | 'static'
+  source: GameReferencePayload['source'] | 'static' | 'unavailable'
   error: string | null
 }
 
 const GameReferenceContext = createContext<GameReferenceContextValue>({
   ready: false,
-  source: 'static',
+  source: 'unavailable',
   error: null,
 })
+
+let sharedGameReferencePromise: Promise<GameReferencePayload> | null = null
+
+function loadGameReference(): Promise<GameReferencePayload> {
+  if (!sharedGameReferencePromise) {
+    sharedGameReferencePromise = fetch('/api/game-reference', {
+      cache: 'no-store',
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          sharedGameReferencePromise = null
+          throw new Error('Falha ao carregar referências do servidor')
+        }
+        return (await res.json()) as GameReferencePayload
+      })
+      .catch((e) => {
+        sharedGameReferencePromise = null
+        throw e
+      })
+  }
+  return sharedGameReferencePromise
+}
 
 export function useGameReferenceCatalog() {
   return useContext(GameReferenceContext)
@@ -22,29 +45,28 @@ export function useGameReferenceCatalog() {
 
 export function GameReferenceProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
-  const [source, setSource] = useState<GameReferenceContextValue['source']>('static')
+  const [source, setSource] = useState<GameReferenceContextValue['source']>('unavailable')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/game-reference', { cache: 'no-store', credentials: 'include' })
-        if (!res.ok) {
-          if (!cancelled) {
-            setError('Falha ao carregar referências do servidor')
-            setReady(true)
-          }
-          return
-        }
-        const data = (await res.json()) as GameReferencePayload
+        const data = await loadGameReference()
         if (cancelled) return
         const hydrated = hydrateGameReferenceFromPayload(data)
-        setSource(hydrated ? 'database' : 'static')
+        if (!hydrated) {
+          setError('Referências vazias no banco. Rode yarn seed:reference.')
+          setSource('unavailable')
+        } else {
+          setSource('database')
+          setError(null)
+        }
         setReady(true)
-      } catch {
+      } catch (e) {
         if (!cancelled) {
-          setError('Erro de rede ao carregar referências')
+          setError(e instanceof Error ? e.message : 'Erro de rede ao carregar referências')
+          setSource('unavailable')
           setReady(true)
         }
       }

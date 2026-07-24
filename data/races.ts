@@ -260,10 +260,8 @@ export let races: Race[] = [
   },
 ]
 
-const STATIC_RACES: Race[] = races
-
 export function hydrateRaces(list: Race[]) {
-  races = list.length > 0 ? list : STATIC_RACES
+  if (list.length > 0) races = list
 }
 
 export const getRaceById = (id: string): Race | undefined => {

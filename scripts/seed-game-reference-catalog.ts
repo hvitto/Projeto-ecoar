@@ -15,6 +15,7 @@ import {
   disturbiosComuns,
   ecoarAcoes,
 } from '../data/disturbios'
+import { PATH_PATRONS, PATH_HONOR_CODES } from '../data/pathExtraOptions'
 
 function loadEnvFile(fileName: string) {
   const p = resolve(process.cwd(), fileName)
@@ -50,6 +51,32 @@ type Kind =
   | 'disturbio_penalidade'
   | 'disturbio_comum'
   | 'ecoar_acao'
+  | 'path_patron'
+  | 'path_honor_code'
+
+async function ensureKindConstraint(sql: ReturnType<typeof neon>) {
+  await sql`ALTER TABLE game_reference_catalog DROP CONSTRAINT IF EXISTS game_reference_catalog_kind_check`
+  await sql`
+    ALTER TABLE game_reference_catalog
+    ADD CONSTRAINT game_reference_catalog_kind_check
+    CHECK (kind IN (
+      'race',
+      'path',
+      'skill',
+      'aptitude',
+      'location',
+      'soul_level',
+      'martial_school',
+      'disturbio_gatilho',
+      'disturbio_efeito',
+      'disturbio_penalidade',
+      'disturbio_comum',
+      'ecoar_acao',
+      'path_patron',
+      'path_honor_code'
+    ))
+  `
+}
 
 async function upsert(
   sql: ReturnType<typeof neon>,
@@ -75,6 +102,7 @@ async function main() {
   }
 
   const sql = neon(connectionString)
+  await ensureKindConstraint(sql)
   let n = 0
 
   for (const item of races) {
@@ -123,6 +151,14 @@ async function main() {
   }
   for (const item of ecoarAcoes) {
     await upsert(sql, 'ecoar_acao', item.id, item)
+    n++
+  }
+  for (const item of PATH_PATRONS) {
+    await upsert(sql, 'path_patron', item.id, item)
+    n++
+  }
+  for (const item of PATH_HONOR_CODES) {
+    await upsert(sql, 'path_honor_code', item.id, item)
     n++
   }
 

@@ -97,11 +97,11 @@ export default function Header({ onNewCharacter, onGoToDashboard }: HeaderProps)
             )}
           </nav>
 
-          <div className="md:hidden flex items-center gap-2.5">
-            {user && onGoToDashboard && (
+          <div className="md:hidden flex items-center gap-1.5 sm:gap-2.5">
+            {user && (
               <button
                 type="button"
-                onClick={onGoToDashboard}
+                onClick={handleGoToDashboard}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-ecoar-dark-600 dark:text-ecoar-light-900/60 hover:text-ecoar-dark-800 dark:hover:text-ecoar-light-900/80 transition-colors duration-fast"
                 aria-label="Dashboard"
               >

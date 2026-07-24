@@ -1,7 +1,4 @@
 ﻿import type { ArmorCatalogEntry, CatalogEntry, UtilityCatalogEntry, WeaponCatalogEntry } from '@/shared/types/equipment'
-import { armorCatalog } from '@/data/equipment/armor'
-import { utilityCatalog } from '@/data/equipment/utilities'
-import { weaponCatalog } from '@/data/equipment/weapons'
 import { getEquipmentQualityTier, clampEquipmentQualityNivel, computeOwnedEquipmentCostCeros, resolveOwnedBaseCeros } from '@/lib/equipmentQuality'
 import type { CatalogOwnedItem } from '@/shared/types/equipment'
 
@@ -46,15 +43,8 @@ export function buildCatalogEntryMap(
   return m
 }
 
-const staticCatalogById = buildCatalogEntryMap(weaponCatalog, armorCatalog, utilityCatalog)
-
 export function getCatalogEntryFromMap(map: Map<string, CatalogEntry>, id: string): CatalogEntry | undefined {
   return map.get(id)
-}
-
-/** Catálogo estático embutido (fallback quando o banco está vazio). */
-export function getCatalogEntryById(id: string): CatalogEntry | undefined {
-  return getCatalogEntryFromMap(staticCatalogById, id)
 }
 
 function qualitySuffix(qualidadeNivel?: number, banhadoPrata?: boolean): string {

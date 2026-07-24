@@ -59,7 +59,7 @@ export const getOfficialMartialCostByLevel = (level: number): number | undefined
   return MARTIAL_COST_BY_LEVEL[level]
 }
 
-export const martialSchoolData: MartialSchoolData[] = [
+export let martialSchoolData: MartialSchoolData[] = [
   {
     id: 'astrologo',
     name: 'Escola da Astróloga',

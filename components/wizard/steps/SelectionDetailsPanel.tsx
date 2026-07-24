@@ -154,7 +154,7 @@ export function SelectionDetailsPanel({
             Voltar para seleção
           </button>
         )}
-        <div className="flex items-center gap-3 mb-2 justify-between">
+        <div className="flex flex-col gap-3 mb-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 flex-shrink-0 bg-ecoar-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
               {type === 'race' && <Users className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400" />}
@@ -172,7 +172,7 @@ export function SelectionDetailsPanel({
               </p>
             </div>
           </div>
-          {headerActions && <div className="flex items-center gap-2 flex-shrink-0">{headerActions}</div>}
+          {headerActions && <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">{headerActions}</div>}
         </div>
         <p className="text-sm text-ecoar-dark-700 dark:text-ecoar-light-900/80 leading-relaxed mt-3">
           {item.description}
