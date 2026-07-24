@@ -1200,7 +1200,7 @@ export default function CharacterEvolutionScreen({
                         </div>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/60 mt-2">
-                        Efetivo: {effective} / {nivelPoder} (teto)
+                        Nível: {v.level} / {poderCapBase} (teto) • Efetivo: {effective}
                       </div>
                       {/* Baseline lock indicator */}
                       {v.level > (baselineV.level ?? 0) || (v.specialization && !baselineV.specialization) ? (
@@ -1220,12 +1220,11 @@ export default function CharacterEvolutionScreen({
 
                     const hasSpec = !!v.specialization
                     const effective = v.level + (hasSpec ? 1 : 0)
-                    const maxEffective = Math.min(nivelPoder, 8)
 
                     const baselineHasSpec = !!baselineV.specialization
 
                     const canMinus = hasMasterOverride || v.level > (baselineV.level ?? 0)
-                    const canPlus = hasMasterOverride || (v.level + 1 <= 8 && effective + 1 <= maxEffective && pontosDisponiveisAtual >= costPerLevel)
+                    const canPlus = hasMasterOverride || (v.level + 1 <= poderCapBase && pontosDisponiveisAtual >= costPerLevel)
 
                     return (
                       <div className="space-y-4">
@@ -1234,7 +1233,7 @@ export default function CharacterEvolutionScreen({
                             <div>
                               <div className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900">{selectedSkill.name}</div>
                               <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                Efetivo: {effective} / {nivelPoder}
+                                Nível: {v.level} / {poderCapBase} • Efetivo: {effective}
                               </div>
                             </div>
                             <div className="text-right">
@@ -1287,10 +1286,6 @@ export default function CharacterEvolutionScreen({
 
                                 // Lock: não permitir remover especialização que já existia na baseline.
                                 if (!hasMasterOverride && baselineHasSpec && !nextHasSpec) return
-
-                                // Lock: não permitir adicionar se estourar o teto efetivo.
-                                const nextEffective = v.level + (nextHasSpec ? 1 : 0)
-                                if (!hasMasterOverride && nextEffective > maxEffective) return
 
                                 // Afford: adicionar (baseline sem spec -> com spec) custa PE.
                                 if (!hasMasterOverride && !baselineHasSpec && !currentHasSpec && nextHasSpec && pontosDisponiveisAtual < costPerLevel) return
