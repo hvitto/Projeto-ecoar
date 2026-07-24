@@ -105,34 +105,54 @@ export function toLimitShape(max: number, atual?: number): { atual: number; max:
   return { atual: safeAtual, max: safeMax }
 }
 
-// Common Tests Calculations
-// Arredores (Surroundings) = Percepção + Atenção (Arredores specialization)
-// Iniciativa (Initiative) = Percepção + Raciocínio (Iniciativa specialization) 
-// Esquiva (Dodge) = Percepção + Reflexos (Esquiva specialization)
-// Coragem (Courage) = Vontade + Compostura (Coragem specialization)
 export interface CommonTestCalc {
-  arredores: number;
-  iniciativa: number;
-  esquiva: number;
-  coragem: number;
+  arredores: number
+  iniciativa: number
+  esquiva: number
+  coragem: number
+}
+
+export type CommonTestSpecializationBonuses = {
+  arredores?: number
+  iniciativa?: number
+  esquiva?: number
+  coragem?: number
+}
+
+export function getCommonTestSpecializationBonus(
+  skillSpecialization: string | undefined,
+  expectedSpecializationId: string,
+): number {
+  return skillSpecialization === expectedSpecializationId ? 1 : 0
 }
 
 export function calculateCommonTests(
   percepcao: number,
   vontade: number,
   habilidadeAtencao: number = 0,
-  habilidadeRaciocínio: number = 0,
+  habilidadeRaciocinio: number = 0,
   habilidadeReflexos: number = 0,
   habilidadeCompostura: number = 0,
-  bonusEspecialidade: number = 0, // +1 if specialization is chosen
-  sizeWeightPenalty: number = 0 // Penalty to esquiva from size and weight modifiers
+  specializationBonuses: CommonTestSpecializationBonuses | number = 0,
+  sizeWeightPenalty: number = 0,
 ): CommonTestCalc {
+  const specs: CommonTestSpecializationBonuses =
+    typeof specializationBonuses === 'number'
+      ? {
+          arredores: specializationBonuses,
+          iniciativa: specializationBonuses,
+          esquiva: specializationBonuses,
+          coragem: specializationBonuses,
+        }
+      : specializationBonuses
+
   return {
-    arredores: getAttributeModifier(percepcao) + habilidadeAtencao + bonusEspecialidade,
-    iniciativa: getAttributeModifier(percepcao) + habilidadeRaciocínio + bonusEspecialidade,
-    esquiva: getAttributeModifier(percepcao) + habilidadeReflexos + bonusEspecialidade + sizeWeightPenalty,
-    coragem: getAttributeModifier(vontade) + habilidadeCompostura + bonusEspecialidade,
-  };
+    arredores: getAttributeModifier(percepcao) + habilidadeAtencao + (specs.arredores ?? 0),
+    iniciativa: getAttributeModifier(percepcao) + habilidadeRaciocinio + (specs.iniciativa ?? 0),
+    esquiva:
+      getAttributeModifier(percepcao) + habilidadeReflexos + (specs.esquiva ?? 0) + sizeWeightPenalty,
+    coragem: getAttributeModifier(vontade) + habilidadeCompostura + (specs.coragem ?? 0),
+  }
 }
 
 export function formatModifier(mod: number): string {

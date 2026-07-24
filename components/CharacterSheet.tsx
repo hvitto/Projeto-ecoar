@@ -9,6 +9,7 @@ import {
   getAttributeModifier,
   calculateCharacterLimits,
   calculateCommonTests,
+  getCommonTestSpecializationBonus,
 } from '@/lib/calculations'
 import { skills as skillsDefinitions } from '@/data/skills'
 import { getRaceById } from '@/data/races'
@@ -1329,8 +1330,25 @@ export default function CharacterSheet({
         raciocinioBonus + racialRules.initiativeBonus,
         reflexosBonus,
         composturaBonus + racialRules.composturaBonus,
-        0,
-        sizeWeightPenalty
+        {
+          arredores: getCommonTestSpecializationBonus(
+            characterData.skills?.atencao?.specialization,
+            'arredores',
+          ),
+          iniciativa: getCommonTestSpecializationBonus(
+            characterData.skills?.raciocinio?.specialization,
+            'iniciativa',
+          ),
+          esquiva: getCommonTestSpecializationBonus(
+            characterData.skills?.reflexos?.specialization,
+            'esquiva',
+          ),
+          coragem: getCommonTestSpecializationBonus(
+            characterData.skills?.compostura?.specialization,
+            'coragem',
+          ),
+        },
+        sizeWeightPenalty,
       ),
     }
   }, [
@@ -1346,6 +1364,10 @@ export default function CharacterSheet({
     characterData.vontade.nivel,
     characterData.tamanho,
     characterData.peso,
+    characterData.skills?.atencao?.specialization,
+    characterData.skills?.raciocinio?.specialization,
+    characterData.skills?.reflexos?.specialization,
+    characterData.skills?.compostura?.specialization,
     racialRules.dodgeBonus,
     racialRules.initiativeBonus,
     racialRules.composturaBonus,

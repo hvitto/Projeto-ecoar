@@ -19,13 +19,18 @@ export function CommonTestsWidget() {
     return typeof raw === 'number' ? raw : parseInt(String(raw ?? 0), 10) || 0
   }
 
+  const skillHasSpec = (skillId: string, specializationId: string) =>
+    characterData.skills?.[skillId]?.specialization === specializationId
+
   const characterName = characterData.nome?.trim() || 'Personagem'
 
   const tests = [
     {
       key: 'arredores',
       label: 'Arredores',
-      desc: 'Percepção + Atenção',
+      desc: skillHasSpec('atencao', 'arredores')
+        ? 'Percepção + Atenção (Esp. Arredores +1)'
+        : 'Percepção + Atenção',
       display: formatDiceWithModifier(
         getSkillDice(skillLevelOf('atencao')),
         derivedValues.commonTests.arredores,
@@ -34,7 +39,9 @@ export function CommonTestsWidget() {
     {
       key: 'iniciativa',
       label: 'Iniciativa',
-      desc: 'Percepção + Raciocínio',
+      desc: skillHasSpec('raciocinio', 'iniciativa')
+        ? 'Percepção + Raciocínio (Esp. Iniciativa +1)'
+        : 'Percepção + Raciocínio',
       display: formatDiceWithModifier(
         getSkillDice(skillLevelOf('raciocinio')),
         derivedValues.commonTests.iniciativa,
@@ -45,7 +52,9 @@ export function CommonTestsWidget() {
       label: 'Esquiva',
       desc: hasSizeWeightEffect
         ? `Percepção + Reflexos ${sizeWeightPenalty >= 0 ? '+' : ''}${sizeWeightPenalty} (T/P)`
-        : 'Percepção + Reflexos',
+        : skillHasSpec('reflexos', 'esquiva')
+          ? 'Percepção + Reflexos (Esp. Esquiva +1)'
+          : 'Percepção + Reflexos',
       display: formatDiceWithModifier(
         getSkillDice(skillLevelOf('reflexos')),
         derivedValues.commonTests.esquiva,
@@ -54,7 +63,9 @@ export function CommonTestsWidget() {
     {
       key: 'coragem',
       label: 'Coragem',
-      desc: 'Vontade + Compostura',
+      desc: skillHasSpec('compostura', 'coragem')
+        ? 'Vontade + Compostura (Esp. Coragem +1)'
+        : 'Vontade + Compostura',
       display: formatDiceWithModifier(
         getSkillDice(skillLevelOf('compostura')),
         derivedValues.commonTests.coragem,
