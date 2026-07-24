@@ -66,7 +66,7 @@ import {
 
 type EvolutionTab = 'tracos' | 'singularidades'
 type TraitsSubTab = 'atributos' | 'habilidades' | 'aptidoes'
-type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'raciais' | 'trilhas'
+type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'maestrias' | 'raciais' | 'trilhas'
 
 type AttributeKey = 'carisma' | 'finesse' | 'forca' | 'inteligencia' | 'percepcao' | 'vitalidade' | 'vontade'
 
@@ -1375,14 +1375,27 @@ export default function CharacterEvolutionScreen({
     'w-full max-w-lg px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-700 text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30'
 
   const renderSingularitiesTab = () => {
-    const martialSchool = draftEscolaMarcial ? getMartialSchoolDataByIdResolved(draftEscolaMarcial) : null
+    const isMasteriesTab = singSubTab === 'maestrias'
+    const selectedMartialSchool = draftEscolaMarcial
+      ? getMartialSchoolDataByIdResolved(draftEscolaMarcial)
+      : null
+    const martialSchool =
+      selectedMartialSchool &&
+      (isMasteriesTab
+        ? selectedMartialSchool.class === 'Maestria'
+        : selectedMartialSchool.class !== 'Maestria')
+        ? selectedMartialSchool
+        : null
+    const martialCatalog = getAllMartialSchools().filter((item) =>
+      isMasteriesTab ? item.class === 'Maestria' : item.class !== 'Maestria'
+    )
     const ecoarSingularities = draftEcoar ? getEcoarSingularitiesByEcoarId(draftEcoar) : []
 
     return (
       <div className="space-y-5">
         {/* Tabs de Singularidades */}
         <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20 flex-wrap">
-          {(['criacao', 'ecoa', 'marciais', 'raciais', 'trilhas'] as const).map((t) => (
+          {(['criacao', 'ecoa', 'marciais', 'maestrias', 'raciais', 'trilhas'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSingSubTab(t)}
@@ -1397,7 +1410,9 @@ export default function CharacterEvolutionScreen({
                 : t === 'ecoa'
                 ? 'Ecoar'
                 : t === 'marciais'
-                ? 'Marciais'
+                ? 'Singularidades Marciais'
+                : t === 'maestrias'
+                ? 'Maestrias'
                 : t === 'raciais'
                 ? 'Raciais'
                 : 'Trilhas'}
@@ -1550,32 +1565,38 @@ export default function CharacterEvolutionScreen({
           </div>
         )}
 
-        {singSubTab === 'marciais' && (
+        {(singSubTab === 'marciais' || singSubTab === 'maestrias') && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Escola marcial</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">
+                {isMasteriesTab ? 'Maestria' : 'Escola marcial'}
+              </label>
               <select
                 value={draftEscolaMarcial}
                 onChange={(e) => handleDraftEscolaMarcialChange(e.target.value)}
                 className={selectEvolutionClass}
               >
-                <option value="">Selecione uma escola…</option>
-                {getAllMartialSchools().map((s) => (
+                <option value="">
+                  {isMasteriesTab ? 'Selecione uma maestria…' : 'Selecione uma escola…'}
+                </option>
+                {martialCatalog.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
-                Pode escolher agora mesmo que não tenha definido na criação. Ao trocar a escola, singularidades marciais incompatíveis saem do rascunho.
+                {isMasteriesTab
+                  ? 'Escolha uma maestria de armas para comprar suas singularidades com PE.'
+                  : 'Escolha uma escola marcial para comprar suas singularidades com PE.'}
               </p>
             </div>
             {!draftEscolaMarcial || !martialSchool ? (
               <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   {draftEscolaMarcial
-                    ? 'Escola não encontrada no catálogo. Escolha outra opção.'
-                    : 'Escolha uma escola marcial acima para listar e comprar singularidades com PE.'}
+                    ? `${isMasteriesTab ? 'Maestria' : 'Escola'} não selecionada nesta aba. Escolha uma opção.`
+                    : `Escolha uma ${isMasteriesTab ? 'maestria' : 'escola marcial'} acima para listar e comprar singularidades com PE.`}
                 </div>
               </div>
             ) : (
@@ -1801,6 +1822,11 @@ export default function CharacterEvolutionScreen({
                               canAfford={canAfford}
                               canSelect={canSelect}
                               onClick={() => togglePathBase(base.id)}
+                              effects={
+                                Array.isArray(base.effects) && base.effects.length > 0
+                                  ? base.effects.join(' · ')
+                                  : undefined
+                              }
                               variant="teal"
                             />
                           )

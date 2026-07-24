@@ -185,7 +185,9 @@ export function SingularitiesSpendingStep({
   selectedDisadvantages: string[]
 }) {
   const { getEcoarSingularityById } = useEcoarCatalogData()
-  const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
+  const [activeTab, setActiveTab] = useState<
+    'criacao' | 'marciais' | 'maestrias' | 'raciais' | 'trilha' | 'ecoa'
+  >('criacao')
   const nivelPoder = getSoulLevelByNivel(nivelAlma)?.nivelPoder ?? 3
 
   const calculateTotalCost = useCallback(() => {
@@ -281,8 +283,8 @@ export function SingularitiesSpendingStep({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
-        {(['criacao', 'marciais', 'raciais', 'trilha', 'ecoa'] as const).map((tab) => (
+      <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20 flex-wrap">
+        {(['criacao', 'marciais', 'maestrias', 'raciais', 'trilha', 'ecoa'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -294,6 +296,7 @@ export function SingularitiesSpendingStep({
           >
             {tab === 'criacao' && 'Singularidades de Criação'}
             {tab === 'marciais' && 'Singularidades Marciais'}
+            {tab === 'maestrias' && 'Maestrias'}
             {tab === 'raciais' && 'Singularidades Raciais'}
             {tab === 'trilha' && 'Singularidades de Trilha'}
             {tab === 'ecoa' && 'Ecoar'}
@@ -362,6 +365,24 @@ export function SingularitiesSpendingStep({
 
         {activeTab === 'marciais' && (
           <MartialSingularitiesTab
+            catalogType="escolas"
+            selectedEscolaMarcial={selectedEscolaMarcial}
+            onEscolaMarcialSelect={onEscolaMarcialSelect}
+            todasSingularidades={singularidades}
+            singularidadesMarciais={singularidadesMarciais}
+            onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
+            pontosDisponiveis={pontosDisponiveis}
+            pontosCriacao={pontosCriacao}
+            nivelAlma={nivelAlma}
+            attributes={attributes}
+            skills={skills}
+            aptitudes={aptitudes}
+          />
+        )}
+
+        {activeTab === 'maestrias' && (
+          <MartialSingularitiesTab
+            catalogType="maestrias"
             selectedEscolaMarcial={selectedEscolaMarcial}
             onEscolaMarcialSelect={onEscolaMarcialSelect}
             todasSingularidades={singularidades}

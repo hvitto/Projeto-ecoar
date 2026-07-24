@@ -79,6 +79,15 @@ export async function listActiveEcoarSingularities(): Promise<EcoarSingularity[]
     const cur = reqBySing.get(rr.singularity_id) ?? {}
     if (rr.requirement_type === 'previous') cur.previous = rr.requirement_value
     if (rr.requirement_type === 'nivelAlma') cur.nivelAlma = rr.numeric_value ?? undefined
+    if (rr.requirement_type === 'attributes' && rr.requirement_key && rr.numeric_value != null) {
+      cur.attributes = { ...(cur.attributes ?? {}), [rr.requirement_key]: rr.numeric_value }
+    }
+    if (rr.requirement_type === 'skills' && rr.requirement_key && rr.numeric_value != null) {
+      cur.skills = { ...(cur.skills ?? {}), [rr.requirement_key]: rr.numeric_value }
+    }
+    if (rr.requirement_type === 'aptitudes' && rr.requirement_key && rr.numeric_value != null) {
+      cur.aptitudes = { ...(cur.aptitudes ?? {}), [rr.requirement_key]: rr.numeric_value }
+    }
     reqBySing.set(rr.singularity_id, cur)
 
     const reqEntries = reqEntriesBySing.get(rr.singularity_id) ?? []

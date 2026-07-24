@@ -96,6 +96,7 @@ import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalo
 
 
 export function MartialSingularitiesTab({
+  catalogType = 'escolas',
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
   todasSingularidades,
@@ -108,6 +109,7 @@ export function MartialSingularitiesTab({
   skills,
   aptitudes,
 }: {
+  catalogType?: 'escolas' | 'maestrias'
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
   /** Lista completa de singularidades (criação + marciais de todas as escolas). */
@@ -121,8 +123,18 @@ export function MartialSingularitiesTab({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
-  const allMartialSchools = getAllMartialSchools()
-  const school = selectedEscolaMarcial ? getMartialSchoolDataByIdResolved(selectedEscolaMarcial) : null
+  const isMasteryCatalog = catalogType === 'maestrias'
+  const allMartialSchools = getAllMartialSchools().filter((item) =>
+    isMasteryCatalog ? item.class === 'Maestria' : item.class !== 'Maestria'
+  )
+  const selectedSchool = selectedEscolaMarcial ? getMartialSchoolDataByIdResolved(selectedEscolaMarcial) : null
+  const school =
+    selectedSchool &&
+    (isMasteryCatalog ? selectedSchool.class === 'Maestria' : selectedSchool.class !== 'Maestria')
+      ? selectedSchool
+      : null
+  const catalogLabel = isMasteryCatalog ? 'Maestrias' : 'Singularidades Marciais'
+  const catalogItemLabel = isMasteryCatalog ? 'maestria' : 'escola marcial'
 
   // Valida requisitos de uma singularidade marcial
   const checkRequirements = useCallback((singularity: MartialSchoolSingularity): { valid: boolean; missingReqs: string[] } => {
@@ -214,11 +226,10 @@ export function MartialSingularitiesTab({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-0.5">
-                Singularidades Marciais
+                {catalogLabel}
               </h3>
               <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50">
-                Você pode comprar singularidades de várias escolas. Escolha uma escola, gaste PC e volte aqui para
-                adicionar outra — nada é apagado ao trocar de escola.
+                Escolha uma {catalogItemLabel}, gaste PC e volte aqui para adicionar outra — nada é apagado ao trocar.
               </p>
             </div>
           </div>
@@ -303,7 +314,7 @@ export function MartialSingularitiesTab({
         >
           <span className="flex items-center gap-2">
             <ChevronLeft className="w-4 h-4 shrink-0" />
-            Trocar escola marcial
+            Trocar {catalogItemLabel}
           </span>
           <span className="text-xs text-slate-500 dark:text-ecoar-light-900/55 pl-6 max-w-md">
             Volta à grade para escolher outra escola e comprar mais singularidades. O que você já comprou em outras
