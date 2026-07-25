@@ -25,10 +25,12 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import {
   getAllMartialSchools,
   getMartialSchoolDataByIdResolved,
+  getMartialSchoolSingularityById,
   MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
   resolveMartialSchoolDataId,
   type MartialSchoolSingularity,
 } from '@/data/martialSchoolSingularities'
+import { partitionCreationAndMartialSingularityIds } from '@/lib/characterBonuses'
 import { getMartialSchoolById } from '@/data/martialSchools'
 import { races } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
@@ -187,9 +189,23 @@ export default function CharacterEvolutionScreen({
     return shallowCopyRecord(a)
   }, [initialCharacterData?.aptitudes])
 
+  const partitionedBaselineSingularities = useMemo(
+    () =>
+      partitionCreationAndMartialSingularityIds({
+        singularidades: Array.isArray(initialCharacterData?.singularidades)
+          ? initialCharacterData.singularidades
+          : [],
+        singularidadesMarciais: Array.isArray(initialCharacterData?.singularidadesMarciais)
+          ? initialCharacterData.singularidadesMarciais
+          : [],
+        isMartialId: (id) => Boolean(getMartialSchoolSingularityById(id)),
+      }),
+    [initialCharacterData?.singularidades, initialCharacterData?.singularidadesMarciais],
+  )
+
   const baselineSingularidadesCriacao = useMemo<string[]>(
-    () => Array.isArray(initialCharacterData?.singularidades) ? initialCharacterData.singularidades : [],
-    [initialCharacterData?.singularidades]
+    () => partitionedBaselineSingularities.criacao,
+    [partitionedBaselineSingularities],
   )
 
   const baselineSingularidadesEcoar = useMemo<string[]>(
@@ -198,8 +214,8 @@ export default function CharacterEvolutionScreen({
   )
 
   const baselineSingularidadesMarciais = useMemo<string[]>(
-    () => Array.isArray(initialCharacterData?.singularidadesMarciais) ? initialCharacterData.singularidadesMarciais : [],
-    [initialCharacterData?.singularidadesMarciais]
+    () => partitionedBaselineSingularities.marciais,
+    [partitionedBaselineSingularities],
   )
   const baselineSingularidadesRaciais = useMemo<string[]>(
     () => Array.isArray(initialCharacterData?.singularidadesRaciais) ? initialCharacterData.singularidadesRaciais : [],
@@ -325,18 +341,9 @@ export default function CharacterEvolutionScreen({
     [getEcoarSingularitiesByEcoarId, baselineSingularidadesEcoar]
   )
 
-  const handleDraftEscolaMarcialChange = useCallback(
-    (next: string) => {
-      setDraftEscolaMarcial(next)
-      setDraftSingularidadesMarciais((prev) => {
-        if (!next) return [...baselineSingularidadesMarciais]
-        const school = getMartialSchoolDataByIdResolved(next)
-        const allowed = new Set(school?.singularities.map((s) => s.id) ?? [])
-        return prev.filter((id) => allowed.has(id))
-      })
-    },
-    [baselineSingularidadesMarciais]
-  )
+  const handleDraftEscolaMarcialChange = useCallback((next: string) => {
+    setDraftEscolaMarcial(next)
+  }, [])
 
   const handleDraftRacaChange = useCallback(
     (next: string) => {
@@ -1587,8 +1594,8 @@ export default function CharacterEvolutionScreen({
               </select>
               <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
                 {isMasteriesTab
-                  ? 'Escolha uma maestria de armas para comprar suas singularidades com PE.'
-                  : 'Escolha uma escola marcial para comprar suas singularidades com PE.'}
+                  ? 'Escolha uma maestria de armas para comprar suas singularidades com PE. Singularidades de outras maestrias e escolas continuam salvas.'
+                  : 'Escolha uma escola marcial para comprar suas singularidades com PE. Singularidades de outras escolas e maestrias continuam salvas.'}
               </p>
             </div>
             {!draftEscolaMarcial || !martialSchool ? (

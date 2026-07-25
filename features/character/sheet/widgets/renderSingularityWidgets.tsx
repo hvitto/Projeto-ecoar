@@ -36,10 +36,12 @@ function DisturbiosRuntimeWidget() {
 
 function SingularityRuntimeColumn({
   kinds,
+  martialScope,
   activation,
   onToggleConditional,
 }: {
   kinds: SystemSingularityKind[]
+  martialScope?: 'escola' | 'maestria'
   activation: SystemSingularityActivationType
   onToggleConditional: SingularityRenderProps['onToggleConditional']
 }) {
@@ -47,6 +49,7 @@ function SingularityRuntimeColumn({
   return (
     <SingularityColumnWidget
       kinds={kinds}
+      martialScope={martialScope}
       activation={activation}
       characterData={characterData}
       canEdit={canEditSheet}
@@ -64,7 +67,7 @@ export function renderSingularityWidget(
 ): ReactNode {
   if (tabId === 'basico' || tabId === 'equipamentos') return null
 
-  const kinds = SHEET_TAB_TO_KINDS[tabId]
+  const tabConfig = SHEET_TAB_TO_KINDS[tabId]
 
   if (id === 'disturbios') {
     if (tabId !== 'sing-ecoar') return null
@@ -79,7 +82,8 @@ export function renderSingularityWidget(
   ) {
     return (
       <SingularityRuntimeColumn
-        kinds={kinds}
+        kinds={tabConfig.kinds}
+        martialScope={tabConfig.martialScope}
         activation={WIDGET_ACTIVATION[id]}
         onToggleConditional={props.onToggleConditional}
       />

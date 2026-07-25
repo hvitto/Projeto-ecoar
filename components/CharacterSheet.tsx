@@ -22,11 +22,13 @@ import {
   aggregateSingularityInputFromCharacterData,
   CHARACTER_ATTRIBUTE_KEYS,
   computeEffectiveAttributeRows,
+  partitionCreationAndMartialSingularityIds,
 } from '@/lib/characterBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
 import { aggregateRacialRulesBySelectedIds } from '@/lib/racialRules'
 import { getRacialSingularityById, pruneRacialSingularitiesToValidRequirements } from '@/data/racialSingularities'
+import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorCatalogEntry,
@@ -388,9 +390,16 @@ export default function CharacterSheet({
         updated.hasVestuarioEquipState =
           hasEquippedArmorsKey || hasEquippedArmorLegacyKey || hasEquippedAccessoriesKey
 
-        // Singularities selected in the wizard
-        if (initialData.singularidades) {
-          updated.singularidades = initialData.singularidades
+        if (initialData.singularidades || initialData.singularidadesMarciais) {
+          const partitioned = partitionCreationAndMartialSingularityIds({
+            singularidades: Array.isArray(initialData.singularidades) ? initialData.singularidades : [],
+            singularidadesMarciais: Array.isArray(initialData.singularidadesMarciais)
+              ? initialData.singularidadesMarciais
+              : [],
+            isMartialId: (id) => Boolean(getMartialSchoolSingularityById(id)),
+          })
+          updated.singularidades = partitioned.criacao
+          updated.singularidadesMarciais = partitioned.marciais
         }
         if (initialData.singularidadesEcoar) {
           updated.singularidadesEcoar = initialData.singularidadesEcoar
@@ -409,9 +418,6 @@ export default function CharacterSheet({
         }
         if (Array.isArray((initialData as any).singularidadesCondicionaisCriacaoAtivas)) {
           updated.singularidadesCondicionaisCriacaoAtivas = (initialData as any).singularidadesCondicionaisCriacaoAtivas
-        }
-        if (initialData.singularidadesMarciais) {
-          updated.singularidadesMarciais = initialData.singularidadesMarciais
         }
         if (Array.isArray((initialData as any).singularidadesCondicionaisMarciaisAtivas)) {
           updated.singularidadesCondicionaisMarciaisAtivas = (initialData as any).singularidadesCondicionaisMarciaisAtivas
@@ -1206,7 +1212,9 @@ export default function CharacterSheet({
   const singularityBonuses = useMemo(
     () =>
       aggregateSimpleBonuses({
-        ...aggregateSingularityInputFromCharacterData(characterData),
+        ...aggregateSingularityInputFromCharacterData(characterData, {
+          isMartialId: (id) => systemSingularityById.get(id)?.kind === 'marcial',
+        }),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
     [

@@ -24,7 +24,9 @@ export function useSystemSingularityBonuses(characterData: Slice) {
   return useMemo(
     () =>
       aggregateSimpleBonuses({
-        ...aggregateSingularityInputFromCharacterData(characterData),
+        ...aggregateSingularityInputFromCharacterData(characterData, {
+          isMartialId: (id) => systemSingularityById.get(id)?.kind === 'marcial',
+        }),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
     [
