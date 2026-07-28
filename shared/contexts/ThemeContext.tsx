@@ -14,19 +14,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+  const [theme, setThemeState] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
   const [transitionOrigin, setTransitionOrigin] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     setMounted(true)
-    // Verificar preferência salva ou do sistema
     const savedTheme = localStorage.getItem('ecoar-theme') as Theme | null
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    if (savedTheme) {
+    if (savedTheme === 'light' || savedTheme === 'dark') {
       setThemeState(savedTheme)
-    } else if (systemPrefersDark) {
+    } else {
       setThemeState('dark')
     }
   }, [])

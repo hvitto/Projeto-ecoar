@@ -32,7 +32,7 @@ export function DiceRollOverlay({ open, label, error, onClose }: DiceRollOverlay
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-sm border border-slate-300/40 bg-ecoar-dark-900/95 px-4 py-3 shadow-xl"
+        className="w-full max-w-sm rounded-sm border border-slate-300/40 bg-ecoar-dark-900/95 px-4 py-3 shadow-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">

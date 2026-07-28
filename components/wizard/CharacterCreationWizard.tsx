@@ -13,10 +13,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useTheme } from '@/shared/contexts/ThemeContext'
 import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import { ScrollText } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
+import { races, getRaceById } from '@/data/races'
 import {
   getRacialSingularitiesByRaceId,
   getRacialSingularityById,
@@ -1160,34 +1159,34 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-xl p-4 sm:p-6 md:p-8 shadow-lg"
+              className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-4 sm:p-6 md:p-8 shadow-none"
             >
               <div className="mb-5 sm:mb-6">
-                <div className="inline-flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg mb-3 border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-                  <ScrollText className="w-5 h-5 sm:w-6 sm:h-6 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-                </div>
-                <h1 className="text-lg sm:text-xl font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-3">
+                  1://WIZARD · INTRO
+                </p>
+                <h1 className="font-display text-[clamp(1.8rem,4vw,2.8rem)] uppercase leading-[0.9] tracking-[-0.03em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-2 max-w-[12ch]">
                   Bem-vindo ao ECOAR
                 </h1>
-                <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-sm max-w-xl">
-                  Crie seu personagem e embarque em uma jornada épica. Escolha o nível inicial abaixo.
+                <p className="text-xs leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] max-w-[42ch]">
+                  Crie seu personagem com fluidez. Escolha o nível inicial — uma decisão do Mestre Absoluto.
                 </p>
               </div>
 
-              <h2 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-1">
-                Nível Inicial do Personagem
+              <h2 className="font-display text-base uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-1">
+                Nível Inicial
               </h2>
-              <p className="text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-4">
-                Esta escolha deve ser feita pelo Mestre Absoluto. Por padrão, recomenda-se Nível de Alma 1 para iniciantes.
+              <p className="text-[10px] uppercase tracking-[0.12em] text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-4">
+                Padrão · Alma 1 para iniciantes
               </p>
               <LazySoulLevelSelectionStep
                 nivelAlmaInicial={nivelAlmaInicial}
                 onSelect={setNivelAlmaInicial}
               />
 
-              <div className="hidden sm:flex mt-8 pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <p className="text-sm text-ecoar-dark-600 dark:text-ecoar-light-900/60">
-                  Nível {nivelAlmaInicial} selecionado
+              <div className="hidden sm:flex mt-8 pt-6 border-t border-ecoar-teal/40 dark:border-ecoar-teal/50 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-ecoar-magenta">
+                  Nível {nivelAlmaInicial} · locked pending
                 </p>
                 <motion.button
                   onClick={() => {
@@ -1197,9 +1196,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
                     params.set('step', '0')
                     router.replace(`${pathname}?${params.toString()}`)
                   }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full sm:w-auto min-w-[200px] min-h-[44px] py-2.5 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 hover:from-ecoar-teal/90 hover:to-ecoar-magenta/90 dark:hover:from-ecoar-teal-700 dark:hover:to-ecoar-magenta-700 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm transition-all shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full sm:w-auto min-w-[200px] min-h-[44px] py-2.5 px-6 bg-ecoar-magenta text-[var(--ecoar-accent-ink)] hover:brightness-110 rounded-none font-bold text-[10px] uppercase tracking-[0.12em] transition-all"
                 >
                   Começar Criação
                 </motion.button>
@@ -1208,9 +1207,9 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           </div>
         </main>
 
-        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/15 bg-ecoar-light-700/95 dark:bg-ecoar-dark-800/95 backdrop-blur-md px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <p className="text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60 mb-2 text-center">
-            Nível {nivelAlmaInicial} selecionado
+        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-white/95 dark:bg-[#1a1d21]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-ecoar-magenta mb-2 text-center">
+            Nível {nivelAlmaInicial} · locked pending
           </p>
           <motion.button
             onClick={() => {
@@ -1220,8 +1219,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
               params.set('step', '0')
               router.replace(`${pathname}?${params.toString()}`)
             }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full min-h-[48px] py-3 px-6 bg-gradient-to-r from-ecoar-teal to-ecoar-magenta dark:from-ecoar-teal-600 dark:to-ecoar-magenta-600 text-white dark:text-ecoar-light-900/90 rounded-lg font-medium text-sm shadow-lg shadow-ecoar-teal/10"
+            whileTap={{ scale: 0.99 }}
+            className="w-full min-h-[48px] py-3 px-6 bg-ecoar-magenta text-[var(--ecoar-accent-ink)] rounded-none font-bold text-[10px] uppercase tracking-[0.12em]"
           >
             Começar Criação
           </motion.button>
@@ -1276,7 +1275,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
           variants={stepVariants}
           initial="hidden"
           animate="visible"
-          className="bg-ecoar-light-700 dark:bg-ecoar-dark-800 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-3 sm:p-5 flex flex-col w-full min-h-0 flex-1"
+          className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-3 sm:p-5 flex flex-col w-full min-h-0 flex-1"
         >
           <WizardStepRenderer
             currentStep={currentStep}

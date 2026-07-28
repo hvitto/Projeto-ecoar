@@ -20,14 +20,30 @@ export default function PersonagensAuthGuard({ children }: PersonagensAuthGuardP
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="text-ecoar-dark-600 dark:text-ecoar-light-900/60">Carregando...</div>
+      <div
+        className="flex flex-1 min-h-0 items-center justify-center border-t border-ecoar-teal/30 bg-[#1a1d21]"
+        role="status"
+        aria-live="polite"
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ecoar-teal">
+          Carregando sessão…
+        </p>
       </div>
     )
   }
 
   if (!isAuthenticated) {
-    return null
+    return (
+      <div
+        className="flex flex-1 min-h-0 items-center justify-center border-t border-ecoar-teal/30 bg-[#1a1d21]"
+        role="status"
+        aria-live="polite"
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ecoar-teal">
+          Redirecionando para entrar…
+        </p>
+      </div>
+    )
   }
 
   return <>{children}</>

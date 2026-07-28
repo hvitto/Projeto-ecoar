@@ -4,18 +4,13 @@ Esta pasta contém os assets estáticos do projeto.
 
 ## Estrutura
 
-- `icons/` - Ícones SVG, PNG e outros formatos de ícones
-- `images/` - Imagens gerais (PNG, JPG, etc.)
+- `branding/heroes/` — artes de hero (landing, dashboard, wizard)
+- `images/` — imagens de raças e demais ilustrações
 
 ## Uso
 
-No Next.js, arquivos na pasta `public` podem ser referenciados diretamente:
+No Next.js, arquivos em `public` são referenciados diretamente:
 
 ```tsx
-// Exemplo de uso de ícone
-<img src="/assets/icons/meu-icone.svg" alt="Ícone" />
-
-// Exemplo de uso de imagem
-<img src="/assets/images/minha-imagem.png" alt="Imagem" />
+<img src="/assets/images/Peccata.png" alt="Peccata" />
 ```
-

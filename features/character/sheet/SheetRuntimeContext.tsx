@@ -47,17 +47,34 @@ export type SheetArmorStats = {
   furtividade: number
 }
 
+export type SheetPersistStatus =
+  | { state: 'idle' }
+  | { state: 'saving'; label: string }
+  | { state: 'saved'; label: string; atMs: number }
+  | { state: 'error'; label: string; onRetry?: () => void }
+
 export type SheetRuntimeValue = {
   characterData: CharacterSheetState
   setCharacterData: Dispatch<SetStateAction<CharacterSheetState>>
   updateField: (path: string, value: unknown) => void
   isEditing: boolean
+  isDirty: boolean
   canEditSheet: boolean
+  canMutateMesa: boolean
+  canMutateFicha: boolean
   hasMasterOverride: boolean
   handleStartEdit: () => void
   handleSaveEdit: () => void | Promise<void>
-  handleCancelEdit: () => void
+  handleCancelEdit: () => void | Promise<void>
+  requestConfirm: (request: {
+    title: string
+    body: string
+    confirmLabel: string
+    cancelLabel?: string
+  }) => Promise<boolean>
   isSaving: boolean
+  persistStatus: SheetPersistStatus
+  dismissPersistStatus: () => void
   onOpenEvolution?: () => void
   peToAdd: string
   setPeToAdd: (v: string) => void

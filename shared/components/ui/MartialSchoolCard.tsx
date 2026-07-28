@@ -2,6 +2,7 @@
 
 import { CheckCircle2 } from 'lucide-react'
 import { MartialSchoolData } from '@/data/martialSchoolSingularities'
+import { selectedPanel, idlePanel, displayTitle, microLabel, mutedBody } from '@/shared/styles/ecoarChrome'
 
 interface MartialSchoolCardProps {
   school: MartialSchoolData
@@ -21,45 +22,39 @@ export default function MartialSchoolCard({
     <button
       type="button"
       onClick={onClick}
-      className={`relative p-4 rounded-lg border transition-colors duration-200 text-left overflow-hidden ${
-        isSelected
-          ? 'bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 border-ecoar-teal-400 dark:border-ecoar-teal-500/60 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20'
-          : 'bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30'
+      className={`relative p-4 rounded-none border transition-colors duration-200 text-left overflow-hidden ${
+        isSelected ? selectedPanel : `${idlePanel} cursor-pointer`
       } ${className}`}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex-1">
-          <h4 className={`font-bold text-lg mb-1 ${
-            isSelected ? 'text-ecoar-dark-900 dark:text-ecoar-light-900' : 'text-ecoar-dark-900 dark:text-ecoar-light-900/90'
-          }`}>
+          <h4 className={`${displayTitle} text-base mb-1`}>
             {school.name}
           </h4>
-          <div className="flex items-center gap-2 text-xs text-ecoar-dark-600 dark:text-ecoar-light-900/60">
-            <span className="px-2 py-0.5 rounded bg-ecoar-light-800 dark:bg-ecoar-light-900/20">{school.class}</span>
+          <div className={`flex items-center gap-2 ${microLabel}`}>
+            <span className="px-1.5 py-0.5 border border-ecoar-teal/35 dark:border-ecoar-teal/30">{school.class}</span>
             <span>{school.aptitude}</span>
           </div>
         </div>
         {isSelected && (
-          <CheckCircle2 className="w-6 h-6 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
+          <CheckCircle2 className="w-5 h-5 text-ecoar-magenta flex-shrink-0" />
         )}
       </div>
 
-      <p className={`text-sm leading-relaxed mb-3 ${
-        isSelected ? 'text-ecoar-dark-700 dark:text-ecoar-light-900/80' : 'text-ecoar-dark-600 dark:text-ecoar-light-900/60'
-      }`}>
+      <p className={`${mutedBody} mb-3`}>
         {school.description}
       </p>
 
-      <div className="space-y-1 text-xs text-ecoar-dark-500 dark:text-ecoar-light-900/50">
-        <div><span className="font-medium">Ferramenta:</span> {school.tool}</div>
+      <div className={`space-y-1.5 ${microLabel}`}>
+        <div><span className="text-ecoar-teal">Ferramenta:</span> {school.tool}</div>
         {school.toolNote && (
-          <div className="text-ecoar-dark-900 dark:text-ecoar-light-900/90 bg-ecoar-magenta-50 dark:bg-ecoar-magenta-800/70 px-3 py-2 rounded border border-ecoar-magenta-300 dark:border-ecoar-magenta-600/50 italic text-sm mt-2">↪ {school.toolNote}</div>
+          <div className="text-ecoar-dark-900 dark:text-ecoar-light-900 bg-ecoar-magenta/10 px-3 py-2 border border-ecoar-magenta/45 normal-case tracking-normal text-xs mt-2">↪ {school.toolNote}</div>
         )}
-        <div className="mt-2">
-          <span className="font-medium">Atributos sugeridos:</span> {school.suggestedAttributes?.join(', ')}
+        <div className="pt-1">
+          <span className="text-ecoar-teal">Atributos sugeridos:</span> {school.suggestedAttributes?.join(', ')}
         </div>
         <div>
-          <span className="font-medium">Habilidades sugeridas:</span> {school.suggestedSkills?.join(', ')}
+          <span className="text-ecoar-teal">Habilidades sugeridas:</span> {school.suggestedSkills?.join(', ')}
         </div>
       </div>
     </button>

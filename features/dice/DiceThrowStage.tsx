@@ -99,7 +99,7 @@ export function DiceThrowStage() {
     >
       <div ref={hostRef} className="absolute inset-0 h-full w-full" />
       {showHud && active.total != null ? (
-        <div className="absolute bottom-8 left-1/2 z-[101] max-w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-dark-900/80 px-4 py-2.5 text-center shadow-lg">
+        <div className="absolute bottom-8 left-1/2 z-[101] max-w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-dark-900/80 px-4 py-2.5 text-center shadow-none">
           {active.label ? (
             <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-ecoar-teal-300/90">
               {active.label}

@@ -1,99 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTheme } from '@/shared/contexts/ThemeContext'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import {
-  Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
-  CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
-  Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
-} from 'lucide-react'
-import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
-import SingularityCard from '@/shared/components/ui/SingularityCard'
-import SelectionCard from '@/shared/components/ui/SelectionCard'
+import { motion } from 'framer-motion'
+import { Sword, ChevronLeft, ChevronRight } from 'lucide-react'
 import InfoCard from '@/shared/components/ui/InfoCard'
-import DisadvantageCard from '@/shared/components/ui/DisadvantageCard'
-import RaceCard from '@/shared/components/ui/RaceCard'
-import RaceImage from '@/shared/components/ui/RaceImage'
-import StatCard from '@/shared/components/ui/StatCard'
-import LimitCard from '@/shared/components/ui/LimitCard'
-import MovementCard from '@/shared/components/ui/MovementCard'
-import SenseCard from '@/shared/components/ui/SenseCard'
-import SummaryItem from '@/shared/components/ui/SummaryItem'
-import MartialSchoolCard from '@/shared/components/ui/MartialSchoolCard'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
-import {
-  getRacialSingularitiesByRaceId,
-  getRacialSingularityById,
-  pruneRacialSingularitiesToValidRequirements,
-} from '@/data/racialSingularities'
-import { paths, getPathById, Path } from '@/data/paths'
-import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
-import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
-import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/aptitudes'
-import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
-import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
-import {
-  getAllMartialSchools,
-  getMartialSchoolDataById,
-  getMartialSchoolDataByIdResolved,
-  getMartialSchoolSingularityById,
-  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
-  resolveMartialSchoolDataId,
-  MartialSchoolData,
-  MartialSchoolSingularity,
-} from '@/data/martialSchoolSingularities'
-import { getRacialCreationExtraPoints } from '@/lib/racialRules'
-import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import type { Ecoar } from '@/data/ecoar'
-import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
-import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
-import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
-import { buildSystemSingularities } from '@/lib/systemSingularities'
-import {
-  aggregateBookDisadvantagePenalties,
-  aggregateSingularityInputFromCharacterData,
-  CHARACTER_ATTRIBUTE_KEYS,
-  computeEffectiveAttributeRows,
-  partitionSignedBonuses,
-} from '@/lib/characterBonuses'
-import {
-  anySelectedSingularityForbidsDisadvantage,
-  requirementsConflictWithSelection,
-} from '@/lib/creationSingularityDisadvantageConflict'
-import {
-  pathBaseSingularities,
-  getPathBaseSingularityByPathId,
-  bruxarias,
-  getBruxariasByCategory,
-  getAllBruxarias,
-  cacadaPowers,
-  getAllCacadaPowers,
-  getCacadaPowerById,
-  cacadaEnhancements,
-  getCacadaEnhancementsByPowerId,
-  getCacadaEnhancementById,
-  getPathLevelFromSoulLevel,
-  Bruxaria,
-  CacadaPower,
-  CacadaEnhancement,
-} from '@/data/pathSingularities'
-import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
-import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
-import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
-
+import { getAllMartialSchools, getMartialSchoolDataByIdResolved } from '@/data/martialSchoolSingularities'
 
 export function MartialSchoolDetailsPanel({
   selectedEscolaMarcial,
@@ -160,7 +70,7 @@ export function MartialSchoolDetailsPanel({
               onClick={handlePrevious}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-lg bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-700 dark:text-ecoar-light-900/70 hover:text-slate-900 dark:hover:text-ecoar-light-900 transition-all"
+              className="p-2 rounded-none bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-700 dark:text-ecoar-light-900/70 hover:text-slate-900 dark:hover:text-ecoar-light-900 transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
@@ -171,7 +81,7 @@ export function MartialSchoolDetailsPanel({
               onClick={handleNext}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-lg bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-700 dark:text-ecoar-light-900/70 hover:text-slate-900 dark:hover:text-ecoar-light-900 transition-all"
+              className="p-2 rounded-none bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 border border-slate-200 dark:border-ecoar-light-900/20 text-slate-700 dark:text-ecoar-light-900/70 hover:text-slate-900 dark:hover:text-ecoar-light-900 transition-all"
             >
               <ChevronRight className="w-5 h-5" />
             </motion.button>
@@ -179,7 +89,7 @@ export function MartialSchoolDetailsPanel({
         </div>
         
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-teal-100 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-teal-100 dark:bg-ecoar-teal-600/20 rounded-none flex items-center justify-center">
             <Sword className="w-5 h-5 text-teal-600 dark:text-ecoar-teal-400" />
           </div>
           <div>
@@ -196,7 +106,7 @@ export function MartialSchoolDetailsPanel({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1">
         {/* Lado Esquerdo - Espaço para PNG */}
         <div className="space-y-4">
-          <div className="bg-slate-50 dark:bg-ecoar-light-900/10 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 p-6 min-h-[400px] flex items-center justify-center">
+          <div className="bg-slate-50 dark:bg-ecoar-light-900/10 rounded-none border border-slate-200 dark:border-ecoar-light-900/20 p-6 min-h-[400px] flex items-center justify-center">
             <div className="text-center text-slate-400 dark:text-ecoar-light-900/40 text-sm">
               {/* Espaço reservado para imagem PNG */}
               <div className="w-full h-full flex items-center justify-center">
@@ -278,9 +188,9 @@ export function MartialSchoolDetailsPanel({
                 onClick={() => onSelect(s.id)}
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className={`relative p-2 rounded-lg border transition-all ${
+                className={`relative p-2 rounded-none border transition-all ${
                   isActive
-                    ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 border-ecoar-teal dark:border-ecoar-teal-500 shadow-lg shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30'
+                    ? 'bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 border-ecoar-teal dark:border-ecoar-teal-500 shadow-none shadow-ecoar-teal/30 dark:shadow-ecoar-teal-600/30'
                     : 'bg-slate-50 dark:bg-ecoar-light-900/10 dark:bg-ecoar-light-900/10 border-slate-200 dark:border-ecoar-light-900/20 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/50 dark:hover:border-ecoar-teal-500/50'
                 }`}
                 title={s.name}
@@ -290,7 +200,7 @@ export function MartialSchoolDetailsPanel({
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-teal-600 dark:bg-ecoar-teal-400 rounded-full border-2 border-white dark:border-ecoar-dark-900"
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-teal-600 dark:bg-ecoar-teal-400 rounded-none border-2 border-white dark:border-ecoar-dark-900"
                   />
                 )}
               </motion.button>

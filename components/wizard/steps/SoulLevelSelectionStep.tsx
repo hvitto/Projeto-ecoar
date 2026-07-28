@@ -43,7 +43,7 @@ export function SoulLevelSelectionStep({
     <div className="space-y-4">
       {selectedSoulLevel && (
         <div
-          className={`flex flex-wrap items-center gap-2 sm:gap-3 py-2.5 px-3 sm:px-4 rounded-lg border ${bgCard} border-ecoar-dark-300/30 dark:border-ecoar-light-900/20`}
+          className={`flex flex-wrap items-center gap-2 sm:gap-3 py-2.5 px-3 sm:px-4 rounded-none border ${bgCard} border-ecoar-dark-300/30 dark:border-ecoar-light-900/20`}
         >
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-ecoar-teal dark:text-ecoar-teal-400 flex-shrink-0" />
@@ -74,9 +74,9 @@ export function SoulLevelSelectionStep({
                 key={estagio}
                 type="button"
                 onClick={() => setOpenEstagioIndex(estagioIndex)}
-                className={`px-3 py-2.5 min-h-[44px] rounded-lg text-sm font-medium transition-all border flex items-center gap-2 shrink-0 ${
+                className={`px-3 py-2.5 min-h-[44px] rounded-none text-sm font-medium transition-all border flex items-center gap-2 shrink-0 ${
                   isActive
-                    ? `${bgSelected} border-ecoar-teal/50 dark:border-ecoar-teal-500/50 shadow-md`
+                    ? `${bgSelected} border-ecoar-teal/50 dark:border-ecoar-teal-500/50 shadow-none`
                     : `${bgUnselected} ${
                         isLight
                           ? 'hover:bg-ecoar-teal/5 hover:border-ecoar-teal/30'
@@ -108,9 +108,9 @@ export function SoulLevelSelectionStep({
                 onClick={() => onSelect(soulLevel.nivel)}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className={`p-3 sm:p-3.5 rounded-lg border transition-all text-left min-h-[96px] ${
+                className={`p-3 sm:p-3.5 rounded-none border transition-all text-left min-h-[96px] ${
                   isSelected
-                    ? `${bgSelected} shadow-lg shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20`
+                    ? `${bgSelected} shadow-none shadow-ecoar-teal/10 dark:shadow-ecoar-teal-600/20`
                     : `${bgUnselected} ${
                         isLight ? 'hover:bg-ecoar-teal/5' : 'hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15'
                       } hover:border-ecoar-teal/30 dark:hover:border-ecoar-teal-500/40`
@@ -140,7 +140,7 @@ export function SoulLevelSelectionStep({
       </div>
 
       <div
-        className={`mt-4 rounded-lg border overflow-hidden ${bgInfo} border-ecoar-dark-300/20 dark:border-ecoar-light-900/20`}
+        className={`mt-4 rounded-none border overflow-hidden ${bgInfo} border-ecoar-dark-300/20 dark:border-ecoar-light-900/20`}
       >
         <button
           type="button"

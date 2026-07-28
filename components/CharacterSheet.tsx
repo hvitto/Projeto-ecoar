@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   Sparkles, Shield, Heart, Brain, Zap, Eye,
-  Sword, Edit,
+  Sword,
 } from 'lucide-react'
 import {
   getAttributeModifier,
@@ -57,7 +57,12 @@ import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { saveCharacter } from '@/lib/storage/characterStorage'
 import CharacterSheetShell from '@/features/character/sheet/CharacterSheetShell'
 import { SheetLayoutProvider } from '@/features/character/sheet/SheetLayoutProvider'
-import { SheetRuntimeProvider, type SheetRuntimeValue } from '@/features/character/sheet/SheetRuntimeContext'
+import {
+  SheetRuntimeProvider,
+  type SheetPersistStatus,
+  type SheetRuntimeValue,
+} from '@/features/character/sheet/SheetRuntimeContext'
+import { SheetConfirmProvider, useSheetConfirm } from '@/features/character/sheet/SheetConfirm'
 import { BasicoTab } from '@/features/character/sheet/tabs/BasicoTab'
 import { EquipamentosTab } from '@/features/character/sheet/tabs/EquipamentosTab'
 import { SingularidadesKindTab } from '@/features/character/sheet/tabs/SingularidadesKindTab'
@@ -153,7 +158,15 @@ interface CharacterSheetProps {
   onCharacterSaved?: (saved: any) => void
 }
 
-export default function CharacterSheet({
+export default function CharacterSheet(props: CharacterSheetProps) {
+  return (
+    <SheetConfirmProvider>
+      <CharacterSheetBody {...props} />
+    </SheetConfirmProvider>
+  )
+}
+
+function CharacterSheetBody({
   initialData,
   canEdit,
   isTableGmEditor = false,
@@ -162,6 +175,7 @@ export default function CharacterSheet({
   onOpenEvolution,
   onCharacterSaved,
 }: CharacterSheetProps) {
+  const { requestConfirm } = useSheetConfirm()
   const { ecoarSingularities } = useEcoarCatalogData()
   const { characterData, setCharacterData } = useCharacterSheetState()
 
@@ -169,14 +183,69 @@ export default function CharacterSheet({
   const { weapons, armor, utilities } = useEquipmentCatalog()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [persistStatus, setPersistStatus] = useState<SheetPersistStatus>({ state: 'idle' })
+  const persistClearTimerRef = useRef<number | null>(null)
   const hasMasterOverride = isTableGmEditor
   const canEditSheet = !!canEdit || hasMasterOverride
+  const canMutateMesa = canEditSheet
+  const canMutateFicha = canEditSheet && isEditing
   const editBackupRef = useRef<typeof characterData | null>(null)
   const initialDataRef = useRef<any>(initialData)
   const limitsAutoSaveTimeoutRef = useRef<number | null>(null)
   const userTriggeredLimitsRef = useRef(false)
+  const weaponsAutoSaveTimeoutRef = useRef<number | null>(null)
+  const userTriggeredWeaponsRef = useRef(false)
   const conditionalsAutoSaveTimeoutRef = useRef<number | null>(null)
   const userTriggeredConditionalsRef = useRef(false)
+
+  const clearPersistClearTimer = useCallback(() => {
+    if (persistClearTimerRef.current) {
+      clearTimeout(persistClearTimerRef.current)
+      persistClearTimerRef.current = null
+    }
+  }, [])
+
+  const dismissPersistStatus = useCallback(() => {
+    clearPersistClearTimer()
+    setPersistStatus({ state: 'idle' })
+  }, [clearPersistClearTimer])
+
+  const announceSaved = useCallback(
+    (label: string) => {
+      clearPersistClearTimer()
+      const atMs = Date.now()
+      setPersistStatus({ state: 'saved', label, atMs })
+      persistClearTimerRef.current = window.setTimeout(() => {
+        setPersistStatus((prev) => (prev.state === 'saved' && prev.atMs === atMs ? { state: 'idle' } : prev))
+        persistClearTimerRef.current = null
+      }, 4000)
+    },
+    [clearPersistClearTimer],
+  )
+
+  const announceError = useCallback(
+    (label: string, onRetry?: () => void) => {
+      clearPersistClearTimer()
+      setPersistStatus({ state: 'error', label, onRetry })
+    },
+    [clearPersistClearTimer],
+  )
+
+  const announceSaving = useCallback(
+    (label: string) => {
+      clearPersistClearTimer()
+      setPersistStatus({ state: 'saving', label })
+    },
+    [clearPersistClearTimer],
+  )
+
+  const handleSaveEditRef = useRef<() => void | Promise<void>>(async () => undefined)
+  const handleAutoSaveLimitsRef = useRef<() => void | Promise<void>>(async () => undefined)
+  const handleAutoSaveWeaponsRef = useRef<() => void | Promise<void>>(async () => undefined)
+  const handlePersistLayoutRef = useRef<(layout: SheetLayout) => void | Promise<void>>(
+    async () => undefined,
+  )
+  const persistConditionalsRef = useRef<() => void | Promise<void>>(async () => undefined)
 
   const [equipmentSubTab, setEquipmentSubTab] = useState<'inventario' | 'equipados'>('inventario')
   const [equipmentPickerOpen, setEquipmentPickerOpen] = useState(false)
@@ -942,20 +1011,28 @@ export default function CharacterSheet({
     [characterData.equippedWeapons],
   )
 
-  const setEquippedWeaponSlot = useCallback((slot: EquippedWeaponSlotId, next: EquippedWeaponState | undefined) => {
-    setCharacterData((prev) => {
-      const otherSlot: EquippedWeaponSlotId = slot === 'slot1' ? 'slot2' : 'slot1'
-      const other =
-        next && prev.equippedWeapons?.[otherSlot]?.instanceId === next.instanceId ? undefined : prev.equippedWeapons?.[otherSlot]
-      return {
-        ...prev,
-        equippedWeapons: {
-          slot1: slot === 'slot1' ? next : other,
-          slot2: slot === 'slot2' ? next : other,
-        },
+  const setEquippedWeaponSlot = useCallback(
+    (slot: EquippedWeaponSlotId, next: EquippedWeaponState | undefined) => {
+      setCharacterData((prev) => {
+        const otherSlot: EquippedWeaponSlotId = slot === 'slot1' ? 'slot2' : 'slot1'
+        const other =
+          next && prev.equippedWeapons?.[otherSlot]?.instanceId === next.instanceId
+            ? undefined
+            : prev.equippedWeapons?.[otherSlot]
+        return {
+          ...prev,
+          equippedWeapons: {
+            slot1: slot === 'slot1' ? next : other,
+            slot2: slot === 'slot2' ? next : other,
+          },
+        }
+      })
+      if (!isEditing) {
+        userTriggeredWeaponsRef.current = true
       }
-    })
-  }, [])
+    },
+    [isEditing],
+  )
 
   const toggleEquipWeaponInstance = useCallback(
     (instanceId: string, shouldEquip: boolean) => {
@@ -980,8 +1057,11 @@ export default function CharacterSheet({
         }
         return { ...prev, equippedWeapons: { slot1: existing1, slot2: nextState } }
       })
+      if (!isEditing) {
+        userTriggeredWeaponsRef.current = true
+      }
     },
-    [findEquippedSlotForInstance, setEquippedWeaponSlot],
+    [findEquippedSlotForInstance, isEditing, setEquippedWeaponSlot],
   )
 
   const isArmorCatalogItem = useCallback(
@@ -1413,14 +1493,18 @@ export default function CharacterSheet({
   }, [])
 
   const coerceLimitShape = useCallback((prev: any, atual: number, max: number) => {
+    const safeMax = Number.isFinite(max) ? Math.max(0, max) : 0
+    const safeAtual = Number.isFinite(atual)
+      ? Math.max(0, Math.min(safeMax, atual))
+      : 0
     if (prev && typeof prev === 'object') {
       return {
         ...prev,
-        atual,
-        max,
+        atual: safeAtual,
+        max: safeMax,
       }
     }
-    return { atual, max }
+    return { atual: safeAtual, max: safeMax }
   }, [])
 
   const buildLimitsPayload = useCallback(() => {
@@ -1587,32 +1671,63 @@ export default function CharacterSheet({
     if (!canEditSheet) return
     editBackupRef.current = deepClone(characterData)
     userTriggeredLimitsRef.current = false
+    userTriggeredWeaponsRef.current = false
     setIsEditing(true)
+    dismissPersistStatus()
 
     if (limitsAutoSaveTimeoutRef.current) {
       clearTimeout(limitsAutoSaveTimeoutRef.current)
       limitsAutoSaveTimeoutRef.current = null
     }
-  }, [canEditSheet, characterData, deepClone])
+    if (weaponsAutoSaveTimeoutRef.current) {
+      clearTimeout(weaponsAutoSaveTimeoutRef.current)
+      weaponsAutoSaveTimeoutRef.current = null
+    }
+  }, [canEditSheet, characterData, deepClone, dismissPersistStatus])
 
-  const handleCancelEdit = useCallback(() => {
+  const isDirty = useMemo(() => {
+    if (!isEditing || !editBackupRef.current) return false
+    try {
+      return JSON.stringify(characterData) !== JSON.stringify(editBackupRef.current)
+    } catch {
+      return true
+    }
+  }, [characterData, isEditing])
+
+  const handleCancelEdit = useCallback(async () => {
+    if (isDirty) {
+      const ok = await requestConfirm({
+        title: 'Descartar edição?',
+        body: 'As alterações desta edição serão descartadas. Limites e armas já atualizados na mesa permanecem.',
+        confirmLabel: 'Descartar',
+        cancelLabel: 'Continuar editando',
+      })
+      if (!ok) return
+    }
     if (editBackupRef.current) {
       setCharacterData(deepClone(editBackupRef.current))
     }
     setIsEditing(false)
     setIsSaving(false)
+    dismissPersistStatus()
 
     if (limitsAutoSaveTimeoutRef.current) {
       clearTimeout(limitsAutoSaveTimeoutRef.current)
       limitsAutoSaveTimeoutRef.current = null
     }
+    if (weaponsAutoSaveTimeoutRef.current) {
+      clearTimeout(weaponsAutoSaveTimeoutRef.current)
+      weaponsAutoSaveTimeoutRef.current = null
+    }
     userTriggeredLimitsRef.current = false
-  }, [deepClone])
+    userTriggeredWeaponsRef.current = false
+  }, [deepClone, dismissPersistStatus, isDirty, requestConfirm, setCharacterData])
 
   const handleSaveEdit = useCallback(async () => {
     if (!user) return
     if (!initialDataRef.current?.id) return
     setIsSaving(true)
+    announceSaving('Guardando ficha…')
     try {
       const payload = buildFullPayload()
       const saved = await saveCharacter(user.id, payload as any)
@@ -1620,32 +1735,76 @@ export default function CharacterSheet({
       editBackupRef.current = null
       setIsEditing(false)
       onCharacterSaved?.(saved)
+      announceSaved('Ficha guardada')
     } catch (e) {
       console.error('Erro ao salvar ficha:', e)
-      alert('Erro ao salvar ficha. Tente novamente.')
+      announceError('Não deu pra guardar a ficha. Tente de novo.', () => {
+        void handleSaveEditRef.current()
+      })
     } finally {
       setIsSaving(false)
     }
-  }, [buildFullPayload, user])
+  }, [announceError, announceSaved, announceSaving, buildFullPayload, onCharacterSaved, user])
+
+  handleSaveEditRef.current = handleSaveEdit
 
   const handleAutoSaveLimits = useCallback(async () => {
     if (!user) return
     if (!initialDataRef.current?.id) return
+    announceSaving('Atualizando limites…')
     try {
       const payload = buildLimitsPayload()
       const saved = await saveCharacter(user.id, payload as any)
       initialDataRef.current = saved.data
       onCharacterSaved?.(saved)
+      announceSaved('Limites atualizados')
     } catch (e) {
       console.error('Erro ao salvar limites:', e)
+      announceError('Os limites não atualizaram. Tente de novo.', () => {
+        void handleAutoSaveLimitsRef.current()
+      })
     }
-  }, [buildLimitsPayload, user])
+  }, [announceError, announceSaved, announceSaving, buildLimitsPayload, onCharacterSaved, user])
+
+  handleAutoSaveLimitsRef.current = handleAutoSaveLimits
+
+  const buildWeaponsPayload = useCallback(() => {
+    const base = initialDataRef.current ?? {}
+    return {
+      ...base,
+      equippedWeapons: characterData.equippedWeapons,
+    }
+  }, [characterData.equippedWeapons])
+
+  const handleAutoSaveWeapons = useCallback(async () => {
+    if (!user) return
+    if (!initialDataRef.current?.id) return
+    announceSaving('Atualizando armas…')
+    try {
+      const payload = buildWeaponsPayload()
+      const saved = await saveCharacter(user.id, payload as any)
+      initialDataRef.current = saved.data
+      onCharacterSaved?.(saved)
+      announceSaved('Armas atualizadas')
+    } catch (e) {
+      console.error('Erro ao salvar armas equipadas:', e)
+      announceError('As armas não atualizaram. Tente de novo.', () => {
+        void handleAutoSaveWeaponsRef.current()
+      })
+    }
+  }, [announceError, announceSaved, announceSaving, buildWeaponsPayload, onCharacterSaved, user])
+
+  handleAutoSaveWeaponsRef.current = handleAutoSaveWeapons
 
   useEffect(() => {
     if (isEditing) {
       if (limitsAutoSaveTimeoutRef.current) {
         clearTimeout(limitsAutoSaveTimeoutRef.current)
         limitsAutoSaveTimeoutRef.current = null
+      }
+      if (weaponsAutoSaveTimeoutRef.current) {
+        clearTimeout(weaponsAutoSaveTimeoutRef.current)
+        weaponsAutoSaveTimeoutRef.current = null
       }
     }
   }, [isEditing])
@@ -1678,6 +1837,21 @@ export default function CharacterSheet({
 
   useEffect(() => {
     if (isEditing) return
+    if (!userTriggeredWeaponsRef.current) return
+    userTriggeredWeaponsRef.current = false
+
+    if (weaponsAutoSaveTimeoutRef.current) {
+      clearTimeout(weaponsAutoSaveTimeoutRef.current)
+      weaponsAutoSaveTimeoutRef.current = null
+    }
+
+    weaponsAutoSaveTimeoutRef.current = window.setTimeout(() => {
+      void handleAutoSaveWeapons()
+    }, 600)
+  }, [isEditing, characterData.equippedWeapons, handleAutoSaveWeapons])
+
+  useEffect(() => {
+    if (isEditing) return
     if (!userTriggeredConditionalsRef.current) return
     userTriggeredConditionalsRef.current = false
 
@@ -1686,16 +1860,8 @@ export default function CharacterSheet({
       conditionalsAutoSaveTimeoutRef.current = null
     }
 
-    conditionalsAutoSaveTimeoutRef.current = window.setTimeout(async () => {
-      if (!user || !initialDataRef.current?.id) return
-      try {
-        const payload = buildFullPayload()
-        const saved = await saveCharacter(user.id, payload as any)
-        initialDataRef.current = saved.data
-        onCharacterSaved?.(saved)
-      } catch (e) {
-        console.error('Erro ao salvar condicionais:', e)
-      }
+    conditionalsAutoSaveTimeoutRef.current = window.setTimeout(() => {
+      void persistConditionalsRef.current()
     }, 600)
 
     return () => {
@@ -1711,10 +1877,32 @@ export default function CharacterSheet({
     characterData.singularidadesCondicionaisMarciaisAtivas,
     characterData.singularidadesCondicionaisRaciaisAtivas,
     characterData.singularidadesCondicionaisPathAtivas,
-    buildFullPayload,
-    onCharacterSaved,
-    user,
   ])
+
+  const persistConditionals = useCallback(async () => {
+    if (!user || !initialDataRef.current?.id) return
+    announceSaving('Guardando condicionais…')
+    try {
+      const payload = buildFullPayload()
+      const saved = await saveCharacter(user.id, payload as any)
+      initialDataRef.current = saved.data
+      onCharacterSaved?.(saved)
+      announceSaved('Condicionais guardadas')
+    } catch (e) {
+      console.error('Erro ao salvar condicionais:', e)
+      announceError('As condicionais não guardaram. Tente de novo.', () => {
+        void persistConditionalsRef.current()
+      })
+    }
+  }, [announceError, announceSaved, announceSaving, buildFullPayload, onCharacterSaved, user])
+
+  persistConditionalsRef.current = persistConditionals
+
+  useEffect(() => {
+    return () => {
+      clearPersistClearTimer()
+    }
+  }, [clearPersistClearTimer])
 
   const attributes = [
     { key: 'carisma', label: 'Carisma', icon: Sparkles },
@@ -1936,29 +2124,50 @@ export default function CharacterSheet({
     async (layout: SheetLayout) => {
       setCharacterData((prev) => ({ ...prev, sheetLayout: layout }))
       if (!user || !initialDataRef.current?.id) return
+      announceSaving('Guardando preferências da ficha…')
       try {
         const payload = { ...buildFullPayload(), sheetLayout: layout }
         const saved = await saveCharacter(user.id, payload as any)
         initialDataRef.current = saved.data
         onCharacterSaved?.(saved)
+        announceSaved('Preferências guardadas')
       } catch (e) {
         console.error('Erro ao salvar layout da ficha:', e)
+        announceError('As preferências não guardaram. Tente de novo.', () => {
+          void handlePersistLayoutRef.current(layout)
+        })
       }
     },
-    [buildFullPayload, onCharacterSaved, setCharacterData, user],
+    [
+      announceError,
+      announceSaved,
+      announceSaving,
+      buildFullPayload,
+      onCharacterSaved,
+      setCharacterData,
+      user,
+    ],
   )
+
+  handlePersistLayoutRef.current = handlePersistLayout
 
   const sheetRuntimeValue = useMemo<SheetRuntimeValue>(() => ({
     characterData,
     setCharacterData,
     updateField,
     isEditing,
+    isDirty,
     canEditSheet,
+    canMutateMesa,
+    canMutateFicha,
     hasMasterOverride,
     handleStartEdit,
     handleSaveEdit,
     handleCancelEdit,
+    requestConfirm,
     isSaving,
+    persistStatus,
+    dismissPersistStatus,
     onOpenEvolution,
     peToAdd,
     setPeToAdd,
@@ -2010,12 +2219,18 @@ export default function CharacterSheet({
     characterData,
     setCharacterData,
     isEditing,
+    isDirty,
     canEditSheet,
+    canMutateMesa,
+    canMutateFicha,
     hasMasterOverride,
     handleStartEdit,
     handleSaveEdit,
     handleCancelEdit,
+    requestConfirm,
     isSaving,
+    persistStatus,
+    dismissPersistStatus,
     onOpenEvolution,
     peToAdd,
     peToAddNumber,
@@ -2060,7 +2275,7 @@ export default function CharacterSheet({
 
   const renderActiveTab = useCallback(
     (tabId: SheetTabId) => {
-      if (tabId === 'basico') {
+      if (tabId === 'personagem') {
         return <BasicoTab renderWidget={renderBasicoWidget} />
       }
       if (tabId === 'equipamentos') {
@@ -2068,11 +2283,14 @@ export default function CharacterSheet({
       }
       return (
         <SingularidadesKindTab
-          tabId={tabId}
-          renderWidget={(id) =>
-            renderSingularityWidget(tabId, id, {
-              onToggleConditional: (kind, id, enabled) =>
-                handleToggleConditionalSystemSingularity({ kind, id, enabled }),
+          renderWidget={(group, id) =>
+            renderSingularityWidget(group, id, {
+              onToggleConditional: (kind, singularityId, enabled) =>
+                handleToggleConditionalSystemSingularity({
+                  kind,
+                  id: singularityId,
+                  enabled,
+                }),
             })
           }
         />
@@ -2082,11 +2300,9 @@ export default function CharacterSheet({
   )
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
-      <div className="flex-shrink-0">
-        <Header onGoToDashboard={onBackToDashboard} />
-      </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden overflow-x-hidden bg-[#0a0a0a]">
+      <Header variant="sheet" onGoToDashboard={onBackToDashboard} />
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <SheetLayoutProvider
           key={String(initialData?.id ?? 'new')}
           initialLayout={normalizeSheetLayout(initialData?.sheetLayout ?? characterData.sheetLayout)}
@@ -2094,54 +2310,7 @@ export default function CharacterSheet({
           onPersist={handlePersistLayout}
         >
           <SheetRuntimeProvider value={sheetRuntimeValue}>
-            <CharacterSheetShell
-              headerSlot={
-                <div className="flex items-center justify-between gap-3 rounded-sm border border-slate-300/70 bg-white px-3 py-2.5 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-800/80">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-ecoar-light-900/50">
-                      Ficha de personagem
-                    </div>
-                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
-                      {characterData.nome?.trim() ? characterData.nome : 'Sem nome'}
-                    </div>
-                  </div>
-                  {canEditSheet && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={handleStartEdit}
-                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm border border-ecoar-teal-500/35 bg-ecoar-teal-500/10 px-3 text-xs font-semibold text-ecoar-teal-800 transition-colors hover:bg-ecoar-teal-500/20 dark:text-ecoar-teal-300"
-                      title="Editar personagem"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      Editar
-                    </button>
-                  )}
-                  {canEditSheet && isEditing && (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleSaveEdit}
-                        disabled={isSaving}
-                        className="inline-flex h-8 items-center rounded-sm border border-ecoar-teal-500/35 bg-ecoar-teal-500/10 px-3 text-xs font-semibold text-ecoar-teal-800 transition-colors hover:bg-ecoar-teal-500/20 disabled:opacity-60 dark:text-ecoar-teal-300"
-                        title="Salvar alterações"
-                      >
-                        Salvar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        disabled={isSaving}
-                        className="inline-flex h-8 items-center rounded-sm border border-slate-300/80 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-60 dark:border-ecoar-light-900/20 dark:text-ecoar-light-900/80 dark:hover:bg-ecoar-light-900/10"
-                        title="Cancelar"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              }
-              renderActiveTab={renderActiveTab}
-            />
+            <CharacterSheetShell renderActiveTab={renderActiveTab} />
           </SheetRuntimeProvider>
         </SheetLayoutProvider>
       </div>

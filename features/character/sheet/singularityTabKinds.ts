@@ -1,13 +1,11 @@
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
+import type { SingularitySheetKindGroup } from '@/features/character/sheet/sheetLayoutTypes'
 
-export type SingularitySheetKindGroup = 'ecoar' | 'naturais' | 'magicas' | 'absolutas'
+export type { SingularitySheetKindGroup }
 
-export const SHEET_TAB_TO_KINDS: Record<
-  'sing-ecoar' | 'sing-naturais' | 'sing-magicas' | 'sing-absolutas',
-  SystemSingularityKind[]
-> = {
-  'sing-ecoar': ['ecoar'],
-  'sing-naturais': ['criacao', 'racial'],
-  'sing-magicas': ['marcial'],
-  'sing-absolutas': ['path'],
+export const SING_GROUP_TO_KINDS: Record<SingularitySheetKindGroup, SystemSingularityKind[]> = {
+  ecoar: ['ecoar'],
+  naturais: ['criacao', 'racial'],
+  magicas: ['marcial'],
+  absolutas: ['path'],
 }

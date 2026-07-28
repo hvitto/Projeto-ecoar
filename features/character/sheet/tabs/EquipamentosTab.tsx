@@ -9,5 +9,12 @@ type EquipamentosTabProps = {
 }
 
 export function EquipamentosTab({ renderWidget }: EquipamentosTabProps) {
-  return <WidgetGrid tabId="equipamentos" renderWidget={renderWidget} />
+  return (
+    <WidgetGrid
+      tabId="equipamentos"
+      renderWidget={renderWidget}
+      gapClass="gap-6 sm:gap-8"
+      toneForWidget={(id) => (id === 'inventory' ? 'secondary' : 'primary')}
+    />
+  )
 }

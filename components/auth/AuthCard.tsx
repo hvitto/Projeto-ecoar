@@ -1,44 +1,58 @@
 ﻿'use client'
 
 import { ReactNode } from 'react'
-import { Crown } from 'lucide-react'
-import Card from '@/shared/components/ui/Card'
 
 interface AuthCardProps {
   children: ReactNode
   title: string
   subtitle?: string
+  stamp?: string
   footer?: ReactNode
 }
 
-export default function AuthCard({ children, title, subtitle, footer }: AuthCardProps) {
+export default function AuthCard({
+  children,
+  title,
+  subtitle,
+  stamp,
+  footer,
+}: AuthCardProps) {
   return (
-    <div className="w-full">
-      <Card className="p-4 sm:p-6 md:p-8 rounded-xl bg-white dark:bg-ecoar-dark-800 border border-ecoar-dark-200/50 dark:border-ecoar-light-900/10 shadow-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-10 h-10 bg-ecoar-teal-100/80 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center border border-ecoar-teal-300/40 dark:border-ecoar-teal-500/20 mb-3">
-            <Crown className="w-5 h-5 text-ecoar-teal-600 dark:text-ecoar-teal-400/90" />
-          </div>
-          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-ecoar-dark-900 dark:text-ecoar-light-900/95 mb-0.5">
+    <div className="auth-gate w-full">
+      <div
+        role="region"
+        aria-labelledby="auth-gate-title"
+        className="rounded-none border border-ecoar-teal/50 dark:border-ecoar-teal bg-white dark:bg-[#0a0a0a]"
+      >
+        <div className="px-3 sm:px-4 pt-3 pb-2.5 border-b border-ecoar-teal/40 dark:border-ecoar-teal/50">
+          {stamp && (
+            <p className="mb-1.5 text-[0.6875rem] uppercase leading-none tracking-[0.16em] text-ecoar-teal-700 dark:text-ecoar-teal">
+              {stamp}
+            </p>
+          )}
+          <h2
+            id="auth-gate-title"
+            className="font-display text-xl uppercase leading-[1.05] tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900"
+          >
             {title}
-          </h1>
+          </h2>
           {subtitle && (
-            <p className="text-sm text-ecoar-dark-500 dark:text-ecoar-light-900/55 text-center">
+            <p className="mt-1.5 max-w-[40ch] text-xs leading-relaxed tracking-[0.02em] text-ecoar-dark-600 dark:text-[#c5c8ce]">
               {subtitle}
             </p>
           )}
         </div>
 
-        <div className="mb-6">
+        <div className="px-3 sm:px-4 py-3 text-sm leading-relaxed tracking-[0.02em]">
           {children}
         </div>
 
         {footer && (
-          <div className="pt-4 border-t border-ecoar-dark-200/40 dark:border-ecoar-light-900/[0.08]">
+          <div className="px-3 sm:px-4 py-2.5 border-t border-ecoar-teal/40 dark:border-ecoar-teal/50 text-xs leading-relaxed tracking-[0.02em]">
             {footer}
           </div>
         )}
-      </Card>
+      </div>
     </div>
   )
 }

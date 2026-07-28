@@ -392,7 +392,7 @@ export default function SingularitiesCatalog() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {showAdminLink && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 text-slate-600 dark:text-ecoar-light-900/70">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 text-slate-600 dark:text-ecoar-light-900/70">
                 <Settings2 className="w-3.5 h-3.5" />
                 Edição admin habilitada
               </span>
@@ -411,7 +411,7 @@ export default function SingularitiesCatalog() {
                     bonuses: {},
                   })
                 }
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-ecoar-teal-300/60 text-ecoar-teal-700 dark:text-ecoar-teal-300"
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-none border border-ecoar-teal-300/60 text-ecoar-teal-700 dark:text-ecoar-teal-300"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Nova singularidade
@@ -455,7 +455,7 @@ export default function SingularitiesCatalog() {
 
       {editing && showAdminLink && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-ecoar-dark-800 border border-slate-200 dark:border-ecoar-light-900/20 p-4 space-y-3">
+          <div className="w-full max-w-lg rounded-none bg-white dark:bg-ecoar-dark-800 border border-ecoar-teal/40 dark:border-ecoar-teal/45 p-4 space-y-3">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900/90">
               {editing.id ? 'Editar singularidade' : 'Nova singularidade'}
             </h3>
@@ -464,13 +464,13 @@ export default function SingularitiesCatalog() {
               disabled={Boolean(editing.id)}
               onChange={(e) => setEditing((prev) => (prev ? { ...prev, id: e.target.value } : prev))}
               placeholder="ID único (ex: criacao-nome)"
-              className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm disabled:opacity-60"
+              className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm disabled:opacity-60"
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <select
                 value={editing.systemType}
                 onChange={(e) => setEditing((prev) => (prev ? { ...prev, systemType: e.target.value as AdminSystemType } : prev))}
-                className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+                className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
               >
                 <option value="ecoar">Ecoar</option>
                 <option value="criacao">Criação</option>
@@ -481,30 +481,30 @@ export default function SingularitiesCatalog() {
                 value={editing.ecoarId}
                 onChange={(e) => setEditing((prev) => (prev ? { ...prev, ecoarId: e.target.value } : prev))}
                 placeholder="Grupo/Origem (ex: sistema-criacao)"
-                className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+                className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
               />
             </div>
             <input
               value={editing.name}
               onChange={(e) => setEditing((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
-              className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+              className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
             />
             <input
               type="number"
               value={editing.cost}
               onChange={(e) => setEditing((prev) => (prev ? { ...prev, cost: Number(e.target.value) || 0 } : prev))}
-              className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+              className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
             />
             <textarea
               rows={4}
               value={editing.description}
               onChange={(e) => setEditing((prev) => (prev ? { ...prev, description: e.target.value } : prev))}
-              className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+              className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
             />
             <select
               value={editing.activationType}
               onChange={(e) => setEditing((prev) => (prev ? { ...prev, activationType: e.target.value as Editable['activationType'] } : prev))}
-              className="w-full px-3 py-2 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-sm"
+              className="w-full px-3 py-2 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-sm"
             >
               <option value="passiva">Passiva</option>
               <option value="condicional">Condicional</option>
@@ -549,7 +549,7 @@ export default function SingularitiesCatalog() {
                           return { ...prev, bonuses: { ...(prev.bonuses ?? {}), attributes } }
                         })
                       }}
-                      className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-xs"
+                      className="w-20 px-2 py-1 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-xs"
                     />
                   </label>
                 ))}
@@ -577,7 +577,7 @@ export default function SingularitiesCatalog() {
                           return { ...prev, bonuses: { ...(prev.bonuses ?? {}), skills } }
                         })
                       }}
-                      className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-xs"
+                      className="w-20 px-2 py-1 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-xs"
                     />
                   </label>
                 ))}
@@ -602,7 +602,7 @@ export default function SingularitiesCatalog() {
                           return { ...prev, bonuses: nextBonuses }
                         })
                       }}
-                      className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-700 text-xs"
+                      className="w-20 px-2 py-1 rounded border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-700 text-xs"
                     />
                   </label>
                 ))}

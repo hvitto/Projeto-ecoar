@@ -1,111 +1,30 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTheme } from '@/shared/contexts/ThemeContext'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import {
-  Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
-  CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
-  Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
-} from 'lucide-react'
-import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
 import SingularityCard from '@/shared/components/ui/SingularityCard'
-import SelectionCard from '@/shared/components/ui/SelectionCard'
-import InfoCard from '@/shared/components/ui/InfoCard'
-import DisadvantageCard from '@/shared/components/ui/DisadvantageCard'
-import RaceCard from '@/shared/components/ui/RaceCard'
-import RaceImage from '@/shared/components/ui/RaceImage'
-import StatCard from '@/shared/components/ui/StatCard'
-import LimitCard from '@/shared/components/ui/LimitCard'
-import MovementCard from '@/shared/components/ui/MovementCard'
-import SenseCard from '@/shared/components/ui/SenseCard'
-import SummaryItem from '@/shared/components/ui/SummaryItem'
-import MartialSchoolCard from '@/shared/components/ui/MartialSchoolCard'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
+import SelectPlate from '@/components/beyond/SelectPlate'
+import StampButton from '@/components/beyond/StampButton'
+import RangeFrame from '@/components/beyond/RangeFrame'
+import { paths, getPathById } from '@/data/paths'
+import { getSoulLevelByNivel } from '@/data/soulLevels'
 import {
-  getRacialSingularitiesByRaceId,
-  getRacialSingularityById,
-  pruneRacialSingularitiesToValidRequirements,
-} from '@/data/racialSingularities'
-import { paths, getPathById, Path } from '@/data/paths'
-import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
-import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
-import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/aptitudes'
-import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
-import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
-import {
-  getAllMartialSchools,
-  getMartialSchoolDataById,
-  getMartialSchoolDataByIdResolved,
-  getMartialSchoolSingularityById,
-  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
-  resolveMartialSchoolDataId,
-  MartialSchoolData,
-  MartialSchoolSingularity,
-} from '@/data/martialSchoolSingularities'
-import { getRacialCreationExtraPoints } from '@/lib/racialRules'
-import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import type { Ecoar } from '@/data/ecoar'
-import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
-import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
-import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
-import { buildSystemSingularities } from '@/lib/systemSingularities'
-import {
-  aggregateBookDisadvantagePenalties,
-  aggregateSingularityInputFromCharacterData,
-  CHARACTER_ATTRIBUTE_KEYS,
-  computeEffectiveAttributeRows,
-  partitionSignedBonuses,
-} from '@/lib/characterBonuses'
-import {
-  anySelectedSingularityForbidsDisadvantage,
-  requirementsConflictWithSelection,
-} from '@/lib/creationSingularityDisadvantageConflict'
-import {
-  pathBaseSingularities,
-  getPathBaseSingularityByPathId,
   getPathBaseSingularitiesByPathId,
-  getPathBaseSingularityById,
-  bruxarias,
   getBruxariasByCategory,
-  getAllBruxarias,
-  cacadaPowers,
   getAllCacadaPowers,
   getCacadaPowerById,
-  cacadaEnhancements,
   getCacadaEnhancementsForPower,
   getCacadaEnhancementById,
-  getPathLevelFromSoulLevel,
-  BRUXARIA_FREE_SLOTS,
-  BRUXARIA_EXTRA_COST,
   getBruxariaMaxSlots,
   getBruxariaExtraCount,
   getBruxariaExtraCostTotal,
-  Bruxaria,
-  CacadaPower,
-  CacadaEnhancement,
+  BRUXARIA_FREE_SLOTS,
+  BRUXARIA_EXTRA_COST,
+  type Bruxaria,
 } from '@/data/pathSingularities'
 import {
   EsperancaPathExtras,
   PatronosPathExtras,
   ViolenciaPathExtras,
 } from '@/components/wizard/steps/pc-spending/PathExtrasPanels'
-import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
-import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
-import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
-
 
 export function PathSingularitiesTab({
   selectedTrilha,
@@ -170,8 +89,7 @@ export function PathSingularitiesTab({
     }
     if (selectedBruxarias.length >= bruxariaMaxSlots) return
     const nextCount = selectedBruxarias.length + 1
-    const addedCost =
-      getBruxariaExtraCostTotal(nextCount) - getBruxariaExtraCostTotal(selectedBruxarias.length)
+    const addedCost = getBruxariaExtraCostTotal(nextCount) - getBruxariaExtraCostTotal(selectedBruxarias.length)
     if (addedCost > 0 && pontosDisponiveis < addedCost) return
     onBruxariasChange([...selectedBruxarias, id])
   }
@@ -225,43 +143,50 @@ export function PathSingularitiesTab({
     onCacadaEnhancementsChange([...selectedCacadaEnhancements, id])
   }
 
+  const clearPath = () => {
+    onPathBaseSelect('')
+    onBruxariasChange([])
+    onCacadaPowersChange([])
+    onCacadaEnhancementsChange([])
+    onPathExtraIdsChange([])
+    onPathPatronChoiceChange('')
+    onPathHonorCodeChange('')
+    onTrilhaSelect('')
+  }
+
   if (!selectedPath) {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <div className="mb-4">
-            <Route className="w-16 h-16 text-ecoar-teal/50 mx-auto mb-4" />
-            <h4 className="text-xl font-semibold text-slate-900 dark:text-ecoar-light-900 mb-2">Selecione uma Trilha</h4>
-            <p className="text-slate-500 dark:text-ecoar-light-900/60 text-sm mb-6">
-              Escolha uma trilha para ver suas singularidades disponíveis
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {paths.map((path) => (
-              <motion.button
-                key={path.id}
-                onClick={() => onTrilhaSelect(path.id)}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="p-6 rounded-xl border-2 border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 transition-all text-left"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-ecoar-teal/20 flex items-center justify-center">
-                    <Route className="w-5 h-5 text-ecoar-teal" />
-                  </div>
-                  <h5 className="font-semibold text-slate-900 dark:text-ecoar-light-900 text-lg">{path.name}</h5>
-                </div>
-                <p className="text-slate-600 dark:text-ecoar-light-900/70 text-sm leading-relaxed">{path.description}</p>
-              </motion.button>
-            ))}
-          </div>
+      <div className="space-y-4">
+        <div className="border border-ecoar-teal/40 px-3 py-2.5">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1">Trilha</p>
+          <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd]">
+            Escolha uma trilha para ver singularidades disponíveis.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {paths.map((path, index) => (
+            <SelectPlate
+              key={path.id}
+              index={index}
+              title={path.name}
+              description={path.description}
+              onClick={() => onTrilhaSelect(path.id)}
+            />
+          ))}
         </div>
       </div>
     )
   }
 
-  const bruxariaCategories: Bruxaria['category'][] = ['destruicao', 'terror', 'ilusao', 'agouro', 'protecao', 'reparacao', 'controle']
+  const bruxariaCategories: Bruxaria['category'][] = [
+    'destruicao',
+    'terror',
+    'ilusao',
+    'agouro',
+    'protecao',
+    'reparacao',
+    'controle',
+  ]
   const categoryLabels: Record<Bruxaria['category'], string> = {
     destruicao: 'Bruxarias de Destruição',
     terror: 'Bruxarias de Terror',
@@ -273,42 +198,25 @@ export function PathSingularitiesTab({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Trilha Selecionada Header */}
-      <div className="flex items-center justify-between p-4 rounded-xl border border-ecoar-teal/30 bg-ecoar-teal/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-ecoar-teal/20 flex items-center justify-center">
-            <Route className="w-5 h-5 text-ecoar-teal" />
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">{selectedPath.name}</h4>
-            <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">{selectedPath.description}</p>
-          </div>
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border border-ecoar-teal/45 px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1">Trilha ativa</p>
+          <h4 className="font-display text-base uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
+            {selectedPath.name}
+          </h4>
+          <p className="text-[11px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd] mt-1">
+            {selectedPath.description}
+          </p>
         </div>
-        <button
-          onClick={() => {
-            onPathBaseSelect('')
-            onBruxariasChange([])
-            onCacadaPowersChange([])
-            onCacadaEnhancementsChange([])
-            onPathExtraIdsChange([])
-            onPathPatronChoiceChange('')
-            onPathHonorCodeChange('')
-            onTrilhaSelect('')
-          }}
-          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 transition-colors text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-900 dark:text-ecoar-light-900"
-          title="Remover Trilha"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <StampButton tone="ghost" onClick={clearPath} className="shrink-0 w-full sm:w-auto">
+          Remover trilha
+        </StampButton>
       </div>
 
       {pathBasesForTrilha.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-            Singularidade Base da Trilha
-          </h4>
-          <div className="grid grid-cols-1 gap-4">
+        <RangeFrame title="Singularidade base" refId="PATH-BASE" bodyClassName="p-3">
+          <div className="grid grid-cols-1 gap-2">
             {pathBasesForTrilha.map((pathBaseSingularity) => (
               <SingularityCard
                 key={pathBaseSingularity.id}
@@ -326,36 +234,31 @@ export function PathSingularitiesTab({
               />
             ))}
           </div>
-        </div>
+        </RangeFrame>
       )}
 
-      {/* Bruxarias (for Bruxaria path) */}
       {selectedTrilha === 'bruxaria' && selectedPathBase && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">Bruxarias</h4>
-            <Badge variant="bonus">
-              {selectedBruxarias.length}/{bruxariaMaxSlots} · {BRUXARIA_FREE_SLOTS} gratis
-              {bruxariaExtraCount > 0
-                ? ` · ${bruxariaExtraCount} extras (${bruxariaExtraCost} PC)`
-                : ''}
-            </Badge>
+        <RangeFrame title="Bruxarias" refId="PATH-BRX" bodyClassName="p-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-ecoar-teal">
+              {selectedBruxarias.length}/{bruxariaMaxSlots} · {BRUXARIA_FREE_SLOTS} grátis
+              {bruxariaExtraCount > 0 ? ` · ${bruxariaExtraCount} extras (${bruxariaExtraCost} PC)` : ''}
+            </p>
           </div>
-          <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+          <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-4">
             Você começa com {BRUXARIA_FREE_SLOTS} bruxarias gratuitas. Pode comprar até {nivelPoder} extras
-            (igual ao Nível de Poder) por {BRUXARIA_EXTRA_COST} PC cada. Durante um descanso, você pode
-            substituir uma bruxaria por outra.
+            (igual ao Nível de Poder) por {BRUXARIA_EXTRA_COST} PC cada.
           </p>
           {bruxariaCategories.map((category) => {
             const categoryBruxarias = getBruxariasByCategory(category)
             if (categoryBruxarias.length === 0) return null
 
             return (
-              <div key={category} className="space-y-3">
-                <h5 className="text-md font-semibold text-slate-900 dark:text-ecoar-light-900/90 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
+              <div key={category} className="space-y-2 mb-5 last:mb-0">
+                <h5 className="font-display text-xs uppercase tracking-[0.04em] text-ecoar-dark-900 dark:text-ecoar-light-900 border-b border-ecoar-teal/35 pb-1.5">
                   {categoryLabels[category]}
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {categoryBruxarias.map((bruxaria) => {
                     const isSelected = selectedBruxarias.includes(bruxaria.id)
                     const atCap = !isSelected && selectedBruxarias.length >= bruxariaMaxSlots
@@ -365,130 +268,135 @@ export function PathSingularitiesTab({
                     const canAfford = isSelected || nextExtraCost <= 0 || pontosDisponiveis >= nextExtraCost
                     const canSelect = isSelected || (!atCap && canAfford)
                     return (
-                      <Card
+                      <button
                         key={bruxaria.id}
-                        className={`p-3 transition-all ${
-                          canSelect || isSelected ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
-                        } ${
-                          isSelected
-                            ? 'border-ecoar-teal bg-ecoar-teal/10'
-                            : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50'
-                        }`}
+                        type="button"
                         onClick={() => {
                           if (!canSelect && !isSelected) return
                           toggleBruxaria(bruxaria.id)
                         }}
+                        disabled={!canSelect && !isSelected}
+                        className={`text-left border p-3 transition-colors ${
+                          isSelected
+                            ? 'border-ecoar-magenta bg-ecoar-magenta/10'
+                            : canSelect
+                              ? 'border-ecoar-teal/45 bg-[#0a0a0a]/40 hover:border-ecoar-teal'
+                              : 'border-ecoar-teal/25 bg-[#0a0a0a]/25 opacity-50 cursor-not-allowed'
+                        }`}
                       >
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <h6 className="font-semibold text-slate-900 dark:text-ecoar-light-900 text-sm leading-tight flex-1">{bruxaria.name}</h6>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-ecoar-teal flex-shrink-0" />}
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h6 className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 leading-tight flex-1">
+                            {bruxaria.name}
+                          </h6>
+                          {isSelected ? (
+                            <span className="text-[9px] uppercase tracking-[0.12em] text-ecoar-magenta shrink-0">
+                              SEL
+                            </span>
+                          ) : null}
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-ecoar-light-900/70 leading-relaxed line-clamp-2">{bruxaria.description}</p>
-                        <div className="flex gap-2 text-xs text-slate-500 dark:text-ecoar-light-900/60 flex-wrap">
-                          <span>Mana: {bruxaria.manaCost}</span>
-                          <span>•</span>
-                          <span>Ação: {bruxaria.action}</span>
-                          {bruxaria.range && (
+                        <p className="text-[11px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd] line-clamp-2 mb-2">
+                          {bruxaria.description}
+                        </p>
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] uppercase tracking-[0.1em] text-ecoar-teal">
+                          <span>Mana {bruxaria.manaCost}</span>
+                          <span>·</span>
+                          <span>{bruxaria.action}</span>
+                          {bruxaria.range ? (
                             <>
-                              <span>•</span>
-                              <span>Alcance: {bruxaria.range}</span>
+                              <span>·</span>
+                              <span>{bruxaria.range}</span>
                             </>
-                          )}
-                          {!isSelected && nextExtraCost > 0 && (
+                          ) : null}
+                          {!isSelected && nextExtraCost > 0 ? (
                             <>
-                              <span>•</span>
-                              <span>{nextExtraCost} PC</span>
+                              <span>·</span>
+                              <span className="text-ecoar-magenta">{nextExtraCost} PC</span>
                             </>
-                          )}
+                          ) : null}
                         </div>
-                        <p className="text-xs text-slate-700 dark:text-ecoar-light-900/80 mt-2">{bruxaria.effects}</p>
-                        {atCap && (
-                          <p className="text-xs text-ecoar-magenta mt-2">Limite de bruxarias atingido</p>
-                        )}
-                        {!atCap && !isSelected && !canAfford && (
-                          <p className="text-xs text-ecoar-magenta mt-2">PC insuficiente para extra</p>
-                        )}
-                      </Card>
+                        <p className="text-[10px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd] mt-2">
+                          {bruxaria.effects}
+                        </p>
+                        {atCap ? (
+                          <p className="text-[10px] text-ecoar-magenta mt-2">Limite de bruxarias atingido</p>
+                        ) : null}
+                        {!atCap && !isSelected && !canAfford ? (
+                          <p className="text-[10px] text-ecoar-magenta mt-2">PC insuficiente para extra</p>
+                        ) : null}
+                      </button>
                     )
                   })}
                 </div>
               </div>
             )
           })}
-        </div>
+        </RangeFrame>
       )}
 
-      {/* Caçada Powers and Enhancements */}
       {selectedTrilha === 'cacada' && selectedPathBase && (
-        <div className="space-y-6">
-          {/* Powers */}
-          <div className="space-y-3">
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-              Poderes da Caçada
-            </h4>
-            <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
-              Você pode ter, no máximo, um número de poderes igual ao seu Nível de Poder.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {getAllCacadaPowers().map((power) => {
-                const isSelected = selectedCacadaPowers.includes(power.id)
-                const canAfford = pontosDisponiveis >= power.cost
-                const atPowerCap = !isSelected && selectedCacadaPowers.length >= nivelPoder
-                const canSelect = isSelected || (canAfford && !atPowerCap)
-                const enhancements = getCacadaEnhancementsForPower(power.id, selectedPathBase)
+        <RangeFrame title="Poderes da caçada" refId="PATH-CAC" bodyClassName="p-3">
+          <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-4">
+            Você pode ter, no máximo, um número de poderes igual ao seu Nível de Poder.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {getAllCacadaPowers().map((power) => {
+              const isSelected = selectedCacadaPowers.includes(power.id)
+              const canAfford = pontosDisponiveis >= power.cost
+              const atPowerCap = !isSelected && selectedCacadaPowers.length >= nivelPoder
+              const canSelect = isSelected || (canAfford && !atPowerCap)
+              const enhancements = getCacadaEnhancementsForPower(power.id, selectedPathBase)
 
-                return (
-                  <div key={power.id} className="space-y-2">
-                    <SingularityCard
-                      name={power.name}
-                      description={power.description}
-                      cost={power.cost}
-                      isSelected={isSelected}
-                      canAfford={canAfford}
-                      canSelect={canSelect}
-                      onClick={() => toggleCacadaPower(power.id)}
-                      variant="teal"
-                    />
-                    {isSelected && enhancements.length > 0 && (
-                      <div className="ml-4 space-y-2 border-l-2 border-ecoar-teal/30 pl-4">
-                        <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60 font-semibold">Aprimoramentos:</p>
-                        {enhancements.map((enhancement) => {
-                          const isEnhSelected = selectedCacadaEnhancements.includes(enhancement.id)
-                          const canAffordEnh = isEnhSelected || pontosDisponiveis >= enhancement.cost
-                          const hasOtherEnh = selectedCacadaEnhancements.some((e) => {
-                            const eData = getCacadaEnhancementById(e)
-                            return eData?.requirements.powerId === power.id && e !== enhancement.id
-                          })
-                          const canSelectEnh =
-                            isEnhSelected ||
-                            (canAffordEnh && !(enhancement.requirements.noOtherEnhancement && hasOtherEnh))
+              return (
+                <div key={power.id} className="space-y-2">
+                  <SingularityCard
+                    name={power.name}
+                    description={power.description}
+                    cost={power.cost}
+                    isSelected={isSelected}
+                    canAfford={canAfford}
+                    canSelect={canSelect}
+                    onClick={() => toggleCacadaPower(power.id)}
+                    variant="teal"
+                  />
+                  {isSelected && enhancements.length > 0 ? (
+                    <div className="ml-3 space-y-2 border-l-2 border-ecoar-teal/40 pl-3">
+                      <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal">Aprimoramentos</p>
+                      {enhancements.map((enhancement) => {
+                        const isEnhSelected = selectedCacadaEnhancements.includes(enhancement.id)
+                        const canAffordEnh = isEnhSelected || pontosDisponiveis >= enhancement.cost
+                        const hasOtherEnh = selectedCacadaEnhancements.some((e) => {
+                          const eData = getCacadaEnhancementById(e)
+                          return eData?.requirements.powerId === power.id && e !== enhancement.id
+                        })
+                        const canSelectEnh =
+                          isEnhSelected ||
+                          (canAffordEnh && !(enhancement.requirements.noOtherEnhancement && hasOtherEnh))
 
-                          return (
-                            <SingularityCard
-                              key={enhancement.id}
-                              name={enhancement.name}
-                              description={enhancement.description}
-                              cost={enhancement.cost}
-                              isSelected={isEnhSelected}
-                              canAfford={canAffordEnh}
-                              canSelect={canSelectEnh}
-                              onClick={() => toggleCacadaEnhancement(enhancement.id)}
-                              variant="teal"
-                              className="text-sm"
-                            />
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                        return (
+                          <SingularityCard
+                            key={enhancement.id}
+                            name={enhancement.name}
+                            description={enhancement.description}
+                            cost={enhancement.cost}
+                            isSelected={isEnhSelected}
+                            canAfford={canAffordEnh}
+                            canSelect={canSelectEnh}
+                            onClick={() => toggleCacadaEnhancement(enhancement.id)}
+                            variant="teal"
+                            className="text-sm"
+                          />
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
           </div>
-        </div>
+        </RangeFrame>
       )}
 
-      {selectedTrilha === 'esperanca' && selectedPathBase && (
+      {selectedTrilha === 'esperanca' && selectedPathBase ? (
         <EsperancaPathExtras
           pathSingularityBase={selectedPathBase}
           pathExtraIds={pathExtraIds}
@@ -497,9 +405,9 @@ export function PathSingularitiesTab({
           martialSingularityIds={martialSingularityIds}
           nivelAlma={nivelAlma}
         />
-      )}
+      ) : null}
 
-      {selectedTrilha === 'patronos' && selectedPathBase && (
+      {selectedTrilha === 'patronos' && selectedPathBase ? (
         <PatronosPathExtras
           pathSingularityBase={selectedPathBase}
           pathExtraIds={pathExtraIds}
@@ -510,9 +418,9 @@ export function PathSingularitiesTab({
           martialSingularityIds={martialSingularityIds}
           nivelAlma={nivelAlma}
         />
-      )}
+      ) : null}
 
-      {selectedTrilha === 'violencia' && selectedPathBase && (
+      {selectedTrilha === 'violencia' && selectedPathBase ? (
         <ViolenciaPathExtras
           pathSingularityBase={selectedPathBase}
           pathExtraIds={pathExtraIds}
@@ -523,9 +431,7 @@ export function PathSingularitiesTab({
           martialSingularityIds={martialSingularityIds}
           nivelAlma={nivelAlma}
         />
-      )}
+      ) : null}
     </div>
   )
 }
-
-// Gastando PC - Step Principal (sub-etapas controladas pela sidebar)

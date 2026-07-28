@@ -3,119 +3,153 @@
 import { useState, FormEvent } from 'react'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { Input } from '@/shared/components/ui/Input'
-import Button from '@/shared/components/ui/Button'
+import StampButton from '@/components/beyond/StampButton'
 import AuthCard from './AuthCard'
-import { UserPlus, Mail, Lock, User, AtSign } from 'lucide-react'
+import GoogleAuthLink, { suggestUsernameFromEmail } from './GoogleAuthLink'
 
 interface RegisterFormProps {
   onSwitchToLogin?: () => void
   onSuccess?: () => void
 }
 
+type Step = 1 | 2
+
 export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFormProps) {
   const { register, isLoading } = useAuth()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  const [step, setStep] = useState<Step>(1)
+  const [emailPathOpen, setEmailPathOpen] = useState(false)
+  const [usernameOpen, setUsernameOpen] = useState(false)
+  const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  const clearFieldError = (field: string) => {
+    if (!fieldErrors[field]) return
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
 
   const validateField = (field: string, value: string): string | null => {
     switch (field) {
-      case 'firstName':
+      case 'fullName':
         if (!value.trim()) return 'Nome é obrigatório'
-        if (value.trim().length > 50) return 'Nome deve ter no máximo 50 caracteres'
+        if (value.trim().length < 2) return 'Nome deve ter no mínimo 2 caracteres'
+        if (value.trim().length > 100) return 'Nome deve ter no máximo 100 caracteres'
         return null
-      case 'lastName':
-        if (!value.trim()) return 'Sobrenome é obrigatório'
-        if (value.trim().length > 50) return 'Sobrenome deve ter no máximo 50 caracteres'
-        return null
-      case 'username':
+      case 'username': {
         if (!value.trim()) return 'Nome de usuário é obrigatório'
         const usernameTrimmed = value.trim()
-        if (usernameTrimmed.length < 3) return 'Nome de usuário deve ter no mínimo 3 caracteres'
-        if (usernameTrimmed.length > 20) return 'Nome de usuário deve ter no máximo 20 caracteres'
+        if (usernameTrimmed.length < 3) return 'Mínimo 3 caracteres'
+        if (usernameTrimmed.length > 20) return 'Máximo 20 caracteres'
         if (!/^[a-zA-Z0-9_-]+$/.test(usernameTrimmed)) return 'Use apenas letras, números, _ e -'
-        if (usernameTrimmed.startsWith('-') || usernameTrimmed.startsWith('_') || usernameTrimmed.endsWith('-') || usernameTrimmed.endsWith('_')) {
-          return 'Nome de usuário não pode começar ou terminar com - ou _'
+        if (
+          usernameTrimmed.startsWith('-') ||
+          usernameTrimmed.startsWith('_') ||
+          usernameTrimmed.endsWith('-') ||
+          usernameTrimmed.endsWith('_')
+        ) {
+          return 'Não pode começar ou terminar com - ou _'
         }
         return null
+      }
       case 'email':
         if (!value.trim()) return 'Email é obrigatório'
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return 'Email inválido'
         return null
       case 'password':
         if (!value) return 'Senha é obrigatória'
-        if (value.length < 6) return 'Senha deve ter no mínimo 6 caracteres'
-        return null
-      case 'confirmPassword':
-        if (!value) return 'Confirmação de senha é obrigatória'
-        if (value !== password) return 'As senhas não coincidem'
+        if (value.length < 6) return 'Mínimo 6 caracteres'
         return null
       default:
         return null
     }
   }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setFieldErrors({})
-    setSuccess(false)
-    setSuccessMessage(null)
-
-    // Validações de todos os campos
+  const validateStep1 = (): boolean => {
+    if (!emailPathOpen) {
+      setError('Escolha Google ou abra o cadastro por email')
+      return false
+    }
     const errors: Record<string, string> = {}
-    
-    const firstNameError = validateField('firstName', firstName)
-    if (firstNameError) errors.firstName = firstNameError
-    const lastNameError = validateField('lastName', lastName)
-    if (lastNameError) errors.lastName = lastNameError
-    
-    const usernameError = validateField('username', username)
-    if (usernameError) errors.username = usernameError
-    
     const emailError = validateField('email', email)
     if (emailError) errors.email = emailError
-    
     const passwordError = validateField('password', password)
     if (passwordError) errors.password = passwordError
-    
-    const confirmPasswordError = validateField('confirmPassword', confirmPassword)
-    if (confirmPasswordError) errors.confirmPassword = confirmPasswordError
-
+    setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      setError('Por favor, corrija os erros nos campos')
+      setError('Corrija email e senha para continuar')
+      return false
+    }
+    setError(null)
+    return true
+  }
+
+  const goNext = () => {
+    if (!validateStep1()) return
+    const suggested = suggestUsernameFromEmail(email.trim())
+    setUsername((prev) => (prev.trim() ? prev : suggested))
+    setStep(2)
+  }
+
+  const goBack = () => {
+    setError(null)
+    setFieldErrors({})
+    setStep(1)
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (step === 1) {
+      goNext()
       return
     }
 
-    const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
-    const result = await register(
-      email.trim(),
-      password,
-      fullName,
-      username.trim()
-    )
+    setError(null)
+    setSuccess(false)
+    setSuccessMessage(null)
 
-    if (result.success) {
-      setSuccess(true)
-      if (result.message) setSuccessMessage(result.message)
-      if (result.user) {
-        if (onSuccess) setTimeout(() => onSuccess(), 1000)
+    const resolvedUsername = username.trim() || suggestUsernameFromEmail(email.trim())
+    const errors: Record<string, string> = {}
+    const fullNameError = validateField('fullName', fullName)
+    if (fullNameError) errors.fullName = fullNameError
+    const usernameError = validateField('username', resolvedUsername)
+    if (usernameError) errors.username = usernameError
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      if (errors.username) setUsernameOpen(true)
+      setError('Corrija os campos para criar a conta')
+      return
+    }
+
+    try {
+      const result = await register(email.trim(), password, fullName.trim(), resolvedUsername)
+
+      if (result.success) {
+        setSuccess(true)
+        if (result.message) setSuccessMessage(result.message)
+        if (result.user) {
+          if (onSuccess) setTimeout(() => onSuccess(), 1000)
+        }
+      } else {
+        const msg = result.error || 'Não foi possível criar a conta. Tente de novo.'
+        setError(msg)
+        if (/usuário|username/i.test(msg)) setUsernameOpen(true)
       }
-    } else {
-      setError(result.error || 'Erro ao cadastrar')
+    } catch {
+      setError('Falha de conexão. Verifique a rede e tente de novo.')
     }
   }
-
-  const [resendLoading, setResendLoading] = useState(false)
-  const [resendMessage, setResendMessage] = useState<string | null>(null)
 
   const handleResendVerification = async () => {
     if (!email.trim()) return
@@ -140,14 +174,16 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
   return (
     <AuthCard
       title="Criar conta"
-      subtitle="Cadastre-se para começar a criar seus personagens"
+      subtitle={step === 2 ? 'Como você quer ser chamado?' : undefined}
       footer={
         <div className="text-center">
-          <p className="text-sm text-ecoar-dark-500 dark:text-ecoar-light-900/55">
+          <p className="text-sm text-ecoar-dark-600 dark:text-[#c5c8ce]">
             Já tem uma conta?{' '}
             <button
+              type="button"
               onClick={onSwitchToLogin}
-              className="text-ecoar-dark-700 dark:text-ecoar-light-900/80 hover:underline font-medium transition-colors duration-fast"
+              disabled={isLoading}
+              className="text-ecoar-dark-900 dark:text-ecoar-light-900 hover:underline font-medium transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ecoar-teal"
             >
               Entrar
             </button>
@@ -155,183 +191,208 @@ export default function RegisterForm({ onSwitchToLogin, onSuccess }: RegisterFor
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading} noValidate>
+        {!success && (
+          <p
+            className="text-xs uppercase tracking-[0.14em] text-ecoar-teal-700 dark:text-ecoar-teal"
+            aria-live="polite"
+          >
+            {step}/2
+          </p>
+        )}
+
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-3 bg-red-500/10 border border-red-500/40 rounded-none text-sm text-red-700 dark:text-red-300 break-words"
+          >
             {error}
           </div>
         )}
 
         {success && (
-          <div className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-lg text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2">
+          <div
+            role="status"
+            aria-live="polite"
+            className="p-4 bg-ecoar-teal-100/80 dark:bg-ecoar-teal/10 border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 rounded-none text-sm text-ecoar-teal-700 dark:text-ecoar-teal-400/90 space-y-2 break-words"
+          >
             {successMessage ? (
               <p>{successMessage}</p>
             ) : (
-              <p>Enviamos um email de confirmação para <strong>{email}</strong>. Clique no link para ativar sua conta.</p>
+              <p>
+                Enviamos um email de confirmação para <strong>{email}</strong>. Clique no link para
+                ativar sua conta.
+              </p>
             )}
             <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/70">Não recebeu? Verifique o spam ou</p>
             <button
               type="button"
               onClick={handleResendVerification}
               disabled={resendLoading}
-              className="text-ecoar-teal-600 dark:text-ecoar-teal-400 font-medium hover:underline"
+              className="text-ecoar-teal-600 dark:text-ecoar-teal-400 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {resendLoading ? 'Enviando...' : 'Reenviar email'}
+              {resendLoading ? 'Enviando verificação…' : 'Reenviar email'}
             </button>
             {resendMessage && <p className="text-xs mt-1">{resendMessage}</p>}
           </div>
         )}
 
-        <Input
-          type="text"
-          label="NOME"
-          placeholder="Seu nome"
-          value={firstName}
-          onChange={(e) => {
-            setFirstName(e.target.value)
-            if (fieldErrors.firstName) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.firstName
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.firstName}
-        />
+        {!success && step === 1 && (
+          <>
+            <GoogleAuthLink label="Continuar com Google" />
 
-        <Input
-          type="text"
-          label="SOBRENOME"
-          placeholder="Seu sobrenome"
-          value={lastName}
-          onChange={(e) => {
-            setLastName(e.target.value)
-            if (fieldErrors.lastName) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.lastName
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.lastName}
-        />
+            {!emailPathOpen ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailPathOpen(true)
+                  setError(null)
+                }}
+                className="w-full min-h-[44px] text-xs uppercase tracking-[0.12em] text-ecoar-teal-800 dark:text-ecoar-teal border border-ecoar-teal/40 hover:bg-ecoar-teal/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ecoar-teal"
+              >
+                Usar email
+              </button>
+            ) : (
+              <div className="space-y-4 border-t border-ecoar-teal/30 pt-4">
+                <Input
+                  id="auth-register-email"
+                  type="email"
+                  label="EMAIL"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    clearFieldError('email')
+                  }}
+                  disabled={isLoading}
+                  error={fieldErrors.email}
+                />
 
-        <Input
-          type="text"
-          label="NOME DE USUÁRIO"
-          placeholder="nome_usuario"
-          value={username}
-          onChange={(e) => {
-            setUsername(e.target.value)
-            if (fieldErrors.username) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.username
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.username}
-          helperText="3-20 caracteres: letras, números, _ e -"
-        />
+                <Input
+                  id="auth-register-password"
+                  type="password"
+                  label="SENHA"
+                  name="new-password"
+                  autoComplete="new-password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    clearFieldError('password')
+                  }}
+                  disabled={isLoading}
+                  error={fieldErrors.password}
+                />
 
-        <Input
-          type="email"
-          label="EMAIL"
-          placeholder="seu@email.com"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
-            if (fieldErrors.email) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.email
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.email}
-        />
+                <StampButton type="submit" disabled={isLoading} className="w-full">
+                  Continuar na mesa
+                </StampButton>
 
-        <Input
-          type="password"
-          label="SENHA"
-          placeholder="Mínimo 6 caracteres"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value)
-            if (fieldErrors.password || fieldErrors.confirmPassword) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.password
-                delete newErrors.confirmPassword
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.password}
-          helperText="Mínimo de 6 caracteres"
-        />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailPathOpen(false)
+                    setError(null)
+                    setFieldErrors({})
+                  }}
+                  className="w-full text-xs uppercase tracking-[0.12em] text-ecoar-dark-600 dark:text-[#c5c8ce] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ecoar-teal"
+                >
+                  Entrar com Google
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
-        <Input
-          type="password"
-          label="CONFIRMAR SENHA"
-          placeholder="Digite a senha novamente"
-          value={confirmPassword}
-          onChange={(e) => {
-            setConfirmPassword(e.target.value)
-            if (fieldErrors.confirmPassword) {
-              setFieldErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors.confirmPassword
-                return newErrors
-              })
-            }
-          }}
-          disabled={isLoading || success}
-          error={fieldErrors.confirmPassword}
-        />
+        {!success && step === 2 && (
+          <>
+            <Input
+              id="auth-register-full-name"
+              type="text"
+              label="INSIRA SEU NOME"
+              name="name"
+              autoComplete="name"
+              placeholder="ex: Leonardo Gulag"
+              value={fullName}
+              onChange={(e) => {
+                setFullName(e.target.value)
+                clearFieldError('fullName')
+              }}
+              disabled={isLoading}
+              error={fieldErrors.fullName}
+            />
 
-        <Button
-          type="submit"
-          disabled={isLoading || success || !firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
-          leftIcon={UserPlus}
-          className="w-full min-h-[44px] rounded-lg bg-ecoar-dark-900 dark:bg-ecoar-dark-900 text-white hover:bg-ecoar-dark-800 dark:hover:bg-ecoar-dark-800 shadow-none"
-          size="lg"
-        >
-          {isLoading ? 'Criando conta...' : success ? 'Conta criada!' : 'Criar conta'}
-        </Button>
+            {!usernameOpen ? (
+              <div className="space-y-1">
+                <p className="text-sm text-ecoar-dark-500 dark:text-[#adb5bd] break-words">
+                  Apelido:{' '}
+                  <span className="text-ecoar-dark-900 dark:text-ecoar-light-900">
+                    {username || suggestUsernameFromEmail(email)}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setUsernameOpen(true)}
+                  className="text-xs uppercase tracking-[0.12em] text-ecoar-teal-700 dark:text-ecoar-teal hover:underline"
+                >
+                  Alterar apelido
+                </button>
+              </div>
+            ) : (
+              <Input
+                id="auth-register-username"
+                type="text"
+                label="USUÁRIO"
+                name="username"
+                autoComplete="username"
+                placeholder="Nome de usuário"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  clearFieldError('username')
+                }}
+                disabled={isLoading}
+                error={fieldErrors.username}
+                helperText="3-20 · letras, números, _ e -"
+              />
+            )}
 
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-ecoar-dark-200 dark:border-ecoar-light-900/20" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-ecoar-light dark:bg-ecoar-dark-900 text-ecoar-dark-500 dark:text-ecoar-light-900/60">ou</span>
-          </div>
-        </div>
+            <div className="space-y-1.5">
+              <StampButton
+                type="submit"
+                disabled={isLoading}
+                className="w-full"
+                aria-describedby={isLoading ? 'auth-register-status' : undefined}
+              >
+                {isLoading ? 'Preparando lugar…' : 'Entrar na mesa'}
+              </StampButton>
+              {isLoading && (
+                <p
+                  id="auth-register-status"
+                  role="status"
+                  aria-live="polite"
+                  className="text-xs uppercase tracking-[0.14em] text-ecoar-teal-700 dark:text-ecoar-teal"
+                >
+                  MESA · PREPARANDO LUGAR
+                </p>
+              )}
+            </div>
 
-        <a
-          href={typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google` : '/api/auth/google'}
-          className="flex items-center justify-center gap-2 w-full min-h-[44px] py-3 px-4 rounded-lg border border-ecoar-dark-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-800 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-dark-50 dark:hover:bg-ecoar-dark-700 transition-colors font-medium text-sm"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Entrar com Google
-        </a>
+            <StampButton
+              type="button"
+              tone="ghost"
+              onClick={goBack}
+              disabled={isLoading}
+              className="w-full"
+            >
+              Voltar
+            </StampButton>
+          </>
+        )}
       </form>
     </AuthCard>
   )
 }
-

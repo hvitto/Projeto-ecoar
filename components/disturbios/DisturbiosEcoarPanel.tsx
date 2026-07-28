@@ -109,7 +109,7 @@ export function DisturbiosEcoarPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3 p-4 rounded-xl border border-ecoar-teal/30 bg-ecoar-teal/10">
+      <div className="flex flex-wrap items-end justify-between gap-3 p-4 rounded-none border border-ecoar-teal/30 bg-ecoar-teal/10">
         <div>
           <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
             Distúrbios do Ecoar

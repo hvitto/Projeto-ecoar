@@ -1,101 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTheme } from '@/shared/contexts/ThemeContext'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import {
-  Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
-  CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
-  Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
-} from 'lucide-react'
-import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
-import SingularityCard from '@/shared/components/ui/SingularityCard'
-import SelectionCard from '@/shared/components/ui/SelectionCard'
-import InfoCard from '@/shared/components/ui/InfoCard'
-import DisadvantageCard from '@/shared/components/ui/DisadvantageCard'
-import RaceCard from '@/shared/components/ui/RaceCard'
-import RaceImage from '@/shared/components/ui/RaceImage'
-import StatCard from '@/shared/components/ui/StatCard'
-import LimitCard from '@/shared/components/ui/LimitCard'
-import MovementCard from '@/shared/components/ui/MovementCard'
-import SenseCard from '@/shared/components/ui/SenseCard'
-import SummaryItem from '@/shared/components/ui/SummaryItem'
-import MartialSchoolCard from '@/shared/components/ui/MartialSchoolCard'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
-import {
-  getRacialSingularitiesByRaceId,
-  getRacialSingularityById,
-  pruneRacialSingularitiesToValidRequirements,
-} from '@/data/racialSingularities'
-import { paths, getPathById, Path } from '@/data/paths'
-import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
-import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
-import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/aptitudes'
-import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
-import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
-import {
-  getAllMartialSchools,
-  getMartialSchoolDataById,
-  getMartialSchoolDataByIdResolved,
-  getMartialSchoolSingularityById,
-  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
-  resolveMartialSchoolDataId,
-  MartialSchoolData,
-  MartialSchoolSingularity,
-} from '@/data/martialSchoolSingularities'
-import { getRacialCreationExtraPoints } from '@/lib/racialRules'
-import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import type { Ecoar } from '@/data/ecoar'
-import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
-import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
-import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
-import { buildSystemSingularities } from '@/lib/systemSingularities'
-import {
-  aggregateBookDisadvantagePenalties,
-  aggregateSingularityInputFromCharacterData,
-  CHARACTER_ATTRIBUTE_KEYS,
-  computeEffectiveAttributeRows,
-  partitionSignedBonuses,
-} from '@/lib/characterBonuses'
-import {
-  anySelectedSingularityForbidsDisadvantage,
-  requirementsConflictWithSelection,
-} from '@/lib/creationSingularityDisadvantageConflict'
-import {
-  pathBaseSingularities,
-  getPathBaseSingularityByPathId,
-  bruxarias,
-  getBruxariasByCategory,
-  getAllBruxarias,
-  cacadaPowers,
-  getAllCacadaPowers,
-  getCacadaPowerById,
-  cacadaEnhancements,
-  getCacadaEnhancementsByPowerId,
-  getCacadaEnhancementById,
-  getPathLevelFromSoulLevel,
-  Bruxaria,
-  CacadaPower,
-  CacadaEnhancement,
-} from '@/data/pathSingularities'
-import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
-import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
-import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
+import { useState } from 'react'
+import { PointBanner } from '@/components/beyond/WizardStage'
+import RangeFrame from '@/components/beyond/RangeFrame'
 import { AttributesStep } from '@/components/wizard/steps/AttributesStep'
 import { AptitudesStep } from '@/components/wizard/steps/AptitudesStep'
 
+const TABS = [
+  { id: 'atributos' as const, label: 'Atributos · 10 PC/pt' },
+  { id: 'habilidades' as const, label: 'Habilidades' },
+  { id: 'aptidoes' as const, label: 'Aptidões · 20 PC/pt' },
+]
 
 export function TraitsSpendingStep({
   attributes,
@@ -119,42 +34,38 @@ export function TraitsSpendingStep({
   onAptitudesChange: (apts: Record<string, number>) => void
 }) {
   const [activeTab, setActiveTab] = useState<'atributos' | 'habilidades' | 'aptidoes'>('atributos')
-  
-  // Calcula o total de pontos base usados em todos os atributos
+
   const calculateTotalBasePoints = (attrs: Record<string, number>) => {
     return Object.entries(attrs).reduce((sum, [a, v]) => {
       const rB = raceBonuses[a] || 0
       const mB = martialSchoolBonuses[a] || 0
-      const cB = 0 // TODO: Add class bonuses if needed
+      const cB = 0
       const totalBonus = rB + mB + cB
       return sum + Math.max(0, v - totalBonus)
     }, 0)
   }
 
-  // Calcula o total de pontos usados em aptidões
   const calculateAptitudeTotal = (apts: Record<string, number>) => {
     return Object.values(apts).reduce((sum, l) => sum + l, 0)
   }
 
-  // Lógica para atualizar atributos com PC (10 PC por ponto além dos gratuitos); gastos são sincronizados no pai (currentStep === 5).
   const updateAttributeWithPC = (attr: string, newTotalValue: number) => {
     const attrKey = attr as keyof typeof attributes
     const oldValue = attributes[attrKey]
     const raceBonus = raceBonuses[attr] || 0
     const martialSchoolBonus = martialSchoolBonuses[attr] || 0
-    const classBonus = 0 // TODO: Add class bonuses if needed
+    const classBonus = 0
     const totalBonus = raceBonus + martialSchoolBonus + classBonus
-    
+
     const maxTotalValue = 3 + totalBonus
     const newValue = Math.max(0, Math.min(maxTotalValue, newTotalValue))
-    
+
     if (newValue === oldValue) return
-    
+
     const oldTotalBase = calculateTotalBasePoints(attributes)
     const newAttributes = { ...attributes, [attr]: newValue }
     const newTotalBase = calculateTotalBasePoints(newAttributes)
-    
-    // Calcula pontos além dos 12 gratuitos
+
     const oldPointsOverFree = Math.max(0, oldTotalBase - 12)
     const newPointsOverFree = Math.max(0, newTotalBase - 12)
     const pointsOverFreeDiff = newPointsOverFree - oldPointsOverFree
@@ -168,83 +79,67 @@ export function TraitsSpendingStep({
   }
 
   return (
-    <div className="space-y-5 max-h-[700px] overflow-y-auto custom-scrollbar pr-2">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-            <Zap className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-0.5">
-              Gastando Pontos de Criação (Traços)
-            </h3>
-            <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
-              Use Pontos de Criação para melhorar seus traços. Atributos custam 10 PC por ponto além do valor base. Aptidões custam 20 PC por ponto além dos 3 gratuitos.
-            </p>
-          </div>
-        </div>
-        <div className={`mt-3 text-base font-semibold ${pontosDisponiveis >= 0 ? 'text-ecoar-teal/90' : 'text-ecoar-magenta/90'}`}>
-          PC Disponíveis: {pontosDisponiveis}
-        </div>
-      </div>
+    <div className="space-y-4 max-h-[700px] overflow-y-auto custom-scrollbar pr-1">
+      <PointBanner label="PC disponíveis" value={pontosDisponiveis} danger={pontosDisponiveis < 0} />
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20">
-        {(['atributos', 'habilidades', 'aptidoes'] as const).map((tab) => (
+      <div className="flex flex-wrap gap-px bg-ecoar-teal/40 border border-ecoar-teal/50">
+        {TABS.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? 'text-ecoar-teal border-b-2 border-ecoar-teal'
-                : 'text-slate-500 dark:text-ecoar-light-900/60 hover:text-slate-700 dark:text-ecoar-light-900/80'
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 min-w-[6rem] px-3 py-2.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
+              activeTab === tab.id
+                ? 'bg-ecoar-magenta text-[var(--ecoar-accent-ink)]'
+                : 'bg-[#0a0a0a]/75 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-teal/10'
             }`}
           >
-            {tab === 'atributos' && 'Atributos (10 PC por ponto)'}
-            {tab === 'habilidades' && 'Habilidades'}
-            {tab === 'aptidoes' && 'Aptidões (20 PC por ponto)'}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      <div className="mt-6">
+      <RangeFrame title="Traços" refId="PC-TRAÇOS" bodyClassName="p-0">
         {activeTab === 'atributos' && (
-          <AttributesStep
-            attributes={attributes}
-            attributePoints={0}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
-            onUpdate={updateAttributeWithPC}
-            raceBonuses={raceBonuses}
-            martialSchoolBonuses={martialSchoolBonuses}
-            classBonuses={{}}
-            onRandomize={() => {}}
-            onPointsChange={() => {}} // Não usado, calculamos manualmente
-            isEvolutionStep={true}
-          />
+          <div className="p-1">
+            <AttributesStep
+              attributes={attributes}
+              attributePoints={0}
+              pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
+              onUpdate={updateAttributeWithPC}
+              raceBonuses={raceBonuses}
+              martialSchoolBonuses={martialSchoolBonuses}
+              classBonuses={{}}
+              onRandomize={() => {}}
+              onPointsChange={() => {}}
+              isEvolutionStep={true}
+            />
+          </div>
         )}
 
         {activeTab === 'habilidades' && (
-          <div className="text-center py-12 text-slate-500 dark:text-ecoar-light-900/60">
-            <p>Funcionalidade de gastar PC em habilidades em desenvolvimento</p>
+          <div className="p-6 text-center border border-ecoar-teal/35 mx-3 my-4">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-ecoar-teal mb-2">Em desenvolvimento</p>
+            <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd]">
+              Funcionalidade de gastar PC em habilidades em desenvolvimento
+            </p>
           </div>
         )}
 
         {activeTab === 'aptidoes' && (
-          <AptitudesStep
-            aptitudes={aptitudes}
-            pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
-            onAptitudesChange={handleAptitudesChange}
-            onPointsChange={() => {}} // Não usado, calculamos manualmente
-            aptitudePoints={Math.max(0, 3 - calculateAptitudeTotal(aptitudes))}
-            onAptitudePointsChange={() => {}}
-            isEvolutionStep={true}
-          />
+          <div className="p-1">
+            <AptitudesStep
+              aptitudes={aptitudes}
+              pontosCriacao={{ obtidos: 0, gastos: 0, disponiveis: Math.max(0, pontosDisponiveis) }}
+              onAptitudesChange={handleAptitudesChange}
+              onPointsChange={() => {}}
+              aptitudePoints={Math.max(0, 3 - calculateAptitudeTotal(aptitudes))}
+              onAptitudePointsChange={() => {}}
+              isEvolutionStep={true}
+            />
+          </div>
         )}
-      </div>
+      </RangeFrame>
     </div>
   )
 }
-
-// Singularities Step

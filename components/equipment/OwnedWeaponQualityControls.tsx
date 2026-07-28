@@ -10,6 +10,11 @@ import {
 } from '@/lib/equipmentQuality'
 import { formatCerosDisplay } from '@/lib/equipmentCost'
 import type { CatalogOwnedItem } from '@/shared/types/equipment'
+import {
+  sheetBtnCompact,
+  sheetBtnGhost,
+  sheetBtnTeal,
+} from '@/features/character/sheet/sheetChrome'
 
 export function OwnedWeaponQualityControls({
   item,
@@ -47,21 +52,18 @@ export function OwnedWeaponQualityControls({
           : 'flex flex-wrap items-center gap-2'
       }
     >
-      <span
-        className={
-          compact
-            ? 'text-[11px] text-slate-600 dark:text-ecoar-light-900/70'
-            : 'text-xs text-slate-600 dark:text-ecoar-light-900/70'
-        }
-      >
-        Qualidade: <span className="font-semibold text-slate-900 dark:text-ecoar-light-900">{formatOwnedItemQualityLabel(nivel)}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#adb5bd]">
+        Qualidade:{' '}
+        <span className="font-semibold normal-case tracking-normal text-[#f5f5f5]">
+          {formatOwnedItemQualityLabel(nivel)}
+        </span>
       </span>
       <div className="inline-flex items-center gap-1">
         <button
           type="button"
           disabled={!canDown}
           onClick={() => onChangeQuality(downNivel)}
-          className="h-7 min-w-7 rounded-md border border-slate-200 px-2 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-ecoar-light-900/20 dark:text-ecoar-light-900"
+          className={`${sheetBtnGhost} ${sheetBtnCompact} !min-w-7 !px-1.5`}
           aria-label="Diminuir qualidade"
         >
           −
@@ -70,7 +72,7 @@ export function OwnedWeaponQualityControls({
           type="button"
           disabled={!canUp}
           onClick={() => onChangeQuality(upNivel)}
-          className="h-7 min-w-7 rounded-md border border-ecoar-teal/40 bg-ecoar-teal/10 px-2 text-xs font-semibold text-ecoar-teal-800 disabled:cursor-not-allowed disabled:opacity-40 dark:text-ecoar-teal-300"
+          className={`${sheetBtnTeal} ${sheetBtnCompact} !min-w-7 !px-1.5`}
           aria-label="Aumentar qualidade"
           title={
             nivel >= EQUIPMENT_QUALITY_MAX
@@ -83,11 +85,11 @@ export function OwnedWeaponQualityControls({
           +
         </button>
       </div>
-      {nivel < EQUIPMENT_QUALITY_MAX && (
-        <span className="text-[10px] tabular-nums text-slate-500 dark:text-ecoar-light-900/55">
+      {nivel < EQUIPMENT_QUALITY_MAX ? (
+        <span className="font-mono text-[10px] tabular-nums text-[#adb5bd]">
           próximo: {formatCerosDisplay(upDelta)}
         </span>
-      )}
+      ) : null}
     </div>
   )
 }

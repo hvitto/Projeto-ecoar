@@ -1,25 +1,9 @@
 // Dados estáticos do livro. Lógica em lib/, fetch em app/api.
 // Races data from Ecoar RPG
 
-export interface RaceImageHeroConfig {
-  width?: number
-  height?: number
-  style?: {
-    width?: string
-    height?: string
-    maxWidth?: string
-  }
-  offsetLeft?: string
-  offsetTop?: string
-  translateX?: string
-  translateY?: string
-  zIndex?: number
-}
-
 export interface RaceImageConfig {
   src: string
   alt?: string
-  hero?: RaceImageHeroConfig
 }
 
 export interface Race {
@@ -49,21 +33,6 @@ export interface Race {
   image?: RaceImageConfig
 }
 
-const defaultHeroImageConfig: RaceImageHeroConfig = {
-  width: 380,
-  height: 900,
-  style: {
-    width: '30rem',
-    height: '38rem',
-    maxWidth: '900px',
-  },
-  offsetLeft: '-9%',
-  offsetTop: '0',
-  translateX: '-60%',
-  translateY: '0',
-  zIndex: 0,
-}
-
 export let races: Race[] = [
   {
     id: 'peccata',
@@ -78,7 +47,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Peccata.png',
       alt: 'Peccata',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -95,7 +63,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Anão.png',
       alt: 'Anão',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -111,7 +78,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Elfo.png',
       alt: 'Elfo',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -127,7 +93,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Orc.png',
       alt: 'Orc',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -143,7 +108,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Tyllow.png',
       alt: 'Tyllow',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -159,7 +123,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Kaidler.png',
       alt: 'Kaidler',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -175,7 +138,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Fjar.png',
       alt: 'Fjyr',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -191,7 +153,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Mayne.png',
       alt: 'Mayne',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -207,7 +168,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Tsusagi.png',
       alt: 'Tsusagi',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -223,7 +183,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Niliapy.png',
       alt: 'Niliapy',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -239,7 +198,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Triskelion.png',
       alt: 'Triskelion',
-      hero: defaultHeroImageConfig,
     },
   },
   {
@@ -255,7 +213,6 @@ export let races: Race[] = [
     image: {
       src: '/assets/images/Fleurili.png',
       alt: 'Fleurili',
-      hero: defaultHeroImageConfig,
     },
   },
 ]

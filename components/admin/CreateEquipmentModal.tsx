@@ -109,7 +109,7 @@ export default function CreateEquipmentModal({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-5xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white/95 dark:bg-ecoar-dark-800/95 shadow-xl overflow-hidden">
+      <div className="w-full max-w-5xl max-h-[calc(100dvh-2rem)] flex flex-col rounded-none border border-slate-200 dark:border-ecoar-light-900/20 bg-white/95 dark:bg-ecoar-dark-800/95 shadow-none overflow-hidden">
         <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15">
           <h2 id="create-equipment-title" className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
             Novo equipamento no catálogo

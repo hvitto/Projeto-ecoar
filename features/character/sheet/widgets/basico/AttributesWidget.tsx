@@ -2,16 +2,30 @@
 
 import { getAttributeModifier, formatModifier } from '@/lib/calculations'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
-import { sheetFieldCompact, sheetLabel } from '@/features/character/sheet/sheetChrome'
+import {
+  sheetFieldCompact,
+  sheetLabel,
+  sheetMeta,
+  sheetStatCell,
+} from '@/features/character/sheet/sheetChrome'
 
 export function AttributesWidget() {
   const { characterData, updateField, isEditing, attributes, effectiveAttributesByKey } =
     useSheetRuntime()
 
+  const hasOriginBonus = attributes.some((attr) => {
+    const eff = effectiveAttributesByKey[attr.key]
+    if (!eff) return false
+    return (
+      eff.singularityBonus !== 0 ||
+      eff.bookDisadvantageBonus !== 0 ||
+      eff.equipmentBonus !== 0
+    )
+  })
+
   return (
-    <div className="grid grid-cols-2 gap-2 p-2.5 sm:grid-cols-4 sm:p-3 xl:grid-cols-7">
+    <div className="grid grid-cols-4 gap-1 p-2 sm:grid-cols-7 sm:gap-1.5 sm:p-3">
       {attributes.map((attr) => {
-        const Icon = attr.icon
         const attrData = characterData[attr.key as keyof typeof characterData] as {
           nivel: number
           mod: number
@@ -19,52 +33,81 @@ export function AttributesWidget() {
         const nivel =
           typeof attrData.nivel === 'string' ? parseInt(attrData.nivel) || 0 : attrData.nivel
         const eff = effectiveAttributesByKey[attr.key]
+        const bonusLines: { short: string; full: string }[] = []
+        if ((eff?.singularityBonus ?? 0) !== 0) {
+          const m = formatModifier(eff!.singularityBonus)
+          bonusLines.push({ short: `Sing ${m}`, full: `Singularidade ${m}` })
+        }
+        if ((eff?.bookDisadvantageBonus ?? 0) !== 0) {
+          const m = formatModifier(eff!.bookDisadvantageBonus)
+          bonusLines.push({ short: `Livro ${m}`, full: `Livro ${m}` })
+        }
+        if ((eff?.equipmentBonus ?? 0) !== 0) {
+          const m = formatModifier(eff!.equipmentBonus)
+          bonusLines.push({ short: `Equip ${m}`, full: `Equipamento ${m}` })
+        }
 
         return (
           <div
             key={attr.key}
-            className="min-w-0 rounded-sm border border-slate-200/80 bg-slate-50/70 px-2 py-2 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/25"
+            className={`${sheetStatCell} min-w-0 px-1 py-1.5 text-center sm:px-1.5`}
           >
-            <div className="mb-1.5 flex items-center gap-1.5">
-              <Icon className="h-3.5 w-3.5 shrink-0 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
-              <span className={`${sheetLabel} mb-0 truncate`}>{attr.label}</span>
+            <div
+              className={`${sheetLabel} mb-0.5 truncate !text-[8px] tracking-[0.1em] sm:!text-[9px] sm:tracking-[0.14em]`}
+              title={attr.label}
+            >
+              {attr.label}
             </div>
-            <input
-              type="number"
-              min="0"
-              max="8"
-              value={nivel}
-              disabled={!isEditing}
-              onChange={(e) => {
-                const val = parseInt(e.target.value) || 0
-                updateField(`${attr.key}.nivel`, val)
-                updateField(`${attr.key}.mod`, getAttributeModifier(val))
-              }}
-              className={sheetFieldCompact}
-            />
-            <div className="mt-1 text-center">
-              <span className="text-xs font-semibold tabular-nums text-ecoar-teal-600 dark:text-ecoar-teal-400">
-                {formatModifier(eff?.effectiveMod ?? 0)}
-              </span>
-              {(eff?.singularityBonus ?? 0) !== 0 && (
-                <div className="text-[9px] leading-tight text-slate-500 dark:text-ecoar-light-900/55">
-                  sing. {formatModifier(eff.singularityBonus)}
-                </div>
-              )}
-              {(eff?.bookDisadvantageBonus ?? 0) !== 0 && (
-                <div className="text-[9px] leading-tight text-slate-500 dark:text-ecoar-light-900/55">
-                  livro {formatModifier(eff.bookDisadvantageBonus)}
-                </div>
-              )}
-              {(eff?.equipmentBonus ?? 0) !== 0 && (
-                <div className="text-[9px] leading-tight text-slate-500 dark:text-ecoar-light-900/55">
-                  equip. {formatModifier(eff.equipmentBonus)}
-                </div>
-              )}
+            {isEditing ? (
+              <input
+                type="number"
+                min="0"
+                max="8"
+                value={nivel}
+                onChange={(e) => {
+                  const val = Math.max(0, Math.min(8, parseInt(e.target.value) || 0))
+                  updateField(`${attr.key}.nivel`, val)
+                  updateField(`${attr.key}.mod`, getAttributeModifier(val))
+                }}
+                className={`${sheetFieldCompact} mx-auto h-7 text-xs font-semibold sm:h-8 sm:text-sm`}
+                aria-label={`${attr.label} nível`}
+              />
+            ) : (
+              <div
+                className="font-mono text-sm font-semibold tabular-nums leading-none text-[#f5f5f5] sm:text-lg"
+                aria-label={`${attr.label} nível ${nivel}`}
+              >
+                {nivel}
+              </div>
+            )}
+            <div
+              className={`${sheetMeta} mt-1 text-ecoar-teal/85`}
+              aria-label={`Modificador ${formatModifier(eff?.effectiveMod ?? 0)}`}
+            >
+              {formatModifier(eff?.effectiveMod ?? 0)}
             </div>
+            {bonusLines.length > 0 ? (
+              <ul className="mt-0.5 flex list-none flex-col gap-0.5 p-0">
+                {bonusLines.map((line) => (
+                  <li
+                    key={line.full}
+                    className={`${sheetMeta} truncate leading-tight opacity-80`}
+                    title={line.full}
+                    aria-label={line.full}
+                  >
+                    {line.short}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         )
       })}
+      {hasOriginBonus ? (
+        <p className={`col-span-full ${sheetMeta} normal-case tracking-[0.06em]`}>
+          Sing = Singularidade · Livro · Equip = Equipamento — origem do bônus no modificador.
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -86,17 +86,17 @@ export default function CatalogItemCard({
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">{entry.name}</h4>
             {isWeapon && entry.category && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-ecoar-teal-500/10 text-ecoar-teal-700 dark:text-ecoar-teal-400/90 border border-ecoar-teal-500/20">
+              <span className="text-[10px] px-2 py-0.5 rounded-none bg-ecoar-teal-500/10 text-ecoar-teal-700 dark:text-ecoar-teal-400/90 border border-ecoar-teal-500/20">
                 {entry.category}
               </span>
             )}
             {isArmor && entry.category && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-600 dark:text-ecoar-light-900/70">
+              <span className="text-[10px] px-2 py-0.5 rounded-none bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-600 dark:text-ecoar-light-900/70">
                 {entry.category}
               </span>
             )}
             {isUtil && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-600 dark:text-ecoar-light-900/70">
+              <span className="text-[10px] px-2 py-0.5 rounded-none bg-slate-100 dark:bg-ecoar-light-900/10 text-slate-600 dark:text-ecoar-light-900/70">
                 {entry.utilityCategory ?? '—'}
               </span>
             )}

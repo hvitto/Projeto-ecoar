@@ -11,6 +11,7 @@ import {
   type SystemSingularityActivationType,
   type SystemSingularityKind,
 } from '@/lib/systemSingularities'
+import { sheetFocusRing, sheetMeta } from '@/features/character/sheet/sheetChrome'
 
 type CharacterSingularitySlice = CharacterSingularitySelectionSlice & {
   pathCacadaPowers?: string[]
@@ -46,6 +47,19 @@ function kindLabel(kind: SystemSingularityKind): string {
       return 'Racial'
     case 'path':
       return 'Trilha'
+  }
+}
+
+function emptyCopyForActivation(activation: SystemSingularityActivationType): string {
+  switch (activation) {
+    case 'passiva':
+      return 'Nenhum efeito passivo neste grupo. Adquira com PE em Evoluir.'
+    case 'condicional':
+      return 'Nenhuma condicional neste grupo. Quando houver, marque Ativa na mesa.'
+    case 'complexa':
+      return 'Nenhuma complexa neste grupo. Adquira com PE em Evoluir.'
+    case 'ativa':
+      return 'Nenhuma ativa neste grupo. Adquira com PE em Evoluir.'
   }
 }
 
@@ -114,8 +128,8 @@ export function SingularityColumnWidget({
   if (entries.length === 0) {
     return (
       <div className="p-2.5 sm:p-3">
-        <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-          Nenhuma singularidade neste grupo.
+        <p className="font-mono text-xs leading-relaxed text-[#adb5bd]">
+          {emptyCopyForActivation(activation)}
         </p>
       </div>
     )
@@ -126,8 +140,8 @@ export function SingularityColumnWidget({
       {entries.map(({ id, kind, reactKey, sys }) => {
         if (!sys) {
           return (
-            <div key={reactKey} className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-              Singularidade não encontrada no catálogo: {id}
+            <div key={reactKey} className="font-mono text-xs text-[#adb5bd]">
+              Singularidade sem dados no catálogo ({id}).
             </div>
           )
         }
@@ -145,29 +159,25 @@ export function SingularityColumnWidget({
             canSelect={false}
             onClick={() => {}}
             variant="teal"
-            className="!rounded-sm !p-2.5"
+            className="!rounded-none !p-2.5"
             footer={
-              <div className="mt-1.5 flex w-full flex-wrap items-center justify-between gap-2 border-t border-ecoar-dark-300/30 pt-1.5 text-left dark:border-ecoar-light-900/[0.06]">
-                <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-ecoar-light-900/55">
-                  {kindLabel(kind)}
-                </div>
+              <div className="mt-1.5 flex w-full flex-wrap items-center justify-between gap-2 border-t border-ecoar-teal/25 pt-1.5 text-left">
+                <div className={sheetMeta}>{kindLabel(kind)}</div>
                 {activation === 'condicional' && (
                   <label
-                    className={`flex items-center gap-1.5 text-[11px] ${
-                      interactive
-                        ? 'cursor-pointer text-slate-700 dark:text-ecoar-light-900/85'
-                        : 'cursor-default text-slate-500 dark:text-ecoar-light-900/55'
+                    className={`flex items-center gap-1.5 font-mono text-[11px] ${
+                      interactive ? 'cursor-pointer text-[#f5f5f5]' : 'cursor-default text-[#adb5bd]'
                     }`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
                       type="checkbox"
-                      className="rounded-sm border-slate-300 text-ecoar-teal-600 focus:ring-ecoar-teal-500 disabled:opacity-60"
+                      className={`rounded-none border-ecoar-teal/40 text-ecoar-teal ${sheetFocusRing} disabled:opacity-60`}
                       checked={condOn}
                       disabled={!interactive}
                       onChange={(e) => onToggleConditional(kind, id, e.target.checked)}
                     />
-                    <span>Ativa?</span>
+                    <span>Ativa na mesa</span>
                   </label>
                 )}
               </div>

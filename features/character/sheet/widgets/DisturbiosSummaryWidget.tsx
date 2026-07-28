@@ -8,6 +8,7 @@ import {
   ownedEntryKey,
   type DisturbioOwnedEntry,
 } from '@/data/disturbios'
+import { sheetLabel, sheetMeta, sheetStatCell } from '@/features/character/sheet/sheetChrome'
 
 type PontosEcoarSummary = {
   obtidos: number
@@ -52,18 +53,16 @@ export function DisturbiosSummaryWidget({
 
   return (
     <div className="space-y-2.5 p-2.5 sm:p-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-ecoar-teal/30 bg-ecoar-teal/10 px-2.5 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-ecoar-teal/30 bg-ecoar-teal/10 px-2.5 py-2">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:text-ecoar-light-900/70">
-            Pontos de Ecoar
-          </div>
-          <div className="mt-0.5 text-sm text-slate-700 dark:text-ecoar-light-900/85">
+          <div className={sheetLabel}>Pontos de Ecoar</div>
+          <div className="mt-0.5 font-mono text-sm text-[#f5f5f5]">
             {pontosEcoar.obtidos} obtidos · {pontosEcoar.gastos} gastos ·{' '}
             <span
               className={
                 pontosEcoar.disponiveis >= 0
                   ? 'font-semibold text-ecoar-teal'
-                  : 'font-semibold text-ecoar-magenta'
+                  : 'font-semibold text-[#f5f5f5]'
               }
             >
               {pontosEcoar.disponiveis} disponíveis
@@ -71,26 +70,26 @@ export function DisturbiosSummaryWidget({
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-ecoar-light-900/55">
-            Distúrbios
+          <div className={sheetMeta}>Distúrbios</div>
+          <div className="font-mono text-base font-semibold tabular-nums text-ecoar-teal">
+            {entries.length}
           </div>
-          <div className="text-base font-semibold tabular-nums text-ecoar-teal">{entries.length}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         <div className="space-y-1.5">
-          <h4 className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-ecoar-light-900/70">
-            Distúrbios adquiridos
-          </h4>
+          <h4 className={sheetLabel}>Distúrbios adquiridos</h4>
           {entries.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">Nenhum distúrbio.</p>
+            <p className="font-mono text-xs leading-relaxed text-[#adb5bd]">
+              Sem distúrbios nesta ficha. Adquira em Evoluir ou na criação.
+            </p>
           ) : (
             <ul className="space-y-1">
               {entries.map((entry) => (
                 <li
                   key={ownedEntryKey(entry)}
-                  className="rounded-sm border border-slate-200/80 bg-slate-50/70 px-2 py-1 text-xs text-slate-700 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/30 dark:text-ecoar-light-900/85"
+                  className={`${sheetStatCell} px-2 py-1 font-mono text-xs text-[#f5f5f5]`}
                 >
                   {resolveEntryLabel(entry)}
                 </li>
@@ -100,17 +99,17 @@ export function DisturbiosSummaryWidget({
         </div>
 
         <div className="space-y-1.5">
-          <h4 className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-ecoar-light-900/70">
-            Ações do Ecoar
-          </h4>
+          <h4 className={sheetLabel}>Ações do Ecoar</h4>
           {resolvedAcoes.length === 0 ? (
-            <p className="text-xs text-slate-500 dark:text-ecoar-light-900/60">Nenhuma ação adicional.</p>
+            <p className="font-mono text-xs leading-relaxed text-[#adb5bd]">
+              Sem ações extras do Ecoar nesta ficha.
+            </p>
           ) : (
             <ul className="space-y-1">
               {resolvedAcoes.map((acao) => (
                 <li
                   key={acao.id}
-                  className="rounded-sm border border-slate-200/80 bg-slate-50/70 px-2 py-1 text-xs text-slate-700 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/30 dark:text-ecoar-light-900/85"
+                  className={`${sheetStatCell} px-2 py-1 font-mono text-xs text-[#f5f5f5]`}
                 >
                   {acao.name}
                 </li>
@@ -120,8 +119,8 @@ export function DisturbiosSummaryWidget({
         </div>
       </div>
 
-      <p className="text-[11px] leading-relaxed text-slate-500 dark:text-ecoar-light-900/55">
-        Compra e edição de Distúrbios ficam na criação/evolução.
+      <p className="font-mono text-[11px] leading-relaxed text-[#adb5bd]">
+        Compra e edição de Distúrbios ficam em Evoluir (com PE) ou na criação.
       </p>
     </div>
   )

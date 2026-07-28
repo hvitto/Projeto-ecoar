@@ -1,8 +1,7 @@
 'use client'
 
 import { memo, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Sparkle } from 'lucide-react'
-import { Button } from '@/shared/components/ui'
+import StampButton from '@/components/beyond/StampButton'
 import {
   LazyAttributesStep,
   LazyAptitudesStep,
@@ -181,40 +180,19 @@ function WizardStepRenderer({
   setPersonalidade,
 }: WizardStepRendererProps) {
   const navButtons = (extra?: ReactNode) => (
-    <div className="sticky bottom-0 z-20 -mx-3 sm:-mx-5 mt-auto px-3 sm:px-5 py-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 border-t border-ecoar-dark-300/20 dark:border-ecoar-light-900/10 bg-ecoar-light-700/95 dark:bg-ecoar-dark-800/95 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
+    <div className="sticky bottom-0 z-20 -mx-3 sm:-mx-5 mt-auto px-3 sm:px-5 py-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21]/96 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
       {extra}
-      <Button
-        variant="secondary"
-        size="md"
-        leftIcon={ChevronLeft}
-        onClick={onBack}
-        disabled={currentStep === 0}
-        className="min-h-[44px] w-full sm:w-auto"
-      >
+      <StampButton tone="ghost" onClick={onBack} disabled={currentStep === 0} className="min-h-[44px] w-full sm:w-auto">
         Voltar
-      </Button>
+      </StampButton>
       {currentStep < totalSteps ? (
-        <Button
-          variant="primary"
-          size="md"
-          rightIcon={ChevronRight}
-          onClick={onNext}
-          disabled={!canProceed}
-          className="min-h-[44px] w-full sm:w-auto"
-        >
+        <StampButton onClick={onNext} disabled={!canProceed} className="min-h-[44px] w-full sm:w-auto">
           Próximo
-        </Button>
+        </StampButton>
       ) : (
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={Sparkle}
-          onClick={onFinish}
-          disabled={!canProceed}
-          className="min-h-[44px] w-full sm:w-auto"
-        >
+        <StampButton onClick={onFinish} disabled={!canProceed} className="min-h-[44px] w-full sm:w-auto">
           Finalizar
-        </Button>
+        </StampButton>
       )}
     </div>
   )
@@ -232,17 +210,17 @@ function WizardStepRenderer({
               onSelect={(id) => onRacaSelect(id)}
               headerActions={
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="secondary" size="md" leftIcon={ChevronLeft} onClick={onBack} disabled={currentStep === 0} className="min-h-[44px]">
+                  <StampButton tone="ghost" onClick={onBack} disabled={currentStep === 0} className="min-h-[44px]">
                     Voltar
-                  </Button>
+                  </StampButton>
                   {currentStep < totalSteps ? (
-                    <Button variant="primary" size="md" rightIcon={ChevronRight} onClick={onNext} disabled={!canProceed} className="min-h-[44px]">
+                    <StampButton onClick={onNext} disabled={!canProceed} className="min-h-[44px]">
                       Próximo
-                    </Button>
+                    </StampButton>
                   ) : (
-                    <Button variant="primary" size="md" leftIcon={Sparkle} onClick={onFinish} disabled={!canProceed} className="min-h-[44px]">
+                    <StampButton onClick={onFinish} disabled={!canProceed} className="min-h-[44px]">
                       Finalizar
-                    </Button>
+                    </StampButton>
                   )}
                 </div>
               }
@@ -364,9 +342,9 @@ function WizardStepRenderer({
         {currentStep === 6 && (
           <>
             {equipmentSaldoRestante < 0 && (
-              <div className="mb-4 p-4 rounded-lg border-2 border-ecoar-magenta/40 bg-ecoar-magenta/10 text-sm text-slate-800 dark:text-ecoar-light-900/90">
-                <strong>Orçamento insuficiente.</strong> Remova itens do catálogo ou volte para ajustar Pontos de
-                Criação não gastos — o saldo ficou negativo em {formatCerosDisplay(Math.abs(equipmentSaldoRestante))}.
+              <div className="mb-4 p-3 border border-ecoar-magenta/60 bg-ecoar-magenta/10 text-[11px] text-ecoar-dark-900 dark:text-ecoar-light-900">
+                <span className="font-display uppercase tracking-[-0.02em] text-ecoar-magenta">Orçamento insuficiente. </span>
+                Remova itens ou ajuste PC — saldo negativo em {formatCerosDisplay(Math.abs(equipmentSaldoRestante))}.
               </div>
             )}
             <LazyEquipmentStep

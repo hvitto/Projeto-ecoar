@@ -2,7 +2,7 @@
 
 import { getSkillDice, formatDiceWithModifier } from '@/lib/calculations'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
-import { sheetLabel } from '@/features/character/sheet/sheetChrome'
+import { sheetLabel, sheetStatCellInteractive } from '@/features/character/sheet/sheetChrome'
 import { useDiceRoll } from '@/features/dice/DiceRollProvider'
 
 export function CommonTestsWidget() {
@@ -63,7 +63,7 @@ export function CommonTestsWidget() {
   ]
 
   return (
-    <div className="grid h-full w-full grid-cols-2 gap-1.5 p-2 sm:grid-cols-4 sm:grid-rows-1">
+    <div className="grid h-full w-full grid-cols-2 gap-1.5 p-2.5 sm:grid-cols-4 sm:grid-rows-1 sm:p-3">
       {tests.map((test) => (
         <button
           key={test.key}
@@ -79,14 +79,14 @@ export function CommonTestsWidget() {
               characterName,
             })
           }
-          className="flex h-full min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-sm border border-slate-200/80 bg-slate-50/70 px-1.5 py-1.5 text-center transition-colors hover:border-ecoar-teal-500/40 hover:bg-ecoar-teal-500/5 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/25 dark:hover:border-ecoar-teal-400/40"
+          className={`${sheetStatCellInteractive} flex h-full min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden px-1.5 py-1.5 text-center`}
         >
           <div className={`${sheetLabel} mb-0 w-full truncate text-center`}>{test.label}</div>
-          <div className="text-xs font-semibold tabular-nums text-ecoar-teal-700 dark:text-ecoar-teal-300">
+          <div className="font-mono text-xs font-semibold tabular-nums text-ecoar-teal">
             {test.display}
           </div>
           <div
-            className="w-full truncate text-[9px] leading-tight text-slate-500 dark:text-ecoar-light-900/55"
+            className="w-full truncate font-mono text-[9px] leading-tight text-[#adb5bd]"
             title={test.desc}
           >
             {test.desc}

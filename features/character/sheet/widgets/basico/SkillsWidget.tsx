@@ -1,9 +1,21 @@
 'use client'
 
-import { Fragment } from 'react'
-import { getSkillDice, formatModifier } from '@/lib/calculations'
+import { Fragment, useEffect, useState } from 'react'
+import { getSkillDice, formatModifier, formatDiceWithModifier } from '@/lib/calculations'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
-import { sheetChip, sheetFieldCompact, sheetField } from '@/features/character/sheet/sheetChrome'
+import {
+  sheetBtnGhost,
+  sheetChipActive,
+  sheetChipIdle,
+  sheetField,
+  sheetFieldCompact,
+  sheetSkillRoll,
+  sheetTableHead,
+  sheetTableRow,
+} from '@/features/character/sheet/sheetChrome'
+import { useDiceRoll } from '@/features/dice/DiceRollProvider'
+
+const DEFAULT_CATEGORY = 'combate'
 
 export function SkillsWidget() {
   const {
@@ -19,67 +31,105 @@ export function SkillsWidget() {
     singularityBonuses,
     equipmentMechanicalBonuses,
     bookDisadvantageBonuses,
+    tableId,
+    characterId,
   } = useSheetRuntime()
+  const { roll } = useDiceRoll()
+
+  const [showMoreCategories, setShowMoreCategories] = useState(false)
+
+  useEffect(() => {
+    if (
+      activeSkillCategory !== 'all' &&
+      activeSkillCategory !== DEFAULT_CATEGORY
+    ) {
+      setShowMoreCategories(true)
+    }
+  }, [activeSkillCategory])
 
   const eqSkills =
     (equipmentMechanicalBonuses as { skills?: Record<string, number> }).skills ?? {}
   const bookSkills =
     (bookDisadvantageBonuses as { skills?: Record<string, number> }).skills ?? {}
 
+  const otherCategories = skillCategoryKeys.filter((cat) => cat !== DEFAULT_CATEGORY)
+
   const categoriesToShow =
     activeSkillCategory === 'all' ? skillCategoryKeys : [activeSkillCategory]
 
-  const chipActive =
-    'border-ecoar-teal-500/35 bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300'
-  const chipIdle =
-    'border-slate-300/80 bg-white text-slate-700 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-800/40 dark:text-ecoar-light-900/80'
+  const characterName = characterData.nome?.trim() || 'Sem nome'
 
   return (
     <div className="overflow-hidden">
-      <div className="border-b border-slate-200 px-2.5 py-2 dark:border-ecoar-light-900/15 sm:px-3">
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div className="border-b border-ecoar-teal/30 px-2.5 py-2 sm:px-3">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setActiveSkillCategory('all')}
-            className={`${sheetChip} shrink-0 whitespace-nowrap ${
-              activeSkillCategory === 'all' ? chipActive : chipIdle
+            onClick={() => {
+              setActiveSkillCategory(DEFAULT_CATEGORY)
+              setShowMoreCategories(false)
+            }}
+            className={`shrink-0 whitespace-nowrap ${
+              activeSkillCategory === DEFAULT_CATEGORY ? sheetChipActive : sheetChipIdle
             }`}
           >
-            Todas
+            {categoryLabels[DEFAULT_CATEGORY] ?? 'Combate'}
           </button>
-          {skillCategoryKeys.map((cat) => (
+
+          {!showMoreCategories ? (
             <button
-              key={cat}
               type="button"
-              onClick={() => setActiveSkillCategory(cat)}
-              className={`${sheetChip} shrink-0 whitespace-nowrap ${
-                activeSkillCategory === cat ? chipActive : chipIdle
-              }`}
+              onClick={() => setShowMoreCategories(true)}
+              className={`${sheetBtnGhost} !min-h-8 !px-2.5`}
             >
-              {categoryLabels[cat]}
+              Mais categorias
             </button>
-          ))}
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveSkillCategory('all')}
+                className={`shrink-0 whitespace-nowrap ${
+                  activeSkillCategory === 'all' ? sheetChipActive : sheetChipIdle
+                }`}
+              >
+                Todas
+              </button>
+              {otherCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveSkillCategory(cat)}
+                  className={`shrink-0 whitespace-nowrap ${
+                    activeSkillCategory === cat ? sheetChipActive : sheetChipIdle
+                  }`}
+                >
+                  {categoryLabels[cat]}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreCategories(false)
+                  setActiveSkillCategory(DEFAULT_CATEGORY)
+                }}
+                className={`${sheetBtnGhost} !min-h-8 !px-2.5`}
+              >
+                Menos
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-[11px]">
-          <thead className="bg-slate-50/80 dark:bg-ecoar-dark-800/50">
-            <tr className="border-b border-slate-200 dark:border-ecoar-light-900/15">
-              <th className="px-2 py-1 text-left font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                Habilidade
-              </th>
-              <th className="w-[52px] px-1 py-1 text-center font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                Nv
-              </th>
-              <th className="w-[64px] px-1 py-1 text-center font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                Dado
-              </th>
-              <th className="px-2 py-1 text-left font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                Especialidade
-              </th>
-              <th className="w-[48px] px-1 py-1 text-center font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                Bônus
-              </th>
+        <table className="min-w-full font-mono text-[11px]">
+          <thead className="bg-[#0a0a0a]/80">
+            <tr className="border-b border-ecoar-teal/25">
+              <th className={`${sheetTableHead} px-2 py-1 text-left`}>Habilidade</th>
+              <th className={`${sheetTableHead} w-[52px] px-1 py-1 text-center`}>Nv</th>
+              <th className={`${sheetTableHead} w-[72px] px-1 py-1 text-center`}>Dado</th>
+              <th className={`${sheetTableHead} px-2 py-1 text-left`}>Especialidade</th>
+              <th className={`${sheetTableHead} w-[48px] px-1 py-1 text-center`}>Bônus</th>
             </tr>
           </thead>
           <tbody>
@@ -88,14 +138,16 @@ export function SkillsWidget() {
               if (list.length === 0) return null
               return (
                 <Fragment key={cat}>
-                  <tr className="bg-slate-100/60 dark:bg-ecoar-light-900/10">
-                    <td
-                      colSpan={5}
-                      className="px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-600 dark:text-ecoar-light-900/70"
-                    >
-                      {categoryLabels[cat]}
-                    </td>
-                  </tr>
+                  {activeSkillCategory === 'all' ? (
+                    <tr className="bg-ecoar-teal/5">
+                      <td
+                        colSpan={5}
+                        className="px-2 py-0.5 font-mono text-[9px] font-normal uppercase tracking-wider text-ecoar-teal"
+                      >
+                        {categoryLabels[cat]}
+                      </td>
+                    </tr>
+                  ) : null}
                   {list.map((skill) => {
                     const skillState = characterData.skills?.[skill.id]
                     const level = coerceInt(skillState?.level, 0)
@@ -105,12 +157,10 @@ export function SkillsWidget() {
                       (singularityBonuses.skills[skill.id] ?? 0) +
                       (eqSkills[skill.id] ?? 0) +
                       (bookSkills[skill.id] ?? 0)
+                    const expression = formatDiceWithModifier(dice, skillSingBonus)
                     return (
-                      <tr
-                        key={skill.id}
-                        className="border-b border-slate-200/80 dark:border-ecoar-light-900/10 last:border-b-0"
-                      >
-                        <td className="whitespace-nowrap px-2 py-1 text-slate-900 dark:text-ecoar-light-900/90">
+                      <tr key={skill.id} className={sheetTableRow}>
+                        <td className="whitespace-nowrap px-2 py-1 text-[#f5f5f5]">
                           {skill.name}
                         </td>
                         <td className="px-1 py-1 text-center">
@@ -133,8 +183,34 @@ export function SkillsWidget() {
                             className={`${sheetFieldCompact} mx-auto w-[48px]`}
                           />
                         </td>
-                        <td className="px-1 py-1 text-center font-semibold tabular-nums text-slate-800 dark:text-ecoar-light-900/85">
-                          {dice}
+                        <td className="px-1 py-1 text-center">
+                          {isEditing ? (
+                            <span
+                              className="inline-block font-semibold tabular-nums text-[#adb5bd] opacity-55"
+                              title="Rolagem disponível fora do modo edição"
+                              aria-disabled="true"
+                            >
+                              {expression}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              title={`Rolar ${skill.name}`}
+                              aria-label={`Rolar ${skill.name}: ${expression}`}
+                              onClick={() =>
+                                void roll({
+                                  label: `${characterName} · ${skill.name}`,
+                                  expression,
+                                  tableId,
+                                  characterId,
+                                  characterName,
+                                })
+                              }
+                              className={sheetSkillRoll}
+                            >
+                              {expression}
+                            </button>
+                          )}
                         </td>
                         <td className="px-2 py-1">
                           <select
@@ -163,7 +239,7 @@ export function SkillsWidget() {
                             ))}
                           </select>
                         </td>
-                        <td className="px-1 py-1 text-center font-semibold tabular-nums text-ecoar-teal-600 dark:text-ecoar-teal-400">
+                        <td className="px-1 py-1 text-center font-semibold tabular-nums text-ecoar-teal">
                           {skillSingBonus === 0 ? '—' : formatModifier(skillSingBonus)}
                         </td>
                       </tr>

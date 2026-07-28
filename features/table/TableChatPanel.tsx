@@ -191,7 +191,7 @@ export function TableChatPanel({
       <button
         type="button"
         onClick={() => onOpenChange?.(true)}
-        className="fixed bottom-4 left-4 z-[90] inline-flex h-12 w-12 items-center justify-center rounded-sm border border-ecoar-teal-500/40 bg-ecoar-dark-900/95 text-ecoar-teal-300 shadow-lg backdrop-blur-sm transition-colors hover:bg-ecoar-teal-500/15"
+        className="fixed bottom-4 left-4 z-[90] inline-flex h-12 w-12 items-center justify-center rounded-sm border border-ecoar-teal-500/40 bg-ecoar-dark-900/95 text-ecoar-teal-300 shadow-none backdrop-blur-sm transition-colors hover:bg-ecoar-teal-500/15"
         aria-label="Abrir chat da mesa"
         title="Chat da mesa"
       >
@@ -202,7 +202,7 @@ export function TableChatPanel({
 
   const shellClass =
     variant === 'dock'
-      ? `fixed bottom-4 left-4 z-[90] flex h-[min(28rem,70vh)] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-slate-300/50 bg-white/95 shadow-xl backdrop-blur-sm dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-900/95 ${className}`
+      ? `fixed bottom-4 left-4 z-[90] flex h-[min(28rem,70vh)] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-slate-300/50 bg-white/95 shadow-none backdrop-blur-sm dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-900/95 ${className}`
       : `flex h-full min-h-[22rem] flex-col overflow-hidden rounded-sm border border-slate-300/70 bg-white dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/50 ${className}`
 
   return (

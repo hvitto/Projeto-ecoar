@@ -15,20 +15,21 @@ export default function Badge({
   size = 'md',
   className = '',
 }: BadgeProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full border'
-  
+  const baseClasses =
+    'inline-flex items-center justify-center rounded-none font-semibold uppercase tracking-[0.12em] border whitespace-nowrap'
+
   const variantClasses = {
-    default: 'bg-ecoar-teal-100/50 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border-ecoar-teal-300/50 dark:border-ecoar-teal-500/30',
-    cost: 'bg-ecoar-magenta-100/50 dark:bg-ecoar-magenta-700/15 text-ecoar-magenta-700 dark:text-ecoar-light-900/90 border-ecoar-magenta-300/50 dark:border-ecoar-magenta-500/30',
-    bonus: 'bg-ecoar-teal-100/50 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border-ecoar-teal-300/50 dark:border-ecoar-teal-500/30',
-    status: 'bg-ecoar-light-800/70 dark:bg-ecoar-light-900/[0.03] text-ecoar-dark-600 dark:text-ecoar-light-900/50 border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08]',
-    disadvantage: 'bg-orange-100/50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400/90 border-orange-300/50 dark:border-orange-600/30'
+    default: 'bg-transparent text-ecoar-teal-700 dark:text-ecoar-teal border-ecoar-teal/45 dark:border-ecoar-teal/40',
+    cost: 'bg-ecoar-magenta/10 text-ecoar-magenta border-ecoar-magenta/60',
+    bonus: 'bg-ecoar-teal/10 dark:bg-ecoar-teal/12 text-ecoar-teal-800 dark:text-ecoar-teal border-ecoar-teal/55',
+    status: 'bg-ecoar-dark-900/5 dark:bg-[#adb5bd]/10 text-ecoar-dark-500 dark:text-[#adb5bd] border-ecoar-dark-300/30 dark:border-[#adb5bd]/20',
+    disadvantage: 'bg-transparent text-ecoar-dark-400 dark:text-[#adb5bd]/50 border-ecoar-dark-300/25 dark:border-[#adb5bd]/15',
   }
-  
+
   const sizeClasses = {
-    sm: 'px-1.5 py-0.5 text-[10px]',
-    md: 'px-2 py-0.5 text-xs',
-    lg: 'px-3 py-1 text-sm'
+    sm: 'px-1.5 py-0.5 text-[8px]',
+    md: 'px-2 py-0.5 text-[9px]',
+    lg: 'px-2.5 py-1 text-[10px]',
   }
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`
@@ -39,4 +40,3 @@ export default function Badge({
     </span>
   )
 }
-

@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* Design tokens - transições e easing */
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --duration-smooth: 400ms;
@@ -11,109 +10,90 @@
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ecoar-grid: rgba(123, 183, 187, 0.28);
+  --ecoar-accent: #b663a9;
+  --ecoar-accent-ink: #1a0f18;
 }
 
 @layer base {
-  /* Tema Claro (padrão) */
   body,
   body[data-theme='light'],
   html[data-theme='light'] body {
-    @apply bg-gradient-to-br from-ecoar-light via-ecoar-light to-ecoar-teal/5 text-ecoar-dark;
-    font-family: var(--font-body), system-ui, sans-serif;
+    @apply bg-transparent text-ecoar-dark;
+    font-family: var(--font-body), ui-monospace, monospace;
     min-height: 100vh;
-    transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out);
+    transition: color var(--duration-normal) var(--ease-out);
   }
-  
-  /* Tema Escuro - Paleta ECOAR */
+
   body[data-theme='dark'],
   html[data-theme='dark'] body,
   html.dark body {
-    @apply bg-gradient-to-br from-ecoar-dark-900 via-ecoar-dark-800 to-ecoar-dark-700 text-ecoar-light-900;
-    font-family: var(--font-body), system-ui, sans-serif;
+    @apply bg-transparent text-ecoar-light-900;
+    font-family: var(--font-body), ui-monospace, monospace;
     min-height: 100vh;
-    transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out);
+    transition: color var(--duration-normal) var(--ease-out);
   }
-  
-  /* Bordas baseadas no tema */
+
   * {
     @apply border-ecoar-dark/20;
   }
-  
+
   body[data-theme='dark'] *,
   html[data-theme='dark'] *,
   html.dark * {
-    @apply border-ecoar-light-900/20;
+    @apply border-ecoar-teal/25;
   }
 
-  /* Custom Scrollbar - Tema Claro */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(123, 183, 187, 0.5) rgba(245, 245, 245, 0.3);
+    scrollbar-color: rgba(123, 183, 187, 0.55) rgba(232, 238, 237, 0.4);
   }
 
   *::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
   }
 
   *::-webkit-scrollbar-track {
-    background: rgba(245, 245, 245, 0.4);
-    border-radius: 10px;
-    border: 1px solid rgba(123, 183, 187, 0.1);
+    background: rgba(232, 238, 237, 0.5);
+    border: 1px solid rgba(123, 183, 187, 0.15);
   }
 
   *::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(123, 183, 187, 0.6) 0%, rgba(182, 99, 169, 0.6) 100%);
-    border-radius: 10px;
-    border: 2px solid rgba(245, 245, 245, 0.4);
-    box-shadow: inset 0 0 6px rgba(123, 183, 187, 0.3);
+    background: #7bb7bb;
+    border: 2px solid rgba(232, 238, 237, 0.5);
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(123, 183, 187, 0.8) 0%, rgba(182, 99, 169, 0.8) 100%);
-    box-shadow: 0 0 10px rgba(123, 183, 187, 0.5);
+    background: #b663a9;
   }
 
-  *::-webkit-scrollbar-corner {
-    background: rgba(245, 245, 245, 0.4);
-  }
-  
-  /* Custom Scrollbar - Tema Escuro */
   body[data-theme='dark'] *,
   html[data-theme='dark'] *,
   html.dark * {
-    scrollbar-color: rgba(123, 183, 187, 0.5) rgba(80, 80, 80, 0.3);
+    scrollbar-color: rgba(123, 183, 187, 0.55) rgba(26, 29, 33, 0.6);
   }
 
   body[data-theme='dark'] *::-webkit-scrollbar-track,
   html[data-theme='dark'] *::-webkit-scrollbar-track,
   html.dark *::-webkit-scrollbar-track {
-    background: rgba(80, 80, 80, 0.4);
+    background: rgba(33, 37, 41, 0.8);
     border: 1px solid rgba(123, 183, 187, 0.2);
   }
 
   body[data-theme='dark'] *::-webkit-scrollbar-thumb,
   html[data-theme='dark'] *::-webkit-scrollbar-thumb,
   html.dark *::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(123, 183, 187, 0.7) 0%, rgba(182, 99, 169, 0.7) 100%);
-    border: 2px solid rgba(80, 80, 80, 0.6);
-    box-shadow: inset 0 0 6px rgba(123, 183, 187, 0.4);
+    background: #7bb7bb;
+    border: 2px solid rgba(33, 37, 41, 0.8);
   }
 
   body[data-theme='dark'] *::-webkit-scrollbar-thumb:hover,
   html[data-theme='dark'] *::-webkit-scrollbar-thumb:hover,
   html.dark *::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(123, 183, 187, 0.9) 0%, rgba(182, 99, 169, 0.9) 100%);
-    box-shadow: 0 0 10px rgba(123, 183, 187, 0.6);
+    background: #b663a9;
   }
 
-  body[data-theme='dark'] *::-webkit-scrollbar-corner,
-  html[data-theme='dark'] *::-webkit-scrollbar-corner,
-  html.dark *::-webkit-scrollbar-corner {
-    background: rgba(80, 80, 80, 0.4);
-  }
-
-  /* Remove setas (spinners) de inputs number (Chrome/Edge/Safari e Firefox) */
   input[type='number'] {
     -moz-appearance: textfield;
   }
@@ -125,14 +105,13 @@
 }
 
 @layer components {
-  /* Input Fields - Design sutil e elegante */
   .input-field {
-    @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
-           text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-sm placeholder-ecoar-dark-400/50 dark:placeholder-ecoar-light-900/40
-           focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
-           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40
-           hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
-    transition: all var(--duration-fast) var(--ease-out);
+    @apply w-full px-3 py-2 bg-white/80 dark:bg-ecoar-dark-800 border border-ecoar-teal/35 dark:border-ecoar-teal/30 rounded-none
+           text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-sm placeholder-ecoar-dark-500 dark:placeholder-ecoar-light-900/55
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ecoar-teal focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#1a1d21]
+           focus:border-ecoar-teal dark:focus:border-ecoar-teal
+           hover:border-ecoar-teal/55 dark:hover:border-ecoar-teal/45;
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
   @media (max-width: 768px) {
     .input-field {
@@ -141,12 +120,12 @@
   }
 
   .input-number {
-    @apply w-full px-3 py-2 bg-ecoar-light-700 dark:bg-ecoar-dark-700 border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] rounded-lg 
-           text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-center text-base font-semibold 
-           focus:outline-none focus:ring-1 focus:ring-ecoar-teal-400/30 dark:focus:ring-ecoar-teal-500/30
-           focus:border-ecoar-teal-500/50 dark:focus:border-ecoar-teal-400/40
-           hover:border-ecoar-teal-400/40 dark:hover:border-ecoar-light-900/[0.12] shadow-sm;
-    transition: all var(--duration-fast) var(--ease-out);
+    @apply w-full px-3 py-2 bg-white/80 dark:bg-ecoar-dark-800 border border-ecoar-teal/35 dark:border-ecoar-teal/30 rounded-none
+           text-ecoar-dark-900 dark:text-ecoar-light-900/90 text-center text-base font-semibold
+           focus:outline-none focus:ring-1 focus:ring-ecoar-teal/50
+           focus:border-ecoar-teal dark:focus:border-ecoar-teal
+           hover:border-ecoar-teal/55 dark:hover:border-ecoar-teal/45;
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
   @media (max-width: 768px) {
     .input-number {
@@ -154,21 +133,19 @@
     }
   }
 
-  /* Section Headers - Design sutil */
   .section-header {
-    @apply text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-4 pb-2 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]
+    @apply text-sm font-display uppercase tracking-wide text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-4 pb-2 border-b border-ecoar-teal/35 dark:border-ecoar-teal/25
            flex items-center gap-2;
   }
 
   .section-header-icon {
-    @apply w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal-400/80;
+    @apply w-4 h-4 text-ecoar-teal-600 dark:text-ecoar-teal;
   }
 
-  /* Section Cards - Glassmorphism */
   .section-card {
-    @apply bg-ecoar-light-700 dark:bg-ecoar-dark-800 rounded-t-2xl rounded-b-xl shadow-lg 
-           border border-ecoar-dark-300/30 dark:border-ecoar-dark-700/50 p-6
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-500/30
+    @apply bg-white/85 dark:bg-ecoar-dark-800/90 rounded-none shadow-none
+           border border-ecoar-teal/40 dark:border-ecoar-teal/30 p-6
+           hover:border-ecoar-teal dark:hover:border-ecoar-teal/55
            relative overflow-hidden;
     transition: border-color var(--duration-fast) var(--ease-out);
   }
@@ -180,31 +157,19 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, 
-      transparent 0%, 
-      rgba(123, 183, 187, 0.5) 20%, 
-      rgba(123, 183, 187, 0.8) 50%, 
-      rgba(182, 99, 169, 0.8) 50%, 
-      rgba(182, 99, 169, 0.5) 80%, 
-      transparent 100%);
-    opacity: 0;
-    transition: opacity var(--duration-normal) var(--ease-out);
+    background: #b663a9;
+    opacity: 0.9;
   }
 
-  .section-card:hover::before {
-    opacity: 1;
-  }
-
-  /* Stat Boxes - Design sutil */
   .stat-box {
-    @apply bg-ecoar-light-700 dark:bg-ecoar-dark-700/[0.03] rounded-lg 
-           border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] p-3 text-center 
-           hover:border-ecoar-teal-400/50 dark:hover:border-ecoar-teal-400/30;
+    @apply bg-white/70 dark:bg-ecoar-dark-800/70 rounded-none
+           border border-ecoar-teal/30 dark:border-ecoar-teal/25 p-3 text-center
+           hover:border-ecoar-teal/55 dark:hover:border-ecoar-teal/45;
     transition: border-color var(--duration-fast) var(--ease-out);
   }
 
   .stat-label {
-    @apply text-[11px] font-medium text-ecoar-dark-600 dark:text-ecoar-light-900/50 uppercase tracking-wider mb-0.5;
+    @apply text-[10px] font-medium text-ecoar-dark-600 dark:text-ecoar-light-900/50 uppercase tracking-[0.14em] mb-0.5;
   }
 
   .stat-value {
@@ -212,59 +177,62 @@
   }
 
   .stat-modifier {
-    @apply text-xs font-medium text-ecoar-teal-600 dark:text-ecoar-teal-400/80 mt-0.5;
+    @apply text-xs font-medium text-ecoar-teal-600 dark:text-ecoar-teal mt-0.5;
   }
 
-  /* Buttons - Melhor contraste e legibilidade */
   .btn-primary {
-    @apply px-5 py-2.5 bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 
-           text-white rounded-lg font-semibold 
-           hover:from-ecoar-teal-700 hover:to-ecoar-magenta-700 
-           shadow-lg shadow-ecoar-teal-300/30
+    @apply px-5 py-2.5 bg-ecoar-magenta text-[var(--ecoar-accent-ink)] rounded-none font-semibold uppercase tracking-[0.12em] text-xs
+           hover:brightness-110
            active:opacity-90;
-    transition: background-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+    transition: filter var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
   }
-  
+
   .btn-secondary {
-    @apply px-5 py-2.5 bg-ecoar-dark-600 text-white rounded-lg font-semibold 
-           hover:bg-ecoar-dark-700
-           border border-ecoar-dark-500 shadow-md;
+    @apply px-5 py-2.5 bg-transparent text-ecoar-dark-900 dark:text-ecoar-light-900 rounded-none font-semibold uppercase tracking-[0.12em] text-xs
+           border border-ecoar-teal dark:border-ecoar-teal/50 hover:bg-ecoar-teal/10;
     transition: all var(--duration-fast) var(--ease-out);
   }
 
-  /* Label - Melhor contraste */
   .label {
-    @apply block text-xs font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/90 mb-2 uppercase tracking-wider;
+    @apply block text-[10px] font-semibold text-ecoar-dark-800 dark:text-ecoar-light-900/80 mb-2 uppercase tracking-[0.14em];
   }
 
-  /* Divider */
+  .auth-gate .label {
+    @apply text-xs font-medium tracking-[0.12em] text-ecoar-dark-700 dark:text-ecoar-light-900/85;
+  }
+
+  .auth-gate .input-field {
+    @apply text-base leading-snug tracking-[0.01em];
+  }
+
+  .auth-gate .input-field:focus-visible {
+    --tw-ring-offset-color: #ffffff;
+  }
+
+  .dark .auth-gate .input-field:focus-visible,
+  html.dark .auth-gate .input-field:focus-visible,
+  html[data-theme='dark'] .auth-gate .input-field:focus-visible {
+    --tw-ring-offset-color: #0a0a0a;
+  }
+
   .divider {
-    @apply border-t border-ecoar-dark-300/30 my-6;
+    @apply border-t border-ecoar-teal/30 my-6;
   }
 
-  /* Badge - Melhor contraste */
   .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-           bg-ecoar-teal-100 dark:bg-ecoar-teal-600/15 text-ecoar-teal-700 dark:text-ecoar-teal-300/90 border border-ecoar-teal-300 dark:border-ecoar-teal-500/30;
+    @apply inline-flex items-center px-2.5 py-1 rounded-none text-[10px] font-semibold uppercase tracking-wider
+           bg-ecoar-teal/15 dark:bg-ecoar-teal/15 text-ecoar-teal-800 dark:text-ecoar-teal border border-ecoar-teal/40 dark:border-ecoar-teal/35;
   }
-}
 
-@keyframes blob {
-  0%, 100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
+  .surface-panel {
+    @apply bg-white/80 dark:bg-ecoar-dark-800/85 border border-ecoar-teal/35 dark:border-ecoar-teal/28 rounded-none;
   }
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -275,7 +243,7 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-12px);
   }
   to {
     opacity: 1;
@@ -283,52 +251,14 @@
   }
 }
 
-.animate-blob {
-  animation: none;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
-}
-
 .animate-fadeIn {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.45s var(--ease-out);
 }
 
 .animate-slideIn {
-  animation: slideIn 0.4s ease-out;
+  animation: slideIn 0.35s var(--ease-out);
 }
 
-/* Login background – dispersão dos globos (movimento visível, fundo que se mescla) */
-@keyframes login-disperse1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(48px, -36px) scale(1.04); }
-  66% { transform: translate(-32px, 40px) scale(0.98); }
-}
-
-@keyframes login-disperse2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-52px, -24px) scale(1.03); }
-}
-
-@keyframes login-disperse3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(36px, 44px) scale(0.97); }
-  75% { transform: translate(-40px, -32px) scale(1.05); }
-}
-
-.login-disperse1,
-.login-disperse2,
-.login-disperse3,
-.login-bg-shine {
-  animation: none;
-}
-
-/* Oculta a barra de rolagem mantendo scroll (rodinha, toque) */
 @layer utilities {
   .scrollbar-hide {
     scrollbar-width: none;

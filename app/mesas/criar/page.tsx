@@ -53,13 +53,14 @@ export default function CriarMesaPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
-        <h1 className="text-xl sm:text-2xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Criar mesa</h1>
-        <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mb-6">
-          Defina o nome, capa e data da próxima sessão. Você será o GM desta mesa.
+        <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-2">TABLES · CREATE</p>
+        <h1 className="font-display text-[clamp(1.6rem,4vw,2.4rem)] uppercase leading-[0.9] tracking-[-0.03em] text-slate-900 dark:text-ecoar-light-900 mb-2">Criar mesa</h1>
+        <p className="text-xs text-slate-600 dark:text-[#adb5bd] mb-6 max-w-[42ch]">
+          Nome, capa e próxima sessão. Você será o GM desta mesa.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none text-sm text-red-400">
               {error}
             </div>
           )}
@@ -86,7 +87,7 @@ export default function CriarMesaPage() {
               value={nextSessionAt}
               onChange={(e) => setNextSessionAt(e.target.value)}
               disabled={loading}
-              className="input-field w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900"
+              className="input-field w-full px-3 py-2 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900"
             />
           </div>
           <div>
@@ -99,7 +100,7 @@ export default function CriarMesaPage() {
               disabled={loading}
               rows={3}
               placeholder="Breve descrição da campanha ou mesa"
-              className="input-field w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900 resize-none"
+              className="input-field w-full px-3 py-2 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white dark:bg-ecoar-dark-800 text-slate-900 dark:text-ecoar-light-900 resize-none"
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full" size="lg">

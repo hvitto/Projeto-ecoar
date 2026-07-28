@@ -65,8 +65,14 @@ export default function CharacterSheetPage({ characterId }: CharacterSheetPagePr
 
   if (loading || !character) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="text-ecoar-dark-600 dark:text-ecoar-light-900/60">Carregando ficha...</div>
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-[#0a0a0a]">
+        <div
+          role="status"
+          aria-live="polite"
+          className="border border-ecoar-teal/40 bg-[#1a1d21] px-6 py-4 font-mono text-[11px] uppercase tracking-[0.14em] text-ecoar-teal"
+        >
+          Abrindo ficha…
+        </div>
       </div>
     )
   }

@@ -1,6 +1,6 @@
 ## 1. O que é o sistema
 
-- **ECOAR Beyond** é um sistema de criação e gerenciamento de personagens para o RPG ECOAR.
+- **ECOAR +** é um sistema de criação e gerenciamento de personagens para o RPG ECOAR.
 - **Funcionalidades principais:**
   - **Conta:** registro com email/senha, verificação de email, login, logout, e login com Google (se estiver configurado).
   - **Personagens:** criar personagem em um wizard (várias etapas), ver e editar ficha na “sheet”.

@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
-import { DM_Sans, DM_Serif_Display } from 'next/font/google'
+import { Archivo_Black, Fragment_Mono } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
-import LoginBackgroundLoader from '@/components/LoginBackgroundLoader'
+import AppSurfaceBackground from '@/components/AppSurfaceBackground'
 
-const dmSans = DM_Sans({
+const fragmentMono = Fragment_Mono({
+  weight: '400',
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
 })
 
-const dmSerifDisplay = DM_Serif_Display({
+const archivoBlack = Archivo_Black({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-display',
@@ -18,8 +19,17 @@ const dmSerifDisplay = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'ECOAR Beyond - Character Sheet',
+  title: 'ECOAR + - Character Sheet',
   description: 'Sistema de criação e gerenciamento de personagens para o RPG ECOAR',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
 }
 
 export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' as const }
@@ -30,14 +40,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={`${dmSans.variable} ${dmSerifDisplay.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${fragmentMono.variable} ${archivoBlack.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                var theme = localStorage.getItem('ecoar-theme') || 
-                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                var theme = localStorage.getItem('ecoar-theme') || 'dark';
                 var root = document.documentElement;
                 if (root) {
                   root.setAttribute('data-theme', theme);
@@ -50,7 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="h-[100dvh] overflow-hidden overflow-x-hidden flex flex-col font-body antialiased pb-[env(safe-area-inset-bottom)]">
-        <LoginBackgroundLoader />
+        <AppSurfaceBackground />
         <div className="relative z-10 flex-1 min-h-0 flex flex-col overflow-x-hidden">
           <Providers>
             {children}

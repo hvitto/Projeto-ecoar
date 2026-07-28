@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import Card from './Card'
+import { displayTitle } from '@/shared/styles/ecoarChrome'
 
 interface InfoCardProps {
   title?: string
@@ -17,7 +18,7 @@ export default function InfoCard({
   return (
     <Card variant="info" className={className}>
       {title && (
-        <h3 className="text-base font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900/90 mb-2">
+        <h3 className={`${displayTitle} text-sm mb-2`}>
           {title}
         </h3>
       )}
@@ -25,4 +26,3 @@ export default function InfoCard({
     </Card>
   )
 }
-

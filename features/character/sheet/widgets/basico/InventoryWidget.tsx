@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { ExternalLink } from 'lucide-react'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import EquipmentCatalogErrorBoundary from '@/components/equipment/EquipmentCatalogErrorBoundary'
@@ -8,20 +9,33 @@ import { formatCerosDisplay } from '@/lib/equipmentCost'
 import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
 import {
+  sheetBtnCompact,
   sheetBtnGhost,
   sheetBtnTeal,
-  sheetChip,
+  sheetChipActive,
+  sheetChipIdle,
   sheetField,
+  sheetFocusRing,
   sheetLabel,
+  sheetStatCell,
+  sheetTableHead,
+  sheetTextLink,
 } from '@/features/character/sheet/sheetChrome'
 
+const sheetTextarea =
+  `w-full resize-y rounded-none border border-ecoar-teal/40 bg-[#0a0a0a] px-2 py-1.5 font-mono text-xs text-[#f5f5f5] outline-none focus:border-ecoar-teal ${sheetFocusRing} disabled:opacity-55`
+
 export function InventoryWidget() {
+  const catalogCloseRef = useRef<HTMLButtonElement>(null)
+  const catalogReturnFocusRef = useRef<HTMLElement | null>(null)
+
   const {
     characterData,
     updateField,
     isEditing,
-    canEditSheet,
-    handleStartEdit,
+    canMutateFicha,
+    canMutateMesa,
+    requestConfirm,
     equipmentSpaces,
     equipmentSubTab,
     setEquipmentSubTab,
@@ -44,15 +58,52 @@ export function InventoryWidget() {
 
   const { weapons, armor, utilities, multiplierTables } = useEquipmentCatalog()
 
+  const canMutateCatalog = canMutateFicha
+  const canToggleEquipFor = (item: (typeof characterData.itensCatalogo)[number]) =>
+    item.kind === 'weapon' ? canMutateMesa : canMutateFicha
+
+  useEffect(() => {
+    if (!equipmentPickerOpen) return
+    catalogReturnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const id = window.setTimeout(() => catalogCloseRef.current?.focus(), 0)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        setEquipmentPickerOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.clearTimeout(id)
+      window.removeEventListener('keydown', onKeyDown, true)
+      catalogReturnFocusRef.current?.focus()
+      catalogReturnFocusRef.current = null
+    }
+  }, [equipmentPickerOpen, setEquipmentPickerOpen])
+
   const sheetUsesStructuredEquip =
     characterData.itensCatalogo.length > 0 ||
     characterData.equipamentosLivresText.trim() !== '' ||
     characterData.armasLivresText.trim() !== ''
 
-  const tabActive =
-    'border-ecoar-teal-500/35 bg-ecoar-teal-500/15 text-ecoar-teal-800 dark:text-ecoar-teal-300'
-  const tabIdle =
-    'border-slate-300/70 text-slate-600 hover:bg-slate-100 dark:border-ecoar-light-900/20 dark:text-ecoar-light-900/70 dark:hover:bg-ecoar-light-900/10'
+  const showOutrosEquipamentos =
+    isEditing || characterData.equipamentosLivresText.trim() !== ''
+  const showOutrasArmas = isEditing || characterData.armasLivresText.trim() !== ''
+  const showFreeTextBlock = showOutrosEquipamentos || showOutrasArmas
+
+  const tabActive = sheetChipActive
+  const tabIdle = sheetChipIdle
+
+  const spacesTotal =
+    typeof equipmentSpaces.total === 'number'
+      ? equipmentSpaces.total
+      : Number.parseInt(String(equipmentSpaces.total), 10)
+  const spacesCapacityKnown = Number.isFinite(spacesTotal) && spacesTotal > 0
+  const spacesReadout = spacesCapacityKnown
+    ? `${equipmentSpaces.used} / ${spacesTotal} espaços`
+    : `${equipmentSpaces.used} usados · capacidade indefinida`
 
   const equipLabel = (item: (typeof characterData.itensCatalogo)[number]) => {
     if (item.kind === 'weapon') {
@@ -92,46 +143,61 @@ export function InventoryWidget() {
   }
 
   return (
-    <div className="space-y-2 p-2 sm:p-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5">
+    <div className="space-y-1.5 p-2 sm:p-2.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setEquipmentSubTab('inventario')}
-            className={`${sheetChip} ${equipmentSubTab === 'inventario' ? tabActive : tabIdle}`}
+            className={`${equipmentSubTab === 'inventario' ? tabActive : tabIdle}`}
+            aria-pressed={equipmentSubTab === 'inventario'}
           >
             Mochila
           </button>
           <button
             type="button"
             onClick={() => setEquipmentSubTab('equipados')}
-            className={`${sheetChip} ${equipmentSubTab === 'equipados' ? tabActive : tabIdle}`}
+            className={`${equipmentSubTab === 'equipados' ? tabActive : tabIdle}`}
+            aria-pressed={equipmentSubTab === 'equipados'}
+            title="Armaduras, acessórios e mods — armas ficam em Armas carregadas"
           >
-            Equipados
+            Vestuário
           </button>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <label className={`${sheetLabel} mb-0`}>Espaços</label>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          <label className={`${sheetLabel} mb-0`} htmlFor="sheet-equip-capacidade">
+            Capacidade
+          </label>
           <input
+            id="sheet-equip-capacidade"
             type="text"
             value={characterData.espacos}
             disabled={!isEditing}
             onChange={(e) => updateField('espacos', e.target.value)}
             placeholder="7"
+            aria-describedby="sheet-equip-espacos-readout"
             className={`${sheetField} h-7 max-w-[5.5rem]`}
           />
-          <span className="text-[11px] tabular-nums text-slate-500 dark:text-ecoar-light-900/55">
-            {equipmentSpaces.used}/{equipmentSpaces.total || '—'}
+          <span
+            id="sheet-equip-espacos-readout"
+            className="font-mono text-xs tabular-nums text-[#adb5bd]"
+          >
+            {spacesReadout}
           </span>
-          <span className="text-[11px] tabular-nums text-slate-700 dark:text-ecoar-light-900/80">
+          <span className="font-mono text-xs tabular-nums text-[#f5f5f5]">
             {formatCerosDisplay(characterData.saldoMoedas)}
           </span>
           <button
             type="button"
             onClick={() => setEquipmentPickerOpen(true)}
-            disabled={!canEditSheet || !isEditing}
-            className={`${sheetBtnTeal} h-7 disabled:cursor-not-allowed disabled:opacity-50`}
+            disabled={!canMutateCatalog}
+            title={
+              canMutateCatalog
+                ? 'Abrir catálogo de aquisição'
+                : 'Ficha · entre em edição para Catálogo'
+            }
+            className={`${sheetBtnTeal} ${sheetBtnCompact}`}
           >
             Catálogo
           </button>
@@ -139,10 +205,10 @@ export function InventoryWidget() {
             href="/referencia/aquisicao-equipamentos"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-ecoar-teal-600 hover:underline dark:text-ecoar-teal-400"
+            className={`inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.08em] text-ecoar-teal hover:underline ${sheetFocusRing}`}
           >
-            <ExternalLink className="h-3 w-3 shrink-0" />
-            Ref.
+            <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+            Regras de aquisição
           </a>
         </div>
       </div>
@@ -151,30 +217,33 @@ export function InventoryWidget() {
         sheetUsesStructuredEquip ? (
           <div className="space-y-2">
             {characterData.itensCatalogo.length > 0 ? (
-              <div className="overflow-x-auto rounded-sm border border-slate-300/60 dark:border-ecoar-light-900/15">
-                <table className="min-w-full text-[11px]">
+              <div className="overflow-x-auto rounded-none border border-ecoar-teal/40">
+                <table className="min-w-full font-mono text-xs">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/80 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-900/30">
-                      <th className="px-2 py-1.5 text-left font-semibold text-slate-600 dark:text-ecoar-light-900/70">
+                    <tr className={`border-b border-ecoar-teal/30 ${sheetTableHead}`}>
+                      <th className="px-2 py-1.5 text-left font-normal">
                         Item
                       </th>
-                      <th className="w-[7.5rem] px-2 py-1.5 text-left font-semibold text-slate-600 dark:text-ecoar-light-900/70">
+                      <th className="w-[7.5rem] px-2 py-1.5 text-left font-normal">
                         Equipar
                       </th>
-                      <th className="w-16 px-2 py-1.5 text-right font-semibold text-slate-600 dark:text-ecoar-light-900/70">
-                        Ação
-                      </th>
+                      {isEditing ? (
+                        <th className="w-16 px-2 py-1.5 text-right font-normal">
+                          Ação
+                        </th>
+                      ) : null}
                     </tr>
                   </thead>
                   <tbody>
                     {characterData.itensCatalogo.map((item) => {
                       const eq = equipLabel(item)
+                      const canToggleEquip = canToggleEquipFor(item)
                       return (
                         <tr
                           key={item.instanceId}
-                          className="border-b border-slate-100 last:border-b-0 dark:border-ecoar-light-900/10"
+                          className="border-b border-ecoar-teal/20 last:border-b-0"
                         >
-                          <td className="max-w-[28rem] px-2 py-1 text-slate-800 dark:text-ecoar-light-900/85">
+                          <td className="max-w-[28rem] px-2 py-1 text-[#f5f5f5]">
                             <span className="line-clamp-2 break-words">{item.displayLine}</span>
                             {item.kind === 'weapon' && isEditing ? (
                               <div className="mt-1.5">
@@ -182,51 +251,66 @@ export function InventoryWidget() {
                                   compact
                                   item={item}
                                   saldoDisponivel={characterData.saldoMoedas}
-                                  disabled={!canEditSheet}
+                                  disabled={!canMutateFicha}
                                   onChangeQuality={(next) => {
                                     changeSheetCatalogItemQuality(item.instanceId, next)
                                   }}
                                 />
                               </div>
-                            ) : item.kind === 'weapon' && (item.qualidadeNivel ?? 0) !== 0 ? (
-                              <div className="mt-1 text-[10px] text-slate-500 dark:text-ecoar-light-900/55">
-                                Qualidade [{(item.qualidadeNivel ?? 0) > 0 ? '+' : ''}
-                                {item.qualidadeNivel}]
-                              </div>
                             ) : null}
                           </td>
                           <td className="px-2 py-1">
                             {eq ? (
-                              <label className="inline-flex select-none items-center gap-1.5 text-[11px] text-slate-600 dark:text-ecoar-light-900/65">
+                              <label
+                                className={`inline-flex select-none items-center gap-1.5 font-mono text-xs ${
+                                  canToggleEquip ? 'text-[#adb5bd]' : 'cursor-not-allowed text-[#adb5bd]/70'
+                                }`}
+                                title={
+                                  canToggleEquip
+                                    ? undefined
+                                    : item.kind === 'weapon'
+                                      ? 'Sem permissão para equipar armas'
+                                      : 'Ficha · entre em edição para Equipar'
+                                }
+                              >
                                 <input
                                   type="checkbox"
                                   checked={eq.checked}
-                                  disabled={!canEditSheet}
-                                  onChange={(e) => {
-                                    if (!isEditing) handleStartEdit()
-                                    eq.onToggle(e.target.checked)
-                                  }}
-                                  className="h-3.5 w-3.5 rounded-sm border-slate-300 dark:border-ecoar-light-900/25"
+                                  disabled={!canToggleEquip}
+                                  onChange={(e) => eq.onToggle(e.target.checked)}
+                                  className={`h-3.5 w-3.5 rounded-none border-ecoar-teal/40 ${sheetFocusRing}`}
                                 />
-                                <span className={eq.checked ? 'text-ecoar-teal-700 dark:text-ecoar-teal-300' : ''}>
+                                <span className={eq.checked ? 'text-ecoar-teal' : ''}>
                                   {eq.text}
                                 </span>
                               </label>
                             ) : (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-[#adb5bd]">—</span>
                             )}
                           </td>
-                          <td className="px-2 py-1 text-right">
-                            {isEditing ? (
+                          {isEditing ? (
+                            <td className="px-2 py-1 text-right">
                               <button
                                 type="button"
-                                onClick={() => removeSheetCatalogItem(item.instanceId)}
-                                className="text-[11px] text-ecoar-magenta hover:underline"
+                                onClick={() => {
+                                  void (async () => {
+                                    const nome = item.nome?.trim() || 'este item'
+                                    const ok = await requestConfirm({
+                                      title: 'Remover da mochila?',
+                                      body: `“${nome}” será removido. Essa ação não pode ser desfeita nesta edição.`,
+                                      confirmLabel: 'Remover',
+                                      cancelLabel: 'Manter',
+                                    })
+                                    if (!ok) return
+                                    removeSheetCatalogItem(item.instanceId)
+                                  })()
+                                }}
+                                className={sheetTextLink}
                               >
                                 Remover
                               </button>
-                            ) : null}
-                          </td>
+                            </td>
+                          ) : null}
                         </tr>
                       )
                     })}
@@ -234,81 +318,99 @@ export function InventoryWidget() {
                 </table>
               </div>
             ) : (
-              <p className="text-[11px] text-slate-500 dark:text-ecoar-light-900/55">
-                Mochila vazia. Use o catálogo para adicionar itens.
+              <p className="font-mono text-xs text-[#adb5bd]">
+                {canMutateCatalog
+                  ? 'Mochila vazia. Abra o Catálogo para adicionar itens.'
+                  : 'Mochila vazia. Em edição (Ficha), abra o Catálogo para adicionar itens.'}
               </p>
             )}
 
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <div>
-                <label className={sheetLabel}>Outros equipamentos</label>
-                <textarea
-                  value={characterData.equipamentosLivresText}
-                  disabled={!isEditing}
-                  onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
-                  placeholder="Itens fora do catálogo…"
-                  rows={3}
-                  className="w-full resize-y rounded-sm border border-slate-300/80 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-ecoar-teal-500 disabled:opacity-60 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-700 dark:text-ecoar-light-900 dark:focus:border-ecoar-teal-400"
-                />
+            {showFreeTextBlock ? (
+              <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
+                {showOutrosEquipamentos ? (
+                  <div>
+                    <label className={sheetLabel}>Outros equipamentos</label>
+                    <textarea
+                      value={characterData.equipamentosLivresText}
+                      disabled={!isEditing}
+                      onChange={(e) => updateField('equipamentosLivresText', e.target.value)}
+                      placeholder="Itens que não estão no catálogo…"
+                      rows={isEditing ? 2 : 1}
+                      className={sheetTextarea}
+                    />
+                  </div>
+                ) : null}
+                {showOutrasArmas ? (
+                  <div>
+                    <label className={sheetLabel}>Outras armas</label>
+                    <textarea
+                      value={characterData.armasLivresText}
+                      disabled={!isEditing}
+                      onChange={(e) => updateField('armasLivresText', e.target.value)}
+                      placeholder="Armas que não estão no catálogo…"
+                      rows={isEditing ? 2 : 1}
+                      className={sheetTextarea}
+                    />
+                  </div>
+                ) : null}
               </div>
-              <div>
-                <label className={sheetLabel}>Outras armas</label>
-                <textarea
-                  value={characterData.armasLivresText}
-                  disabled={!isEditing}
-                  onChange={(e) => updateField('armasLivresText', e.target.value)}
-                  placeholder="Armas fora do catálogo…"
-                  rows={3}
-                  className="w-full resize-y rounded-sm border border-slate-300/80 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-ecoar-teal-500 disabled:opacity-60 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-700 dark:text-ecoar-light-900 dark:focus:border-ecoar-teal-400"
-                />
-              </div>
-            </div>
+            ) : null}
           </div>
         ) : (
           <textarea
             value={characterData.equipamentos}
             disabled={!isEditing}
             onChange={(e) => updateField('equipamentos', e.target.value)}
-            placeholder="Liste seus equipamentos..."
+            placeholder="Liste armas, armaduras e outros itens…"
             rows={8}
-            className="w-full resize-y rounded-sm border border-slate-300/80 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-ecoar-teal-500 disabled:opacity-60 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-700 dark:text-ecoar-light-900 dark:focus:border-ecoar-teal-400"
+            className={sheetTextarea}
           />
         )
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <div className="rounded-sm border border-slate-300/60 px-2.5 py-2 dark:border-ecoar-light-900/15">
-            <div className={sheetLabel}>Armaduras</div>
-            <p className="text-[11px] leading-snug text-slate-800 dark:text-ecoar-light-900/85">
-              {equippedMainArmorEntries.map((e) => e.name).join(', ') || '—'}
-            </p>
-          </div>
-          <div className="rounded-sm border border-slate-300/60 px-2.5 py-2 dark:border-ecoar-light-900/15">
-            <div className={sheetLabel}>Acessórios</div>
-            <p className="text-[11px] leading-snug text-slate-800 dark:text-ecoar-light-900/85">
-              {[
-                ...equippedAccessoryEntries.map((e) => e.name),
-                ...equippedUtilityEntries.map((u) => u.name),
-              ].join(', ') || '—'}
-            </p>
-          </div>
-          <div className="rounded-sm border border-slate-300/60 px-2.5 py-2 dark:border-ecoar-light-900/15">
-            <div className={sheetLabel}>Mods de vestuário</div>
-            <p className="text-[11px] tabular-nums text-slate-700 dark:text-ecoar-light-900/80">
-              Esquiva {totalArmorStats.esquiva} · Furt. {totalArmorStats.furtividade} · Crit{' '}
-              {totalArmorStats.crit}
-            </p>
+        <div className="space-y-1.5">
+          <p className="font-mono text-xs leading-snug text-[#adb5bd]">
+            Armaduras, acessórios e mods. Armas equipadas ficam em Armas carregadas.
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className={`${sheetStatCell} px-2.5 py-2`}>
+              <div className={sheetLabel}>Armaduras</div>
+              <p className="font-mono text-xs leading-snug text-[#f5f5f5]">
+                {equippedMainArmorEntries.map((e) => e.name).join(', ') || 'Nenhuma armadura equipada'}
+              </p>
+            </div>
+            <div className={`${sheetStatCell} px-2.5 py-2`}>
+              <div className={sheetLabel}>Acessórios</div>
+              <p className="font-mono text-xs leading-snug text-[#f5f5f5]">
+                {[
+                  ...equippedAccessoryEntries.map((e) => e.name),
+                  ...equippedUtilityEntries.map((u) => u.name),
+                ].join(', ') || 'Nenhum acessório equipado'}
+              </p>
+            </div>
+            <div className={`${sheetStatCell} px-2.5 py-2`}>
+              <div className={sheetLabel}>Mods de vestuário</div>
+              <p className="font-mono text-xs tabular-nums text-[#f5f5f5]">
+                Esquiva {totalArmorStats.esquiva} · Furtividade {totalArmorStats.furtividade} · Crítico{' '}
+                {totalArmorStats.crit}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
       {equipmentPickerOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4">
-          <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-sm border border-slate-200 bg-slate-50 shadow-xl dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-900">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2 dark:border-ecoar-light-900/15 dark:bg-ecoar-dark-800/80">
-              <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">
+          <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-none border border-ecoar-teal/40 bg-[#1a1d21] shadow-none">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-ecoar-teal/35 bg-[#0a0a0a] px-3 py-2">
+              <span className="font-display text-sm uppercase tracking-[-0.02em] text-[#f5f5f5]">
                 Catálogo de aquisição
               </span>
-              <button type="button" onClick={() => setEquipmentPickerOpen(false)} className={sheetBtnGhost}>
+              <button
+                type="button"
+                ref={catalogCloseRef}
+                onClick={() => setEquipmentPickerOpen(false)}
+                className={sheetBtnGhost}
+              >
                 Fechar
               </button>
             </div>

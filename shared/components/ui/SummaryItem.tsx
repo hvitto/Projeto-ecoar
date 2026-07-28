@@ -14,12 +14,11 @@ export default function SummaryItem({
   className = '',
 }: SummaryItemProps) {
   return (
-    <div className={`flex items-center justify-between p-1.5 bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] rounded border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] text-[11px] ${className}`}>
-      <span className="text-ecoar-dark-500 dark:text-ecoar-light-900/50">{label}</span>
+    <div className={`flex items-center justify-between p-1.5 rounded-none bg-transparent border border-ecoar-teal/30 dark:border-ecoar-teal/25 text-[11px] ${className}`}>
+      <span className="text-ecoar-dark-500 dark:text-[#adb5bd] uppercase tracking-[0.08em]">{label}</span>
       {value ? (
-        <span className="text-ecoar-dark-700 dark:text-ecoar-light-900/80 font-medium">{value}</span>
+        <span className="text-ecoar-dark-900 dark:text-ecoar-light-900 font-semibold">{value}</span>
       ) : null}
     </div>
   )
 }
-

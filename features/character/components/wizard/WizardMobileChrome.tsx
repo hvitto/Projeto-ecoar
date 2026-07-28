@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useId, useState, type ReactNode } from 'react'
-import { List, ClipboardList, X } from 'lucide-react'
 import { WIZARD_STEP_TITLES, WIZARD_TOTAL_STEPS } from '@/features/character/constants/wizardSteps'
+import StampButton from '@/components/beyond/StampButton'
 
 type WizardMobileChromeProps = {
   currentStep: number
@@ -38,84 +38,69 @@ export default function WizardMobileChrome({
 
   return (
     <>
-      <div className="lg:hidden sticky top-16 z-40 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700/95 dark:bg-ecoar-dark-800/95 backdrop-blur-md">
-        <div className="px-3 py-2.5 flex items-center gap-2">
+      <div className="lg:hidden sticky top-16 z-40 border-b border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21]/95">
+        <div className="flex items-stretch">
           <button
             type="button"
             onClick={() => setOpenPanel('steps')}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/15 text-ecoar-dark-700 dark:text-ecoar-light-900/80"
+            className="min-w-[44px] min-h-[44px] px-2 flex items-center justify-center border-r border-ecoar-teal/40 text-[9px] uppercase tracking-[0.12em] text-ecoar-teal"
             aria-label="Etapas"
           >
-            <List className="w-5 h-5" />
+            Steps
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <p className="text-xs font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900 truncate">
+          <div className="flex-1 min-w-0 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ecoar-light-900 truncate">
                 {stepTitle}
               </p>
-              <p className="text-[10px] text-ecoar-dark-500 dark:text-ecoar-light-900/50 shrink-0">
-                {currentStep + 1}/{totalSteps + 1} · Nv.{initialLevel}
+              <p className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal shrink-0">
+                {String(currentStep + 1).padStart(2, '0')}/{String(totalSteps + 1).padStart(2, '0')} · NV.{initialLevel}
               </p>
             </div>
-            <div className="w-full bg-ecoar-dark-300/20 dark:bg-white/[0.03] rounded-full h-1 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-ecoar-teal-600 to-ecoar-magenta-600 dark:from-ecoar-teal dark:to-ecoar-magenta transition-[width] duration-200"
-                style={{ width: `${progressPct}%` }}
-              />
+            <div className="w-full bg-white/[0.06] h-1 overflow-hidden">
+              <div className="h-full bg-ecoar-magenta transition-[width] duration-200" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
           <button
             type="button"
             onClick={() => setOpenPanel('summary')}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-ecoar-dark-300/30 dark:border-ecoar-light-900/15 text-ecoar-dark-700 dark:text-ecoar-light-900/80"
+            className="min-w-[44px] min-h-[44px] px-2 flex items-center justify-center border-l border-ecoar-teal/40 text-[9px] uppercase tracking-[0.12em] text-ecoar-teal"
             aria-label="Resumo"
           >
-            <ClipboardList className="w-5 h-5" />
+            Sum
           </button>
         </div>
       </div>
 
-      {openPanel && (
+      {openPanel ? (
         <div className="lg:hidden fixed inset-0 z-[60] flex">
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
-            aria-label="Fechar painel"
+            className="absolute inset-0 bg-black/70"
+            aria-label="Fechar"
             onClick={() => setOpenPanel(null)}
           />
           <div
             role="dialog"
-            aria-modal="true"
             aria-labelledby={titleId}
-            className={`relative z-10 flex flex-col bg-ecoar-light-700 dark:bg-ecoar-dark-800 shadow-xl w-[min(100%,20rem)] max-h-[100dvh] ${
-              openPanel === 'steps' ? 'mr-auto' : 'ml-auto'
+            className={`relative z-10 flex flex-col w-[min(100%,20rem)] h-full border-ecoar-teal bg-[#0a0a0a] ${
+              openPanel === 'summary' ? 'ml-auto border-l' : 'border-r'
             }`}
           >
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-ecoar-dark-300/30 dark:border-ecoar-light-900/10">
-              <h2 id={titleId} className="text-sm font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">
-                {openPanel === 'steps' ? 'Etapas' : 'Resumo'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setOpenPanel(null)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-ecoar-dark-600 dark:text-ecoar-light-900/70"
-                aria-label="Fechar"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="flex items-center justify-between gap-2 px-3 py-3 border-b border-ecoar-teal/50">
+              <p id={titleId} className="text-[10px] uppercase tracking-[0.16em] text-ecoar-teal">
+                {openPanel === 'steps' ? 'CREATE // SEQUENCE' : 'FICHA // RESUMO'}
+              </p>
+              <StampButton tone="ghost" onClick={() => setOpenPanel(null)} className="!px-3 !py-2">
+                Fechar
+              </StampButton>
             </div>
-            <div
-              className="flex-1 min-h-0 overflow-y-auto custom-scrollbar"
-              onClick={(e) => {
-                const target = e.target as HTMLElement
-                if (target.closest('button')) setOpenPanel(null)
-              }}
-            >
+            <div className="flex-1 min-h-0 overflow-y-auto">
               {openPanel === 'steps' ? leftNav : summarySidebar}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   )
 }

@@ -1,94 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTheme } from '@/shared/contexts/ThemeContext'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import {
-  Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
-  CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
-  Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map as MapIcon, Globe, Star, Waves, Info, X, ExternalLink
-} from 'lucide-react'
-import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
-import SingularityCard from '@/shared/components/ui/SingularityCard'
-import SelectionCard from '@/shared/components/ui/SelectionCard'
-import InfoCard from '@/shared/components/ui/InfoCard'
-import DisadvantageCard from '@/shared/components/ui/DisadvantageCard'
-import RaceCard from '@/shared/components/ui/RaceCard'
-import RaceImage from '@/shared/components/ui/RaceImage'
-import StatCard from '@/shared/components/ui/StatCard'
-import LimitCard from '@/shared/components/ui/LimitCard'
-import MovementCard from '@/shared/components/ui/MovementCard'
-import SenseCard from '@/shared/components/ui/SenseCard'
-import SummaryItem from '@/shared/components/ui/SummaryItem'
-import MartialSchoolCard from '@/shared/components/ui/MartialSchoolCard'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
-import {
-  getRacialSingularitiesByRaceId,
-  getRacialSingularityById,
-  pruneRacialSingularitiesToValidRequirements,
-} from '@/data/racialSingularities'
-import { paths, getPathById, Path } from '@/data/paths'
-import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
-import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
-import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/aptitudes'
-import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
-import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
-import {
-  getAllMartialSchools,
-  getMartialSchoolDataById,
-  getMartialSchoolDataByIdResolved,
-  getMartialSchoolSingularityById,
-  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
-  resolveMartialSchoolDataId,
-  MartialSchoolData,
-  MartialSchoolSingularity,
-} from '@/data/martialSchoolSingularities'
-import { getRacialCreationExtraPoints } from '@/lib/racialRules'
-import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import type { Ecoar } from '@/data/ecoar'
-import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
-import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
-import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
-import { buildSystemSingularities } from '@/lib/systemSingularities'
-import {
-  aggregateBookDisadvantagePenalties,
-  aggregateSingularityInputFromCharacterData,
-  CHARACTER_ATTRIBUTE_KEYS,
-  computeEffectiveAttributeRows,
-  partitionSignedBonuses,
-} from '@/lib/characterBonuses'
-import {
-  anySelectedSingularityForbidsDisadvantage,
-  requirementsConflictWithSelection,
-} from '@/lib/creationSingularityDisadvantageConflict'
-import {
-  pathBaseSingularities,
-  getPathBaseSingularityByPathId,
-  bruxarias,
-  getBruxariasByCategory,
-  getAllBruxarias,
-  cacadaPowers,
-  getAllCacadaPowers,
-  getCacadaPowerById,
-  cacadaEnhancements,
-  getCacadaEnhancementsByPowerId,
-  getCacadaEnhancementById,
-  getPathLevelFromSoulLevel,
-  Bruxaria,
-  CacadaPower,
-  CacadaEnhancement,
-} from '@/data/pathSingularities'
 import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
 import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
 import OwnedWeaponQualityControls from '@/components/equipment/OwnedWeaponQualityControls'
@@ -100,7 +13,8 @@ import {
   formatCerosDisplay,
   newCatalogInstanceId,
 } from '@/lib/equipmentCost'
-
+import WizardStage, { TickStat } from '@/components/beyond/WizardStage'
+import StampButton from '@/components/beyond/StampButton'
 
 export function EquipmentStep({
   itensCatalogo,
@@ -157,76 +71,59 @@ export function EquipmentStep({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-            <Package className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-0.5">
-              Equipamentos & Armas
-            </h3>
-            <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
-              Escolha itens no catálogo; o custo é descontado do orçamento. Armas podem subir de qualidade (Inferior a Artefato) pagando o multiplicador do livro.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="inline-flex p-3 bg-ecoar-teal/10 border border-ecoar-teal/30 rounded-lg">
-                <p className="text-xs text-slate-900 dark:text-ecoar-light-900">
-                  <span className="font-semibold text-ecoar-teal">Orçamento:</span>{' '}
-                  <span className="tabular-nums">{formatCerosDisplay(orcamentoCeros)}</span>
-                  <span className="mx-2 text-slate-400">·</span>
-                  <span className="font-semibold text-ecoar-teal">Saldo:</span>{' '}
-                  <span className={`tabular-nums ${saldoRestanteCeros < 0 ? 'text-ecoar-magenta' : ''}`}>
-                    {formatCerosDisplay(Math.max(0, saldoRestanteCeros))}
-                  </span>
-                </p>
-              </div>
-              <motion.button
-                type="button"
-                onClick={() => setPickerOpen(true)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-ecoar-teal to-ecoar-magenta text-slate-900 dark:text-ecoar-light-900 border border-ecoar-teal/30 shadow-md"
-              >
-                Abrir catálogo
-              </motion.button>
-              <Link
-                href="/referencia/aquisicao-equipamentos"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-ecoar-teal-600 dark:text-ecoar-teal-400 hover:underline inline-flex items-center gap-1"
-              >
-                <ExternalLink className="w-3 h-3 shrink-0" />
-                Referência completa (nova aba)
-              </Link>
-            </div>
-          </div>
+    <WizardStage
+      title="Equipamentos"
+      refId="STEP-07"
+      lede="Escolha itens no catálogo; o custo desconta do orçamento. Armas podem subir de qualidade pagando o multiplicador do livro."
+      hero="blocks"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-2 flex-1 max-w-md">
+          <TickStat label="Orçamento" value={formatCerosDisplay(orcamentoCeros)} />
+          <TickStat
+            label="Saldo"
+            value={formatCerosDisplay(Math.max(0, saldoRestanteCeros))}
+            hint={saldoRestanteCeros < 0 ? 'Saldo insuficiente' : undefined}
+          />
+        </div>
+        <div className="flex flex-col sm:items-end gap-2">
+          <StampButton onClick={() => setPickerOpen(true)}>Abrir catálogo</StampButton>
+          <Link
+            href="/referencia/aquisicao-equipamentos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] uppercase tracking-[0.1em] text-ecoar-teal hover:text-ecoar-magenta underline-offset-2 hover:underline"
+          >
+            Referência completa (nova aba)
+          </Link>
         </div>
       </div>
 
-      <div className="p-4 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50/80 dark:bg-ecoar-dark-800/40">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 mb-2">Itens escolhidos</h4>
+      <div className="border border-ecoar-teal/50">
+        <div className="px-3 py-2 border-b border-ecoar-teal/35">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal">Itens escolhidos</p>
+        </div>
+
         {itensCatalogo.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-ecoar-light-900/50 text-center py-6">
-            Nenhum item ainda. Use &quot;Abrir catálogo&quot; para adicionar equipamentos e armas.
+          <p className="px-3 py-8 text-center text-[10px] uppercase tracking-[0.14em] text-ecoar-dark-500 dark:text-[#adb5bd]">
+            Nenhum item · abrir catálogo
           </p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y divide-ecoar-teal/25">
             {itensCatalogo.map((item) => (
-              <li key={item.instanceId} className="space-y-2">
+              <li key={item.instanceId} className="p-3 bg-[#0a0a0a]/40">
                 <OwnedCatalogItemStats
                   item={item}
                   entry={catalogById.get(item.catalogId)}
                   headerRight={
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs tabular-nums text-slate-600 dark:text-ecoar-light-900/70">
+                      <span className="text-[10px] uppercase tracking-[0.1em] tabular-nums text-ecoar-magenta">
                         {formatCerosDisplay(item.custoCeros)}
                       </span>
                       <button
                         type="button"
                         onClick={() => removeCatalogItem(item.instanceId)}
-                        className="text-ecoar-magenta hover:underline text-xs"
+                        className="text-[9px] uppercase tracking-[0.12em] text-ecoar-magenta hover:underline"
                       >
                         Remover
                       </button>
@@ -248,18 +145,16 @@ export function EquipmentStep({
         )}
       </div>
 
-      {pickerOpen && (
+      {pickerOpen ? (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black/50 p-2 sm:p-4 md:p-6">
-          <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-dark-900 shadow-xl overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15 bg-white dark:bg-ecoar-dark-800/80">
-              <span className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">Catálogo de aquisição</span>
-              <button
-                type="button"
-                onClick={() => setPickerOpen(false)}
-                className="min-h-[44px] min-w-[44px] px-3 py-1.5 rounded-lg text-sm border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/10"
-              >
+          <div className="mx-auto w-full max-w-4xl flex flex-col min-h-0 flex-1 border border-ecoar-teal/50 bg-[#0a0a0a]/95 overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-ecoar-teal/40">
+              <span className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
+                Catálogo de aquisição
+              </span>
+              <StampButton tone="ghost" onClick={() => setPickerOpen(false)}>
                 Fechar
-              </button>
+              </StampButton>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4">
               <EquipmentCatalogBrowser
@@ -276,9 +171,7 @@ export function EquipmentStep({
             </div>
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </WizardStage>
   )
 }
-
-// Location Selection Step

@@ -1,21 +1,6 @@
 'use client'
 
 import { memo } from 'react'
-import {
-  Zap,
-  Sparkles,
-  BookOpen,
-  Award,
-  Skull,
-  Package,
-  Footprints,
-  Eye,
-  Users,
-  Star,
-  Heart,
-  Brain,
-  Waves,
-} from 'lucide-react'
 import SummaryItem from '@/shared/components/ui/SummaryItem'
 import { getRaceById } from '@/data/races'
 import { getPathById } from '@/data/paths'
@@ -31,6 +16,7 @@ import {
   type EffectiveAttributeRow,
 } from '@/lib/characterBonuses'
 import type { WizardAttributes, WizardPontosCriacao } from '@/features/character/wizard/wizardFormTypes'
+import CoordLabel from '@/components/beyond/CoordLabel'
 
 export type WizardSummarySidebarProps = {
   selectedRaca: string
@@ -62,6 +48,18 @@ export type WizardSummarySidebarProps = {
   creationLimits: CharacterLimits
 }
 
+const sectionHeading = 'text-[9px] uppercase tracking-[0.16em] text-ecoar-teal mb-2'
+const sectionBlock = 'pt-3 mt-3 border-t border-ecoar-teal/30 first:mt-0 first:pt-0 first:border-t-0'
+const attrShort: Record<string, string> = {
+  carisma: 'Car',
+  finesse: 'Fin',
+  forca: 'For',
+  inteligencia: 'Int',
+  percepcao: 'Per',
+  vitalidade: 'Vit',
+  vontade: 'Von',
+}
+
 function WizardSummarySidebar({
   selectedRaca,
   selectedEscolaMarcial,
@@ -81,140 +79,101 @@ function WizardSummarySidebar({
   creationLimits,
 }: WizardSummarySidebarProps) {
   return (
-    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 min-h-0 lg:max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
-      <div className="bg-transparent lg:bg-ecoar-light-700 dark:lg:bg-ecoar-dark-800 lg:border border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06] rounded-lg p-2 lg:p-4 flex flex-col min-h-0 flex-1 lg:shadow-sm overflow-hidden">
-        <h3 className="hidden lg:block text-xs font-semibold text-ecoar-dark-700 dark:text-ecoar-light-900/70 uppercase tracking-wider mb-3 shrink-0">
-          Resumo
-        </h3>
-        <div className="space-y-3 text-xs flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
-          {selectedRaca && (
-            <div>
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2">Raça</div>
-              <div className="text-ecoar-dark-900 dark:text-ecoar-light-900 font-semibold mb-2">
+    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 lg:p-0 min-h-0 lg:max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
+      <div className="bg-transparent lg:bg-[#0a0a0a]/70 lg:border-l border-ecoar-teal/50 dark:border-ecoar-teal rounded-none flex flex-col min-h-0 flex-1 overflow-hidden">
+        <div className="hidden lg:block px-4 pt-4 pb-3 border-b border-ecoar-teal/40 dark:border-ecoar-teal/50 shrink-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ecoar-teal">FICHA // RESUMO</p>
+          <CoordLabel refId="SUM-LIVE" className="mt-2" />
+        </div>
+
+        <div className="space-y-0 text-[11px] flex-1 min-h-0 overflow-y-auto px-4 py-3 custom-scrollbar">
+          {selectedRaca ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Raça</div>
+              <div className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-2">
                 {getRaceById(selectedRaca)?.name || '—'}
               </div>
               {(() => {
                 const race = getRaceById(selectedRaca)
                 if (!race?.bonuses) return null
-
                 return (
-                  <div className="space-y-1.5 text-xs">
-                    {race.bonuses.movement && (
-                      <div className="flex items-center gap-2 text-slate-700 dark:text-ecoar-light-900/70">
-                        <Footprints className="w-3 h-3 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
-                        <span>
-                          {race.bonuses.movement.terrestre && `Terrestre: ${race.bonuses.movement.terrestre}m`}
-                          {race.bonuses.movement.aquatico && ` • Aquático: ${race.bonuses.movement.aquatico}m`}
-                          {race.bonuses.movement.aereo && ` • Aéreo: ${race.bonuses.movement.aereo}m`}
-                        </span>
-                      </div>
-                    )}
-                    {race.bonuses.senses && (
-                      <div className="space-y-1">
-                        {race.bonuses.senses.visao !== undefined && (
-                          <div className="flex items-center gap-2 text-slate-700 dark:text-ecoar-light-900/70">
-                            <Eye className="w-3 h-3 text-ecoar-teal-600 dark:text-ecoar-teal-400" />
-                            <span>Visão: {race.bonuses.senses.visao}m</span>
-                          </div>
-                        )}
-                        {race.bonuses.senses.audicao !== undefined && (
-                          <div className="flex items-center gap-2 text-slate-700 dark:text-ecoar-light-900/70">
-                            <Users className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                            <span>Audição: {race.bonuses.senses.audicao}m</span>
-                          </div>
-                        )}
-                        {race.bonuses.senses.olfato !== undefined && (
-                          <div className="flex items-center gap-2 text-slate-700 dark:text-ecoar-light-900/70">
-                            <Star className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                            <span>Olfato: {race.bonuses.senses.olfato}m</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {(race.bonuses.attributes && Object.keys(race.bonuses.attributes).length > 0) ||
-                    race.bonuses.sizeModifier ||
-                    race.bonuses.weightModifier ? (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {race.bonuses.attributes &&
-                          Object.entries(race.bonuses.attributes).map(([attr, value]) => (
-                            <span
-                              key={attr}
-                              className="text-xs px-1.5 py-0.5 rounded bg-ecoar-teal/20 dark:bg-ecoar-teal-600/30 text-ecoar-teal dark:text-ecoar-teal-300 border border-ecoar-teal/30 dark:border-ecoar-teal-500/40"
-                            >
-                              {attr === 'carisma'
-                                ? 'Car'
-                                : attr === 'finesse'
-                                  ? 'Fin'
-                                  : attr === 'forca'
-                                    ? 'For'
-                                    : attr === 'inteligencia'
-                                      ? 'Int'
-                                      : attr === 'percepcao'
-                                        ? 'Per'
-                                        : attr === 'vitalidade'
-                                          ? 'Vit'
-                                          : 'Von'}
-                              +{value}
-                            </span>
-                          ))}
-                        {race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0 && (
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded bg-ecoar-magenta/20 dark:bg-ecoar-magenta-600/30 text-ecoar-magenta dark:text-ecoar-magenta-300 border border-ecoar-magenta/30 dark:border-ecoar-magenta-500/40"
-                            title={`Tamanho ${race.bonuses.sizeModifier} = Força ${race.bonuses.sizeModifier > 0 ? '+' : ''}${race.bonuses.sizeModifier}`}
-                          >
-                            For{race.bonuses.sizeModifier > 0 ? '+' : ''}
-                            {race.bonuses.sizeModifier} (Tamanho)
-                          </span>
-                        )}
-                        {race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0 && (
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded bg-ecoar-magenta/20 dark:bg-ecoar-magenta-600/30 text-ecoar-magenta dark:text-ecoar-magenta-300 border border-ecoar-magenta/30 dark:border-ecoar-magenta-500/40"
-                            title={`Peso ${race.bonuses.weightModifier} = Vitalidade ${race.bonuses.weightModifier > 0 ? '+' : ''}${race.bonuses.weightModifier}`}
-                          >
-                            Vit{race.bonuses.weightModifier > 0 ? '+' : ''}
-                            {race.bonuses.weightModifier} (Peso)
-                          </span>
-                        )}
-                        {((race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0) ||
-                          (race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0)) && (
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 dark:bg-orange-600/30 text-orange-600 dark:text-orange-300 border border-orange-500/30 dark:border-orange-500/40"
-                            title={`Esquiva: -(${race.bonuses.sizeModifier ?? 0} + ${race.bonuses.weightModifier ?? 0}) = ${-((race.bonuses.sizeModifier ?? 0) + (race.bonuses.weightModifier ?? 0))}`}
-                          >
-                            Esq
-                            {(() => {
-                              const penalty = -((race.bonuses.sizeModifier ?? 0) + (race.bonuses.weightModifier ?? 0))
-                              return penalty > 0 ? `+${penalty}` : `${penalty}`
-                            })()}
-                          </span>
-                        )}
-                      </div>
+                  <div className="space-y-1.5 text-[10px] uppercase tracking-[0.08em] text-ecoar-dark-500 dark:text-[#adb5bd]">
+                    {race.bonuses.movement ? (
+                      <p>
+                        {race.bonuses.movement.terrestre ? `Terrestre ${race.bonuses.movement.terrestre}m` : ''}
+                        {race.bonuses.movement.aquatico ? ` · Aquático ${race.bonuses.movement.aquatico}m` : ''}
+                        {race.bonuses.movement.aereo ? ` · Aéreo ${race.bonuses.movement.aereo}m` : ''}
+                      </p>
                     ) : null}
+                    {race.bonuses.senses ? (
+                      <p>
+                        {race.bonuses.senses.visao !== undefined ? `Visão ${race.bonuses.senses.visao}m` : ''}
+                        {race.bonuses.senses.audicao !== undefined
+                          ? ` · Audição ${race.bonuses.senses.audicao}m`
+                          : ''}
+                        {race.bonuses.senses.olfato !== undefined
+                          ? ` · Olfato ${race.bonuses.senses.olfato}m`
+                          : ''}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {race.bonuses.attributes &&
+                        Object.entries(race.bonuses.attributes).map(([attr, value]) => (
+                          <span
+                            key={attr}
+                            className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-ecoar-teal/40 text-ecoar-teal"
+                          >
+                            {attrShort[attr] || attr}+{value}
+                          </span>
+                        ))}
+                      {race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0 ? (
+                        <span className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-ecoar-magenta/50 text-ecoar-magenta">
+                          For{race.bonuses.sizeModifier > 0 ? '+' : ''}
+                          {race.bonuses.sizeModifier} (Tam)
+                        </span>
+                      ) : null}
+                      {race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0 ? (
+                        <span className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-ecoar-magenta/50 text-ecoar-magenta">
+                          Vit{race.bonuses.weightModifier > 0 ? '+' : ''}
+                          {race.bonuses.weightModifier} (Peso)
+                        </span>
+                      ) : null}
+                      {((race.bonuses.sizeModifier !== undefined && race.bonuses.sizeModifier !== 0) ||
+                        (race.bonuses.weightModifier !== undefined && race.bonuses.weightModifier !== 0)) && (
+                        <span className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-ecoar-magenta/50 text-ecoar-magenta">
+                          Esq
+                          {(() => {
+                            const penalty = -((race.bonuses.sizeModifier ?? 0) + (race.bonuses.weightModifier ?? 0))
+                            return penalty > 0 ? `+${penalty}` : `${penalty}`
+                          })()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )
               })()}
             </div>
-          )}
+          ) : null}
 
-          {selectedEscolaMarcial && (
-            <div>
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-1">Escola Marcial</div>
+          {selectedEscolaMarcial ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Escola Marcial</div>
               <div className="text-ecoar-dark-900 dark:text-ecoar-light-900">
                 {getMartialSchoolDataByIdResolved(selectedEscolaMarcial)?.name ||
                   getMartialSchoolById(selectedEscolaMarcial)?.name ||
                   '—'}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {selectedTrilha && (
-            <div>
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-1">Trilha</div>
+          {selectedTrilha ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Trilha</div>
               <div className="text-ecoar-dark-900 dark:text-ecoar-light-900">
                 {getPathById(selectedTrilha)?.name || '—'}
               </div>
             </div>
-          )}
+          ) : null}
 
           {Object.keys(attributes).length > 0 &&
             CHARACTER_ATTRIBUTE_KEYS.some(
@@ -223,16 +182,9 @@ function WizardSummarySidebar({
                 (effectiveAttributesCreation[k]?.singularityBonus ?? 0) !== 0 ||
                 (effectiveAttributesCreation[k]?.bookDisadvantageBonus ?? 0) !== 0,
             ) && (
-              <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-                <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                  Atributos
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-ecoar-light-900/55 mb-2">
-                  Número principal = base (raça/escola + pontos). Linha &quot;Efetivo&quot; inclui singularidades e
-                  desvantagens do livro.
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 text-xs">
+              <div className={sectionBlock}>
+                <div className={sectionHeading}>Atributos</div>
+                <div className="grid grid-cols-2 gap-1.5">
                   {CHARACTER_ATTRIBUTE_KEYS.map((attr) => {
                     const value = attributes[attr as keyof typeof attributes] ?? 0
                     const eff = effectiveAttributesCreation[attr]
@@ -243,34 +195,21 @@ function WizardSummarySidebar({
                     )
                       return null
                     const storedMod = getAttributeModifier(value)
-                    const label =
-                      attr === 'carisma'
-                        ? 'Car'
-                        : attr === 'finesse'
-                          ? 'Fin'
-                          : attr === 'forca'
-                            ? 'For'
-                            : attr === 'inteligencia'
-                              ? 'Int'
-                              : attr === 'percepcao'
-                                ? 'Per'
-                                : attr === 'vitalidade'
-                                  ? 'Vit'
-                                  : 'Von'
                     return (
                       <SummaryItem
                         key={attr}
-                        label={label}
+                        label={attrShort[attr]}
                         value={
                           <div className="flex flex-col items-end gap-0.5">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{value}</span>
-                              <span className="text-ecoar-teal/70 dark:text-ecoar-teal-400">
-                                ({formatModifier(storedMod)})
+                              <span className="font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">
+                                {value}
                               </span>
+                              <span className="text-ecoar-teal">({formatModifier(storedMod)})</span>
                             </div>
-                            {((eff?.singularityBonus ?? 0) !== 0 || (eff?.bookDisadvantageBonus ?? 0) !== 0) && (
-                              <span className="text-[10px] text-ecoar-teal-600 dark:text-ecoar-teal-400 leading-tight text-right">
+                            {((eff?.singularityBonus ?? 0) !== 0 ||
+                              (eff?.bookDisadvantageBonus ?? 0) !== 0) && (
+                              <span className="text-[9px] text-ecoar-teal text-right">
                                 Efetivo {eff.effectiveLevel} {formatModifier(eff.effectiveMod)}
                               </span>
                             )}
@@ -283,41 +222,31 @@ function WizardSummarySidebar({
               </div>
             )}
 
-          <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-            <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-              <Heart className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-              Limites
-            </div>
-            <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <div className={sectionBlock}>
+            <div className={sectionHeading}>Limites</div>
+            <div className="grid grid-cols-2 gap-1.5">
               {[
-                { key: 'corpo', label: 'Corpo', icon: Heart, max: creationLimits.corpoMax },
-                { key: 'mente', label: 'Mente', icon: Brain, max: creationLimits.menteMax },
-                { key: 'folego', label: 'Fôlego', icon: Waves, max: creationLimits.folegoMax },
-                { key: 'mana', label: 'Mana', icon: Sparkles, max: creationLimits.manaMax },
-              ].map((limit) => {
-                const Icon = limit.icon
-                return (
-                  <div
-                    key={limit.key}
-                    className="flex items-center justify-between gap-2 px-2 py-1.5 rounded border border-ecoar-dark-300/30 dark:border-ecoar-light-900/20 bg-ecoar-light-800/50 dark:bg-ecoar-light-900/5"
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Icon className="w-3 h-3 text-ecoar-teal-600 dark:text-ecoar-teal-400 shrink-0" />
-                      <span className="text-slate-700 dark:text-ecoar-light-900/80 truncate">{limit.label}</span>
-                    </div>
-                    <span className="font-semibold text-slate-900 dark:text-ecoar-light-900 shrink-0">{limit.max}</span>
-                  </div>
-                )
-              })}
+                { key: 'corpo', label: 'Corpo', max: creationLimits.corpoMax },
+                { key: 'mente', label: 'Mente', max: creationLimits.menteMax },
+                { key: 'folego', label: 'Fôlego', max: creationLimits.folegoMax },
+                { key: 'mana', label: 'Mana', max: creationLimits.manaMax },
+              ].map((limit) => (
+                <div
+                  key={limit.key}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5 border border-ecoar-teal/35"
+                >
+                  <span className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal">{limit.label}</span>
+                  <span className="font-display text-base leading-none text-ecoar-dark-900 dark:text-ecoar-light-900">
+                    {limit.max}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {Object.keys(skills).length > 0 && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <BookOpen className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                Habilidades
-              </div>
+          {Object.keys(skills).length > 0 ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Habilidades</div>
               <div className="space-y-1">
                 {Object.entries(skills)
                   .filter(([, skill]) => skill.level > 0)
@@ -334,40 +263,35 @@ function WizardSummarySidebar({
                         label={skillData.name}
                         value={
                           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                            <span className="text-slate-900 dark:text-ecoar-light-900 font-semibold">
+                            <span className="font-semibold text-ecoar-dark-900 dark:text-ecoar-light-900">
                               Nv.{skill.level}
                             </span>
-                            {skBonus !== 0 && (
-                              <span className="text-[10px] px-1 py-0.5 rounded bg-ecoar-teal/15 text-ecoar-teal-700 dark:text-ecoar-teal-300 border border-ecoar-teal/25">
-                                bônus {formatModifier(skBonus)}
+                            {skBonus !== 0 ? (
+                              <span className="text-[9px] px-1 py-0.5 border border-ecoar-teal/40 text-ecoar-teal">
+                                {formatModifier(skBonus)}
                               </span>
-                            )}
-                            {skill.specialization && (
-                              <span className="text-ecoar-magenta/70 dark:text-ecoar-magenta-400 text-[10px]">
-                                Esp.
-                              </span>
-                            )}
+                            ) : null}
+                            {skill.specialization ? (
+                              <span className="text-ecoar-magenta text-[9px] uppercase tracking-[0.1em]">Esp</span>
+                            ) : null}
                           </div>
                         }
                         className="text-xs"
                       />
                     )
                   })}
-                {Object.keys(skills).filter((id) => skills[id].level > 0).length > 5 && (
-                  <div className="text-slate-400 dark:text-ecoar-light-900/40 text-[10px] text-center pt-1">
+                {Object.keys(skills).filter((id) => skills[id].level > 0).length > 5 ? (
+                  <div className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal text-center pt-1">
                     +{Object.keys(skills).filter((id) => skills[id].level > 0).length - 5} mais
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {Object.keys(aptitudes).length > 0 && Object.values(aptitudes).some((v) => v > 0) && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <Award className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                Aptidões
-              </div>
+          {Object.keys(aptitudes).length > 0 && Object.values(aptitudes).some((v) => v > 0) ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Aptidões</div>
               <div className="space-y-1">
                 {Object.entries(aptitudes)
                   .filter(([, level]) => level > 0)
@@ -380,40 +304,29 @@ function WizardSummarySidebar({
                   })}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {selectedDisadvantages.length > 0 && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <Skull className="w-3 h-3 text-magenta-600 dark:text-ecoar-magenta-400" />
-                Desvantagens
-              </div>
+          {selectedDisadvantages.length > 0 ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Desvantagens</div>
               <div className="space-y-1">
                 {selectedDisadvantages.map((disId) => {
                   const dis = getDisadvantageById(disId)
                   if (!dis) return null
                   return (
-                    <div
-                      key={disId}
-                      className="p-1.5 bg-magenta-50 dark:bg-ecoar-magenta-800/50 rounded border border-magenta-200 dark:border-ecoar-magenta-600 text-xs"
-                    >
-                      <span className="text-slate-700 dark:text-ecoar-light-900/90">{dis.name}</span>
-                      <span className="text-slate-900 dark:text-ecoar-light-900 ml-1 font-medium">
-                        +{dis.pontosCriacao} PC
-                      </span>
+                    <div key={disId} className="p-1.5 border border-ecoar-magenta/40 text-[10px]">
+                      <span className="text-ecoar-dark-900 dark:text-ecoar-light-900">{dis.name}</span>
+                      <span className="text-ecoar-magenta ml-1">+{dis.pontosCriacao} PC</span>
                     </div>
                   )
                 })}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {singularidades.length > 0 && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <Sparkles className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                Singularidades
-              </div>
+          {singularidades.length > 0 ? (
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Singularidades</div>
               <div className="space-y-1">
                 {singularidades.map((singId) => {
                   const sing = getSingularityById(singId)
@@ -422,7 +335,7 @@ function WizardSummarySidebar({
                 })}
               </div>
             </div>
-          )}
+          ) : null}
 
           {(Object.keys(signedSingularityEffects.bonusAttributes).length > 0 ||
             Object.keys(signedSingularityEffects.penaltyAttributes).length > 0 ||
@@ -432,11 +345,8 @@ function WizardSummarySidebar({
             singularityBonusesCreation.mente !== 0 ||
             singularityBonusesCreation.folego !== 0 ||
             singularityBonusesCreation.mana !== 0) && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <Sparkles className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                Singularidades: efeitos numéricos
-              </div>
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Efeitos numéricos</div>
               <div className="space-y-2 text-[10px]">
                 {(Object.keys(signedSingularityEffects.bonusAttributes).length > 0 ||
                   Object.keys(signedSingularityEffects.bonusSkills).length > 0 ||
@@ -444,12 +354,12 @@ function WizardSummarySidebar({
                   singularityBonusesCreation.mente > 0 ||
                   singularityBonusesCreation.folego > 0 ||
                   singularityBonusesCreation.mana > 0) && (
-                  <div className="p-2 rounded border border-ecoar-teal/25 bg-ecoar-teal/5 dark:bg-ecoar-teal-900/10">
-                    <div className="font-semibold text-ecoar-teal-800 dark:text-ecoar-teal-300 mb-1">Bônus</div>
-                    <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/80">
+                  <div className="p-2 border border-ecoar-teal/35">
+                    <div className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal mb-1">Bônus</div>
+                    <ul className="space-y-0.5 text-ecoar-dark-500 dark:text-[#adb5bd]">
                       {Object.entries(signedSingularityEffects.bonusAttributes).map(([k, v]) => (
                         <li key={`ba-${k}`}>
-                          Atributo {k}: +{v}
+                          {k}: +{v}
                         </li>
                       ))}
                       {Object.entries(signedSingularityEffects.bonusSkills).map(([id, v]) => (
@@ -457,10 +367,18 @@ function WizardSummarySidebar({
                           {getSkillById(id)?.name ?? id}: +{v}
                         </li>
                       ))}
-                      {singularityBonusesCreation.corpo > 0 && <li>Corpo: +{singularityBonusesCreation.corpo}</li>}
-                      {singularityBonusesCreation.mente > 0 && <li>Mente: +{singularityBonusesCreation.mente}</li>}
-                      {singularityBonusesCreation.folego > 0 && <li>Fôlego: +{singularityBonusesCreation.folego}</li>}
-                      {singularityBonusesCreation.mana > 0 && <li>Mana: +{singularityBonusesCreation.mana}</li>}
+                      {singularityBonusesCreation.corpo > 0 ? (
+                        <li>Corpo: +{singularityBonusesCreation.corpo}</li>
+                      ) : null}
+                      {singularityBonusesCreation.mente > 0 ? (
+                        <li>Mente: +{singularityBonusesCreation.mente}</li>
+                      ) : null}
+                      {singularityBonusesCreation.folego > 0 ? (
+                        <li>Fôlego: +{singularityBonusesCreation.folego}</li>
+                      ) : null}
+                      {singularityBonusesCreation.mana > 0 ? (
+                        <li>Mana: +{singularityBonusesCreation.mana}</li>
+                      ) : null}
                     </ul>
                   </div>
                 )}
@@ -470,14 +388,14 @@ function WizardSummarySidebar({
                   singularityBonusesCreation.mente < 0 ||
                   singularityBonusesCreation.folego < 0 ||
                   singularityBonusesCreation.mana < 0) && (
-                  <div className="p-2 rounded border border-ecoar-magenta/30 bg-ecoar-magenta/5 dark:bg-ecoar-magenta-900/15">
-                    <div className="font-semibold text-ecoar-magenta-800 dark:text-ecoar-magenta-300 mb-1">
-                      Desvantagens (singularidades)
+                  <div className="p-2 border border-ecoar-magenta/40">
+                    <div className="text-[9px] uppercase tracking-[0.12em] text-ecoar-magenta mb-1">
+                      Penalidades
                     </div>
-                    <ul className="space-y-0.5 text-slate-700 dark:text-ecoar-light-900/80">
+                    <ul className="space-y-0.5 text-ecoar-dark-500 dark:text-[#adb5bd]">
                       {Object.entries(signedSingularityEffects.penaltyAttributes).map(([k, v]) => (
                         <li key={`pa-${k}`}>
-                          Atributo {k}: {v}
+                          {k}: {v}
                         </li>
                       ))}
                       {Object.entries(signedSingularityEffects.penaltySkills).map(([id, v]) => (
@@ -485,10 +403,18 @@ function WizardSummarySidebar({
                           {getSkillById(id)?.name ?? id}: {v}
                         </li>
                       ))}
-                      {singularityBonusesCreation.corpo < 0 && <li>Corpo: {singularityBonusesCreation.corpo}</li>}
-                      {singularityBonusesCreation.mente < 0 && <li>Mente: {singularityBonusesCreation.mente}</li>}
-                      {singularityBonusesCreation.folego < 0 && <li>Fôlego: {singularityBonusesCreation.folego}</li>}
-                      {singularityBonusesCreation.mana < 0 && <li>Mana: {singularityBonusesCreation.mana}</li>}
+                      {singularityBonusesCreation.corpo < 0 ? (
+                        <li>Corpo: {singularityBonusesCreation.corpo}</li>
+                      ) : null}
+                      {singularityBonusesCreation.mente < 0 ? (
+                        <li>Mente: {singularityBonusesCreation.mente}</li>
+                      ) : null}
+                      {singularityBonusesCreation.folego < 0 ? (
+                        <li>Fôlego: {singularityBonusesCreation.folego}</li>
+                      ) : null}
+                      {singularityBonusesCreation.mana < 0 ? (
+                        <li>Mana: {singularityBonusesCreation.mana}</li>
+                      ) : null}
                     </ul>
                   </div>
                 )}
@@ -497,59 +423,29 @@ function WizardSummarySidebar({
           )}
 
           {(mergedEquipamentosLista.length > 0 || mergedArmasLista.length > 0) && (
-            <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-              <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2 flex items-center gap-2">
-                <Package className="w-3 h-3 text-teal-600 dark:text-ecoar-teal-400" />
-                Equipamentos
-              </div>
+            <div className={sectionBlock}>
+              <div className={sectionHeading}>Equipamentos</div>
               <div className="space-y-1">
-                {mergedEquipamentosLista.length > 0 && (
-                  <div>
-                    <div className="text-slate-600 dark:text-ecoar-light-900/60 text-[10px] mb-1">Equipamentos:</div>
-                    {mergedEquipamentosLista.slice(0, 3).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="p-1.5 bg-slate-50 dark:bg-ecoar-light-900/10 rounded border border-slate-200 dark:border-ecoar-light-900/20 text-xs mb-1"
-                      >
-                        <span className="text-slate-700 dark:text-ecoar-light-900/80">{item}</span>
-                      </div>
-                    ))}
-                    {mergedEquipamentosLista.length > 3 && (
-                      <div className="text-slate-400 dark:text-ecoar-light-900/40 text-[10px] text-center pt-1">
-                        +{mergedEquipamentosLista.length - 3} mais
-                      </div>
-                    )}
+                {mergedEquipamentosLista.slice(0, 3).map((item, idx) => (
+                  <div key={idx} className="p-1.5 border border-ecoar-teal/30 text-[10px] text-ecoar-dark-500 dark:text-[#adb5bd]">
+                    {item}
                   </div>
-                )}
-                {mergedArmasLista.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-slate-600 dark:text-ecoar-light-900/60 text-[10px] mb-1">Armas:</div>
-                    {mergedArmasLista.slice(0, 3).map((item, idx) => (
-                      <SummaryItem key={idx} label={item} value="" className="text-xs mb-1" />
-                    ))}
-                    {mergedArmasLista.length > 3 && (
-                      <div className="text-slate-400 dark:text-ecoar-light-900/40 text-[10px] text-center pt-1">
-                        +{mergedArmasLista.length - 3} mais
-                      </div>
-                    )}
-                  </div>
-                )}
+                ))}
+                {mergedArmasLista.slice(0, 3).map((item, idx) => (
+                  <SummaryItem key={`a-${idx}`} label={item} value="" className="text-xs mb-1" />
+                ))}
               </div>
             </div>
           )}
 
-          <div className="pt-4 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-            <div className="text-slate-600 dark:text-ecoar-light-900/60 text-xs mb-2">Pontos de Criação</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <div className="text-teal-600 dark:text-ecoar-teal-400 font-semibold">{pontosCriacao.disponiveis}</div>
-                <div className="text-slate-400 dark:text-ecoar-light-900/40 text-xs">disponíveis</div>
-              </div>
-              <div className="text-slate-400 dark:text-ecoar-light-900/40">/</div>
-              <div className="flex-1 text-right">
-                <div className="text-slate-900 dark:text-ecoar-light-900 font-semibold">{pontosCriacao.obtidos}</div>
-                <div className="text-slate-400 dark:text-ecoar-light-900/40 text-xs">total</div>
-              </div>
+          <div className={sectionBlock}>
+            <div className={sectionHeading}>Pontos de Criação</div>
+            <div className="flex items-end justify-between gap-2 border border-ecoar-teal/40 px-2 py-2">
+              <span className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal">Disponíveis</span>
+              <span className="font-display text-2xl leading-none text-ecoar-magenta tabular-nums">
+                {pontosCriacao.disponiveis}
+                <span className="text-sm text-ecoar-dark-500 dark:text-[#adb5bd]">/{pontosCriacao.obtidos}</span>
+              </span>
             </div>
           </div>
         </div>

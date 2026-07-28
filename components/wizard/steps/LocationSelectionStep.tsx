@@ -16,7 +16,7 @@ export function LocationSelectionStep({
     <div className="space-y-6">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
+          <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-none flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
             <MapPin className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
           </div>
           <div>
@@ -50,15 +50,15 @@ export function LocationSelectionStep({
                       type="button"
                       key={location.id}
                       onClick={() => onSelect(location.id)}
-                      className={`relative p-4 rounded-xl border-2 transition-colors text-left ${
+                      className={`relative p-4 rounded-none border-2 transition-colors text-left ${
                         isSelected
-                          ? 'bg-ecoar-teal/10 border-ecoar-teal shadow-lg shadow-ecoar-teal/20'
+                          ? 'bg-ecoar-teal/10 border-ecoar-teal shadow-none shadow-ecoar-teal/20'
                           : 'bg-slate-50 dark:bg-ecoar-light-900/10 border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30'
                       }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div
-                          className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                          className={`flex-shrink-0 w-10 h-10 rounded-none flex items-center justify-center ${
                             isSelected
                               ? 'bg-ecoar-teal/20 text-ecoar-teal'
                               : 'bg-slate-50 dark:bg-ecoar-light-900/10 text-slate-500 dark:text-ecoar-light-900/60'

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import SingularitiesCatalog from '@/components/singularities/SingularitiesCatalog'
 
 export const metadata = {
-  title: 'Singularidades | ECOAR Beyond',
+  title: 'Singularidades | ECOAR +',
   description: 'Catálogo de singularidades com filtros por tipo de ativação.',
 }
 

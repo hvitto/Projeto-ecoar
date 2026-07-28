@@ -85,7 +85,7 @@ export default function CatalogItemEditModal({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-5xl rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white/90 dark:bg-ecoar-dark-800/80 shadow-xl overflow-hidden">
+      <div className="w-full max-w-5xl rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/90 dark:bg-ecoar-dark-800/80 shadow-none overflow-hidden">
         <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-ecoar-light-900/15">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 truncate">
@@ -98,7 +98,7 @@ export default function CatalogItemEditModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10"
+            className="p-2 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10"
             aria-label="Fechar"
           >
             <X className="w-4 h-4" />
@@ -125,7 +125,7 @@ export default function CatalogItemEditModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/20 text-sm text-slate-700 dark:text-ecoar-light-900/80 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10"
+            className="px-3 py-2 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 text-sm text-slate-700 dark:text-ecoar-light-900/80 hover:bg-slate-50 dark:hover:bg-ecoar-light-900/10"
             disabled={saving}
           >
             Cancelar
@@ -133,7 +133,7 @@ export default function CatalogItemEditModal({
           <button
             type="button"
             onClick={() => void save()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-ecoar-teal-600 text-white text-sm disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none bg-ecoar-teal-600 text-white text-sm disabled:opacity-50"
             disabled={saving}
           >
             <Save className="w-4 h-4" />

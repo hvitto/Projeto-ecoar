@@ -1,99 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTheme } from '@/shared/contexts/ThemeContext'
-import { fadeInUp, motionTransition } from '@/lib/motionVariants'
-import {
-  Briefcase, MapPin, Users, Route, Zap, Sword, Sparkles, Gem,
-  Package, Calculator, BookOpen, User, ChevronLeft, ChevronRight, ChevronDown,
-  CheckCircle2, Circle, Target, Award, Sparkle, Shield, ScrollText,
-  Skull, Heart, Brain, Eye, Footprints, Wand2, Dices, RefreshCw,
-  Scroll, Crown, Coins, Hammer, Map, Globe, Star, Waves, Info, X, ExternalLink
-} from 'lucide-react'
-import { Button, Card, Badge, SectionHeader, SelectableCard, Input, Textarea } from '@/shared/components/ui'
-import SingularityCard from '@/shared/components/ui/SingularityCard'
-import SelectionCard from '@/shared/components/ui/SelectionCard'
-import InfoCard from '@/shared/components/ui/InfoCard'
-import DisadvantageCard from '@/shared/components/ui/DisadvantageCard'
-import RaceCard from '@/shared/components/ui/RaceCard'
-import RaceImage from '@/shared/components/ui/RaceImage'
-import StatCard from '@/shared/components/ui/StatCard'
-import LimitCard from '@/shared/components/ui/LimitCard'
-import MovementCard from '@/shared/components/ui/MovementCard'
-import SenseCard from '@/shared/components/ui/SenseCard'
-import SummaryItem from '@/shared/components/ui/SummaryItem'
-import MartialSchoolCard from '@/shared/components/ui/MartialSchoolCard'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import { races, getRaceById, Race, RaceImageConfig } from '@/data/races'
-import {
-  getRacialSingularitiesByRaceId,
-  getRacialSingularityById,
-  pruneRacialSingularitiesToValidRequirements,
-} from '@/data/racialSingularities'
-import { paths, getPathById, Path } from '@/data/paths'
-import { martialSchools, getMartialSchoolById, MartialSchool } from '@/data/martialSchools'
+import { useState, useEffect } from 'react'
 import { skills as skillsData, getSkillsByCategory, getSkillById, Skill } from '@/data/skills'
-import { aptitudes as aptitudesData, getAptitudeById, Aptitude } from '@/data/aptitudes'
-import { singularities, getSingularitiesByCategory, getSingularityById, Singularity } from '@/data/singularities'
-import { creationSingularities, getCreationSingularityById, getCreationSingularitiesByCategory, CreationSingularity } from '@/data/creationSingularities'
-import {
-  getAllMartialSchools,
-  getMartialSchoolDataById,
-  getMartialSchoolDataByIdResolved,
-  getMartialSchoolSingularityById,
-  MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
-  resolveMartialSchoolDataId,
-  MartialSchoolData,
-  MartialSchoolSingularity,
-} from '@/data/martialSchoolSingularities'
-import { getRacialCreationExtraPoints } from '@/lib/racialRules'
-import { locations, getLocationById, getLocationsByNation, getAllNations, Location } from '@/data/locations'
-import type { Ecoar } from '@/data/ecoar'
-import type { EcoarSingularity } from '@/data/ecoarSingularities'
-import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
-import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
-import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
-import { getAttributeModifier, getSkillDice, formatModifier } from '@/lib/calculations'
-import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
-import { buildSystemSingularities } from '@/lib/systemSingularities'
-import {
-  aggregateBookDisadvantagePenalties,
-  aggregateSingularityInputFromCharacterData,
-  CHARACTER_ATTRIBUTE_KEYS,
-  computeEffectiveAttributeRows,
-  partitionSignedBonuses,
-} from '@/lib/characterBonuses'
-import {
-  anySelectedSingularityForbidsDisadvantage,
-  requirementsConflictWithSelection,
-} from '@/lib/creationSingularityDisadvantageConflict'
-import {
-  pathBaseSingularities,
-  getPathBaseSingularityByPathId,
-  bruxarias,
-  getBruxariasByCategory,
-  getAllBruxarias,
-  cacadaPowers,
-  getAllCacadaPowers,
-  getCacadaPowerById,
-  cacadaEnhancements,
-  getCacadaEnhancementsByPowerId,
-  getCacadaEnhancementById,
-  getPathLevelFromSoulLevel,
-  Bruxaria,
-  CacadaPower,
-  CacadaEnhancement,
-} from '@/data/pathSingularities'
-import type { CatalogEntry, CatalogOwnedItem } from '@/shared/types/equipment'
-import EquipmentCatalogBrowser from '@/components/equipment/EquipmentCatalogBrowser'
-import { useEquipmentCatalog } from '@/shared/contexts/EquipmentCatalogContext'
-import { catalogDisplayLine, formatCerosDisplay, newCatalogInstanceId, sumCatalogItemsCeros } from '@/lib/equipmentCost'
-
+import { getSkillDice } from '@/lib/calculations'
+import WizardStage, { PointBanner, LevelStepper } from '@/components/beyond/WizardStage'
+import StampButton from '@/components/beyond/StampButton'
 
 export function SkillsStep({
   skills,
@@ -112,41 +23,49 @@ export function SkillsStep({
   onPointsChange: (gastos: number) => void
   isEvolutionStep?: boolean
 }) {
+  void onPointsChange
+
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<Skill['category']>('combate')
-  
-  // Inicializa a habilidade selecionada quando a categoria muda
+
   useEffect(() => {
     const categorySkills = getSkillsByCategory(selectedCategory)
-    if (categorySkills.length > 0 && (!selectedSkill || !categorySkills.find(s => s.id === selectedSkill))) {
+    if (categorySkills.length > 0 && (!selectedSkill || !categorySkills.find((s) => s.id === selectedSkill))) {
       setSelectedSkill(categorySkills[0].id)
     }
   }, [selectedCategory, selectedSkill])
-  
-  const categories: Skill['category'][] = ['combate', 'primarias', 'artisticas', 'cientificas', 'motoras', 'sociais', 'gerais']
+
+  const categories: Skill['category'][] = [
+    'combate',
+    'primarias',
+    'artisticas',
+    'cientificas',
+    'motoras',
+    'sociais',
+    'gerais',
+  ]
+
   const categoryLabels: Record<Skill['category'], string> = {
-    combate: 'Habilidades de Combate',
-    primarias: 'Habilidades Primárias',
-    artisticas: 'Habilidades Artísticas',
-    cientificas: 'Habilidades Científicas',
-    motoras: 'Habilidades Motoras',
-    sociais: 'Habilidades Sociais',
-    gerais: 'Habilidades Gerais',
+    combate: 'Combate',
+    primarias: 'Primárias',
+    artisticas: 'Artísticas',
+    cientificas: 'Científicas',
+    motoras: 'Motoras',
+    sociais: 'Sociais',
+    gerais: 'Gerais',
   }
 
-  // Custo em pontos gratuitos por categoria
   const getSkillFreeCost = (category: Skill['category']): number => {
     if (category === 'combate' || category === 'primarias') return 2
     return 1
   }
 
-  // Custo em PC por categoria (para compras além dos 48 pontos)
   const getSkillPCCost = (category: Skill['category']): number => {
     if (category === 'combate' || category === 'primarias') return 10
     return 5
   }
 
-  const getMaxLevel = () => isEvolutionStep ? 8 : 3
+  const getMaxLevel = () => (isEvolutionStep ? 8 : 3)
 
   const normalizeSkillState = (level: number, specialization?: string) => {
     const sanitizedLevel = Math.max(0, level)
@@ -158,55 +77,50 @@ export function SkillsStep({
 
   const getSkillTotalCost = (
     skillId: string,
-    skillState: { level: number; specialization?: string }
+    skillState: { level: number; specialization?: string },
   ) => {
     const skillData = getSkillById(skillId)
     if (!skillData) return 0
 
     const normalizedState = normalizeSkillState(skillState.level, skillState.specialization)
     const costPerLevel = getSkillFreeCost(skillData.category)
-    return (normalizedState.level * costPerLevel) + (normalizedState.specialization ? costPerLevel : 0)
+    return normalizedState.level * costPerLevel + (normalizedState.specialization ? costPerLevel : 0)
   }
 
-  // Calcula quantos pontos gratuitos foram gastos
   const calculateFreePointsUsed = () => {
     return Object.entries(skills).reduce((total, [skillId, skillData]) => {
       return total + getSkillTotalCost(skillId, skillData)
     }, 0)
   }
 
-  // Calcula quantos PC foram gastos (além dos 48 pontos gratuitos)
   const calculatePCUsed = () => {
     const freeUsed = calculateFreePointsUsed()
     const overFree = Math.max(0, freeUsed - 48)
     if (overFree === 0) return 0
-    
-    // Calcula proporcionalmente: se passou X pontos além dos 48, calcula quantos PC custaria
-    // Isso é uma estimativa baseada na média de custos
-    // Na prática, o cálculo exato é feito no updateSkill
+
     let estimatedPC = 0
     let totalPointsInSkills = 0
-    
+
     Object.entries(skills).forEach(([skillId, skill]) => {
       if (skill.level > 0) {
         const skillData = getSkillById(skillId)
         if (skillData) {
           const freeCost = getSkillFreeCost(skillData.category)
           const pcCost = getSkillPCCost(skillData.category)
-          const skillCost = (skill.level * freeCost) + (skill.specialization ? freeCost : 0)
+          const skillCost = skill.level * freeCost + (skill.specialization ? freeCost : 0)
           totalPointsInSkills += skillCost
-          estimatedPC += (skill.level * pcCost) + (skill.specialization ? pcCost : 0)
+          estimatedPC += skill.level * pcCost + (skill.specialization ? pcCost : 0)
         }
       }
     })
-    
-    // Se está usando 48 pontos ou menos, não gastou PC
+
     if (totalPointsInSkills <= 48) return 0
-    
-    // Calcula a proporção que foi comprada com PC
+
     const ratio = overFree / totalPointsInSkills
     return estimatedPC * ratio
   }
+
+  void calculatePCUsed
 
   const updateSkill = (skillId: string, level: number, specialization?: string) => {
     const skill = getSkillById(skillId)
@@ -214,25 +128,21 @@ export function SkillsStep({
 
     const currentSkill = normalizeSkillState(
       skills[skillId]?.level || 0,
-      skills[skillId]?.specialization
+      skills[skillId]?.specialization,
     )
     const maxLevel = getMaxLevel()
     const nextSkill = normalizeSkillState(Math.min(level, maxLevel), specialization)
-    
-    // Calcula custo da mudança em pontos gratuitos
+
     const oldCost = getSkillTotalCost(skillId, currentSkill)
     const newCost = getSkillTotalCost(skillId, nextSkill)
-    
-    // Calcula quanto está usando atualmente
+
     const currentFreeUsed = calculateFreePointsUsed()
     const newFreeUsed = currentFreeUsed - oldCost + newCost
-    
-    // Não permite gastar PC além dos 48 pontos gratuitos
+
     if (newFreeUsed > 48) {
-      return // Não permite aumentar além dos pontos gratuitos
+      return
     }
-    
-    // Se está dentro dos 48 pontos gratuitos
+
     if (skillPoints + oldCost >= newCost && nextSkill.level <= maxLevel) {
       onSkillsChange({
         ...skills,
@@ -248,40 +158,35 @@ export function SkillsStep({
     const newSkills: Record<string, { level: number; specialization?: string }> = {}
     let remainingPoints = 48
 
-    // Lista de habilidades disponíveis com seus custos
-    const availableSkills = allSkills.map(skill => ({
+    const availableSkills = allSkills.map((skill) => ({
       skill,
       costPerLevel: getSkillFreeCost(skill.category),
     }))
 
-    // Embaralha as habilidades
     const shuffledSkills = [...availableSkills].sort(() => Math.random() - 0.5)
 
-    // Primeira passada: distribui níveis nas habilidades
     let attempts = 0
-    const maxAttempts = 500 // Evita loop infinito
-    
+    const maxAttempts = 500
+
     while (remainingPoints > 0 && attempts < maxAttempts) {
       attempts++
       let distributed = false
-      
-      // Tenta distribuir em habilidades aleatórias
+
       for (const { skill, costPerLevel } of shuffledSkills) {
         if (remainingPoints < costPerLevel) continue
-        
+
         const currentLevel = newSkills[skill.id]?.level || 0
         if (currentLevel >= maxLevel) continue
 
-        // 60% de chance de aumentar uma habilidade se tiver pontos
         if (Math.random() < 0.6 && remainingPoints >= costPerLevel) {
           const newLevel = Math.min(currentLevel + 1, maxLevel)
           const cost = costPerLevel
-          
+
           if (remainingPoints >= cost) {
             newSkills[skill.id] = { level: newLevel }
             remainingPoints -= cost
             distributed = true
-            break // Reinicia o loop para dar chance a outras habilidades
+            break
           }
         }
       }
@@ -289,7 +194,6 @@ export function SkillsStep({
       if (!distributed) break
     }
 
-    // Segunda passada: adiciona especialidades aleatoriamente
     const skillsWithLevels = Object.entries(newSkills)
       .filter(([_, data]) => data.level > 0)
       .map(([skillId]) => {
@@ -298,16 +202,14 @@ export function SkillsStep({
       })
       .filter(Boolean) as Array<{ skillId: string; skill: Skill }>
 
-    // Embaralha habilidades com níveis
     const shuffledWithLevels = [...skillsWithLevels].sort(() => Math.random() - 0.5)
 
     for (const { skillId, skill } of shuffledWithLevels) {
       if (remainingPoints <= 0) break
-      
+
       if (!newSkills[skillId].specialization && skill.specializations.length > 0) {
         const costPerLevel = getSkillFreeCost(skill.category)
-        
-        // 40% de chance de adicionar especialidade se tiver pontos
+
         if (Math.random() < 0.4 && remainingPoints >= costPerLevel) {
           const randomSpec = skill.specializations[Math.floor(Math.random() * skill.specializations.length)]
           newSkills[skillId] = {
@@ -319,14 +221,12 @@ export function SkillsStep({
       }
     }
 
-    // Terceira passada: tenta usar pontos restantes em níveis ou especialidades
     if (remainingPoints > 0) {
       for (const { skill, costPerLevel } of shuffledSkills) {
         if (remainingPoints < costPerLevel) continue
-        
+
         const currentLevel = newSkills[skill.id]?.level || 0
         if (currentLevel >= maxLevel) {
-          // Se já está no máximo, tenta adicionar especialidade
           if (!newSkills[skill.id]?.specialization && skill.specializations.length > 0 && remainingPoints >= costPerLevel) {
             const randomSpec = skill.specializations[Math.floor(Math.random() * skill.specializations.length)]
             newSkills[skill.id] = {
@@ -336,19 +236,17 @@ export function SkillsStep({
             remainingPoints -= costPerLevel
           }
         } else {
-          // Tenta aumentar nível
           if (remainingPoints >= costPerLevel) {
             const newLevel = Math.min(currentLevel + 1, maxLevel)
             newSkills[skill.id] = { level: newLevel }
             remainingPoints -= costPerLevel
           }
         }
-        
+
         if (remainingPoints <= 0) break
       }
     }
 
-    // Calcula pontos usados
     const freeUsed = Object.entries(newSkills).reduce((total, [skillId, skillData]) => {
       return total + getSkillTotalCost(skillId, skillData)
     }, 0)
@@ -357,238 +255,209 @@ export function SkillsStep({
     onSkillPointsChange(Math.max(0, Math.min(48, 48 - freeUsed)))
   }
 
+  const getCanIncrease = (skillId: string) => {
+    const skill = getSkillById(skillId)
+    if (!skill) return false
+
+    const skillData = skills[skillId] || { level: 0, specialization: undefined }
+    const freeCostPerLevel = getSkillFreeCost(skill.category)
+    const maxLevel = getMaxLevel()
+    const currentCost = skillData.level * freeCostPerLevel + (skillData.specialization ? freeCostPerLevel : 0)
+
+    const currentFreeUsed = calculateFreePointsUsed()
+    const newCostIfIncrease = currentCost + freeCostPerLevel
+    const newFreeUsed = currentFreeUsed - currentCost + newCostIfIncrease
+
+    if (newFreeUsed <= 48) {
+      return skillPoints >= freeCostPerLevel && skillData.level < maxLevel
+    }
+
+    const pointsOverFree = newFreeUsed - 48
+    const pcCostPerLevel = getSkillPCCost(selectedCategory)
+    const pcCost = pointsOverFree * (pcCostPerLevel / freeCostPerLevel)
+    return pontosCriacao.disponiveis >= pcCost && skillData.level < maxLevel
+  }
+
+  const selectedSkillData = selectedSkill ? getSkillById(selectedSkill) : null
+  const selectedSkillState = selectedSkill
+    ? skills[selectedSkill] || { level: 0, specialization: undefined }
+    : null
+
   return (
-    <div className="space-y-5 max-h-[700px] overflow-y-auto custom-scrollbar pr-2">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-ecoar-teal/15 dark:bg-ecoar-teal-600/15 rounded-lg flex items-center justify-center border border-ecoar-teal/20 dark:border-ecoar-teal-500/20">
-              <BookOpen className="w-4 h-4 text-ecoar-teal/80 dark:text-ecoar-teal-400/80" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-0.5">
-                {isEvolutionStep ? 'Evoluir Habilidades' : 'Habilidades e Especialidades'}
-              </h3>
-              <p className="text-xs text-slate-400 dark:text-ecoar-light-900/50 dark:text-ecoar-light-900/50">
-                Você tem 48 pontos gratuitos para distribuir. Combate/Primárias custam 2 pontos, resto custa 1 ponto por nível. Especialidade custa o mesmo que um nível.
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={randomizeSkills}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Dices className="w-4 h-4" />
+    <WizardStage
+      title={isEvolutionStep ? 'Evoluir Habilidades' : 'Habilidades'}
+      refId="STEP-03"
+      lede="48 pontos gratuitos. Combate/Primárias custam 2 pt por nível; demais categorias, 1 pt. Especialidade custa o mesmo que um nível."
+      hero="glitch"
+    >
+      <PointBanner
+        label="Pontos gratuitos"
+        value={skillPoints}
+        danger={skillPoints < 0}
+        action={
+          <StampButton tone="grid" onClick={randomizeSkills}>
             Aleatório
-          </Button>
-        </div>
-      </div>
+          </StampButton>
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div className={`p-3.5 rounded-lg border transition-all ${
-          skillPoints >= 0 
-            ? 'bg-ecoar-teal/10 border-ecoar-teal/30 text-slate-900 dark:text-ecoar-light-900' 
-            : 'bg-ecoar-magenta/10 border-ecoar-magenta/30 text-slate-900 dark:text-ecoar-light-900'
-        }`}>
-          <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 uppercase tracking-wider mb-1">Pontos Gratuitos</div>
-          <div className={`text-2xl font-bold ${skillPoints >= 0 ? 'text-ecoar-teal' : 'text-ecoar-magenta'}`}>
-            {skillPoints}
-          </div>
-        </div>
-      </div>
-
-      {/* Layout Vertical: Categorias à Esquerda, Habilidades e Detalhes à Direita */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Lista de Categorias - Esquerda */}
-        <div className="lg:col-span-1 space-y-2">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(7rem,0.75fr)_1.4fr_minmax(14rem,1fr)] gap-px bg-ecoar-teal/40 border border-ecoar-teal/50">
+        <div className="bg-[#0a0a0a]/75 flex flex-col">
           {categories.map((category) => {
             const categorySkills = getSkillsByCategory(category)
             if (categorySkills.length === 0) return null
-            
+
             return (
-              <motion.button
+              <button
                 key={category}
+                type="button"
                 onClick={() => {
                   setSelectedCategory(category)
                   const firstSkill = categorySkills[0]
                   if (firstSkill) setSelectedSkill(firstSkill.id)
                 }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ x: 4 }}
-                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                className={`text-left px-3 py-2.5 border-b border-ecoar-teal/30 last:border-b-0 transition-colors ${
                   selectedCategory === category
-                    ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-lg shadow-ecoar-teal/20'
-                    : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30'
+                    ? 'bg-ecoar-magenta text-[var(--ecoar-accent-ink)]'
+                    : 'text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-teal/10'
                 }`}
               >
-                <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900">{categoryLabels[category]}</div>
-                <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-1">
-                  {categorySkills.length} habilidade{categorySkills.length !== 1 ? 's' : ''}
-                </div>
-              </motion.button>
+                <span className="font-display text-[11px] uppercase tracking-[-0.01em] leading-tight block">
+                  {categoryLabels[category]}
+                </span>
+                <span
+                  className={`text-[9px] uppercase tracking-[0.12em] mt-0.5 block ${
+                    selectedCategory === category ? 'text-[var(--ecoar-accent-ink)]/80' : 'text-ecoar-teal'
+                  }`}
+                >
+                  {categorySkills.length} itens
+                </span>
+              </button>
             )
           })}
         </div>
 
-        {/* Lista de Habilidades e Detalhes - Direita */}
-        <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Lista de Habilidades da Categoria */}
-          <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+        <div className="bg-[#0a0a0a]/75 border-x border-ecoar-teal/30 lg:border-x-0">
+          <div className="grid grid-cols-[1fr_auto_auto] gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.14em] text-ecoar-teal border-b border-ecoar-teal/35">
+            <span>Habilidade</span>
+            <span className="w-16 text-center">Dado</span>
+            <span className="w-[7.5rem] text-center">Nível</span>
+          </div>
+
+          <div className="max-h-[min(520px,60vh)] overflow-y-auto custom-scrollbar">
             {getSkillsByCategory(selectedCategory).map((skill) => {
               const skillData = skills[skill.id] || { level: 0, specialization: undefined }
               const freeCostPerLevel = getSkillFreeCost(skill.category)
-              const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
-              
+              const currentCost =
+                skillData.level * freeCostPerLevel + (skillData.specialization ? freeCostPerLevel : 0)
+              const isSelected = selectedSkill === skill.id
+              const canIncrease = getCanIncrease(skill.id)
+
               return (
-                <motion.button
+                <div
                   key={skill.id}
-                  onClick={() => setSelectedSkill(skill.id)}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  whileHover={{ x: 4 }}
-                  className={`w-full p-3 rounded-lg border transition-all text-left ${
-                    selectedSkill === skill.id
-                      ? 'border-ecoar-teal bg-ecoar-teal/10 shadow-lg shadow-ecoar-teal/20'
-                      : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:bg-slate-100 dark:hover:bg-ecoar-light-900/15 hover:border-ecoar-teal/30'
+                  className={`grid grid-cols-[1fr_auto_auto] gap-2 items-center px-3 py-2 border-b border-ecoar-teal/20 last:border-b-0 ${
+                    isSelected ? 'bg-ecoar-magenta/10' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 truncate">{skill.name}</div>
-                      <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                        {getSkillDice(skillData.level)} • Nv.{skillData.level}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-lg font-bold text-ecoar-teal">{skillData.level}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-ecoar-light-900/50">{currentCost}pt</div>
-                    </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSkill(skill.id)}
+                    className="text-left min-w-0"
+                  >
+                    <span className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 block truncate">
+                      {skill.name}
+                    </span>
+                    <span className="text-[9px] uppercase tracking-[0.1em] text-ecoar-teal">
+                      {currentCost} pt
+                    </span>
+                  </button>
+                  <span className="w-16 text-center text-[10px] uppercase tracking-[0.1em] text-ecoar-teal tabular-nums">
+                    {getSkillDice(skillData.level)}
+                  </span>
+                  <div className="w-[7.5rem] flex justify-center">
+                    <LevelStepper
+                      value={skillData.level}
+                      canDecrease={skillData.level > 0}
+                      canIncrease={canIncrease}
+                      onDecrease={() =>
+                        updateSkill(skill.id, Math.max(0, skillData.level - 1), skillData.specialization)
+                      }
+                      onIncrease={() => updateSkill(skill.id, skillData.level + 1, skillData.specialization)}
+                    />
                   </div>
-                </motion.button>
+                </div>
               )
             })}
           </div>
+        </div>
 
-          {/* Painel de Detalhes da Habilidade Selecionada */}
-          <div>
-            {selectedSkill && (() => {
-              const skill = getSkillById(selectedSkill)
-              if (!skill) return null
-              
-              const skillData = skills[skill.id] || { level: 0, specialization: undefined }
-              const freeCostPerLevel = getSkillFreeCost(skill.category)
-              const maxLevel = getMaxLevel()
-              const currentCost = (skillData.level * freeCostPerLevel) + (skillData.specialization ? freeCostPerLevel : 0)
-              
-              // Calcula se pode aumentar
-              const currentFreeUsed = calculateFreePointsUsed()
-              const newCostIfIncrease = currentCost + freeCostPerLevel
-              const newFreeUsed = currentFreeUsed - currentCost + newCostIfIncrease
-              
-              let canIncrease = false
-              if (newFreeUsed <= 48) {
-                canIncrease = skillPoints >= freeCostPerLevel && skillData.level < maxLevel
-              } else {
-                const pointsOverFree = newFreeUsed - 48
-                const pcCostPerLevel = getSkillPCCost(selectedCategory)
-                const pcCost = pointsOverFree * (pcCostPerLevel / freeCostPerLevel)
-                canIncrease = pontosCriacao.disponiveis >= pcCost && skillData.level < maxLevel
-              }
-              
-              return (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-lg border border-ecoar-teal/20 bg-ecoar-teal/8 backdrop-blur-sm h-full"
-                >
-                  {/* Header */}
-                  <div className="mb-4">
-                    <h4 className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900/90 dark:text-ecoar-light-900/90 mb-1.5">{skill.name}</h4>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div>
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Dado</div>
-                        <div className="text-ecoar-teal font-semibold">{getSkillDice(skillData.level)}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-500 dark:text-ecoar-light-900/60">Custo</div>
-                        <div className="text-ecoar-teal font-semibold">{freeCostPerLevel}pt/nível</div>
-                      </div>
-                    </div>
-                  </div>
+        <div className="bg-[#0a0a0a]/75 p-3 sm:p-4 flex flex-col gap-3 border-t lg:border-t-0 lg:border-l border-ecoar-teal/30">
+          {selectedSkillData && selectedSkillState ? (
+            <>
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1">Detalhe</p>
+                <h3 className="font-display text-base uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
+                  {selectedSkillData.name}
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[9px] uppercase tracking-[0.12em]">
+                  <span className="text-ecoar-teal">
+                    Dado <span className="text-ecoar-magenta">{getSkillDice(selectedSkillState.level)}</span>
+                  </span>
+                  <span className="text-ecoar-teal">
+                    Custo{' '}
+                    <span className="text-ecoar-magenta">
+                      {getSkillFreeCost(selectedSkillData.category)} pt/nível
+                    </span>
+                  </span>
+                  <span className="text-ecoar-teal">
+                    Máx <span className="text-ecoar-magenta">{getMaxLevel()}</span>
+                  </span>
+                </div>
+              </div>
 
-                  {/* Controles de Nível */}
-                  <div className="mb-6">
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <motion.button
-                        onClick={() => updateSkill(skill.id, Math.max(0, skillData.level - 1), skillData.specialization)}
-                        disabled={skillData.level === 0}
-                        whileHover={{ scale: skillData.level === 0 ? 1 : 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 rounded-lg bg-ecoar-magenta/15 border border-ecoar-magenta/25 hover:bg-ecoar-magenta/20 text-slate-900 dark:text-ecoar-light-900/90 font-semibold text-base disabled:opacity-30 transition-all flex items-center justify-center"
-                      >
-                        -
-                      </motion.button>
-                      
-                      <div className="text-center min-w-[100px]">
-                        <div className="text-5xl font-bold text-ecoar-teal mb-1">{skillData.level}</div>
-                        <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">Nível</div>
-                        <div className="text-xs text-slate-400 dark:text-ecoar-light-900/50 mt-1">{currentCost} pontos</div>
-                      </div>
-                      
-                      <motion.button
-                        onClick={() => updateSkill(skill.id, skillData.level + 1, skillData.specialization)}
-                        disabled={!canIncrease}
-                        whileHover={{ scale: !canIncrease ? 1 : 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 rounded-lg bg-ecoar-teal/15 border border-ecoar-teal/25 hover:bg-ecoar-teal/20 text-slate-900 dark:text-ecoar-light-900/90 font-semibold text-base disabled:opacity-30 transition-all flex items-center justify-center"
-                      >
-                        +
-                      </motion.button>
-                    </div>
-                    <div className="text-center text-sm text-slate-500 dark:text-ecoar-light-900/60">
-                      Máximo: {maxLevel}
-                    </div>
-                  </div>
-
-                  {/* Especialização */}
-                  {skill.specializations.length > 0 && (
-                    <div className="pt-6 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/20">
-                      <label className="text-slate-700 dark:text-ecoar-light-900/80 text-sm mb-2 block font-semibold">
-                        Especialidade <span className="text-ecoar-teal/70">(+{freeCostPerLevel}pt)</span>
-                      </label>
-                      <select
-                        value={skillData.specialization || ''}
-                        onChange={(e) => {
-                          if (skillData.level === 0) {
-                            updateSkill(skill.id, 0, undefined)
-                            return
-                          }
-                          updateSkill(skill.id, skillData.level, e.target.value || undefined)
-                        }}
-                        disabled={skillData.level === 0}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-ecoar-light-900/10 border border-slate-200 dark:border-ecoar-light-900/20 rounded-lg text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal focus:border-ecoar-teal"
-                      >
-                        <option value="">Nenhuma</option>
-                        {skill.specializations.map((spec) => (
-                          <option key={spec.id} value={spec.id} className="bg-ecoar-light-700 dark:bg-ecoar-dark-800">
-                            {spec.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </motion.div>
-              )
-            })()}
-          </div>
+              {selectedSkillData.specializations.length > 0 ? (
+                <div className="mt-auto border-t border-ecoar-teal/30 pt-3">
+                  <label
+                    htmlFor={`spec-${selectedSkillData.id}`}
+                    className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1.5 block"
+                  >
+                    Especialidade (+{getSkillFreeCost(selectedSkillData.category)} pt)
+                  </label>
+                  <select
+                    id={`spec-${selectedSkillData.id}`}
+                    value={selectedSkillState.specialization || ''}
+                    onChange={(e) => {
+                      if (selectedSkillState.level === 0) {
+                        updateSkill(selectedSkillData.id, 0, undefined)
+                        return
+                      }
+                      updateSkill(
+                        selectedSkillData.id,
+                        selectedSkillState.level,
+                        e.target.value || undefined,
+                      )
+                    }}
+                    disabled={selectedSkillState.level === 0}
+                    className="w-full px-2.5 py-2 bg-[#0a0a0a]/60 border border-ecoar-teal/50 text-ecoar-dark-900 dark:text-ecoar-light-900 text-[11px] focus:outline-none focus:border-ecoar-magenta disabled:opacity-40"
+                  >
+                    <option value="">Nenhuma</option>
+                    {selectedSkillData.specializations.map((spec) => (
+                      <option key={spec.id} value={spec.id}>
+                        {spec.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-[10px] uppercase tracking-[0.12em] text-ecoar-dark-500 dark:text-[#adb5bd]">
+              Selecione uma habilidade
+            </p>
+          )}
         </div>
       </div>
-    </div>
+    </WizardStage>
   )
 }
-
-// Aptitudes Step

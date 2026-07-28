@@ -1,10 +1,6 @@
-export type SheetTabId =
-  | 'basico'
-  | 'equipamentos'
-  | 'sing-ecoar'
-  | 'sing-naturais'
-  | 'sing-magicas'
-  | 'sing-absolutas'
+export type SheetTabId = 'personagem' | 'equipamentos' | 'singularidades'
+
+export type SingularitySheetKindGroup = 'ecoar' | 'naturais' | 'magicas' | 'absolutas'
 
 export type FolderSize = 'S' | 'M' | 'L'
 export type WidgetSpan = 'S' | 'M' | 'L'
@@ -34,7 +30,7 @@ export type SheetTabWidgetsState = {
 }
 
 export type SheetLayout = {
-  version: 1
+  version: 2
   folderSize: FolderSize
   tabOrder: SheetTabId[]
   hiddenTabs: SheetTabId[]
@@ -43,21 +39,29 @@ export type SheetLayout = {
 }
 
 export const ALL_SHEET_TABS: SheetTabId[] = [
-  'basico',
+  'personagem',
   'equipamentos',
-  'sing-ecoar',
-  'sing-naturais',
-  'sing-magicas',
-  'sing-absolutas',
+  'singularidades',
 ]
 
 export const SHEET_TAB_LABELS: Record<SheetTabId, string> = {
-  basico: 'Básico',
-  equipamentos: 'Equipamentos',
-  'sing-ecoar': 'Sing. do Ecoar',
-  'sing-naturais': 'Sing. Naturais',
-  'sing-magicas': 'Sing. Mágicas',
-  'sing-absolutas': 'Sing. Absolutas',
+  personagem: 'Personagem',
+  equipamentos: 'Equipamento',
+  singularidades: 'Singularidades',
+}
+
+export const ALL_SING_GROUPS: SingularitySheetKindGroup[] = [
+  'ecoar',
+  'naturais',
+  'magicas',
+  'absolutas',
+]
+
+export const SING_GROUP_LABELS: Record<SingularitySheetKindGroup, string> = {
+  ecoar: 'Ecoar',
+  naturais: 'Naturais',
+  magicas: 'Mágicas',
+  absolutas: 'Absolutas',
 }
 
 export const FOLDER_SIZE_MAX_WIDTH: Record<FolderSize, number> = {
@@ -66,7 +70,9 @@ export const FOLDER_SIZE_MAX_WIDTH: Record<FolderSize, number> = {
   L: 1440,
 }
 
-export const BASICO_WIDGETS: SheetWidgetId[] = [
+export const FIXED_FOLDER_WIDTH = FOLDER_SIZE_MAX_WIDTH.M
+
+export const PERSONAGEM_WIDGETS: SheetWidgetId[] = [
   'identity',
   'attributes',
   'limits',
@@ -78,10 +84,15 @@ export const BASICO_WIDGETS: SheetWidgetId[] = [
   'notes',
 ]
 
-export const EQUIPAMENTOS_WIDGETS: SheetWidgetId[] = [
-  'inventory',
-  'combatWeapons',
+export const PERSONAGEM_MESA_HIDDEN: SheetWidgetId[] = [
+  'limits',
+  'commonTests',
+  'movementSenses',
+  'resistances',
+  'notes',
 ]
+
+export const EQUIPAMENTOS_WIDGETS: SheetWidgetId[] = ['combatWeapons', 'inventory']
 
 export const SING_WIDGETS: SheetWidgetId[] = [
   'disturbios',
@@ -120,6 +131,7 @@ export function defaultWidgetSpan(widgetId: SheetWidgetId): WidgetSpan {
   switch (widgetId) {
     case 'identity':
     case 'attributes':
+    case 'aptitudes':
     case 'skills':
     case 'notes':
     case 'inventory':
@@ -145,131 +157,75 @@ export function resolveWidgetSpan(
   return defaultWidgetSpan(widgetId)
 }
 
-export function cycleWidgetSpan(current: WidgetSpan): WidgetSpan {
-  if (current === 'S') return 'M'
-  if (current === 'M') return 'L'
-  return 'S'
-}
-
 function defaultSizesForOrder(order: SheetWidgetId[]): Partial<Record<SheetWidgetId, WidgetSpan>> {
   const sizes: Partial<Record<SheetWidgetId, WidgetSpan>> = {}
   for (const id of order) sizes[id] = defaultWidgetSpan(id)
   return sizes
 }
 
+export function widgetsForSingGroup(group: SingularitySheetKindGroup): SheetTabWidgetsState {
+  const order =
+    group === 'ecoar' ? [...SING_WIDGETS] : SING_WIDGETS.filter((id) => id !== 'disturbios')
+  return { order, hidden: [], sizes: defaultSizesForOrder(order) }
+}
+
 function widgetsForTab(tab: SheetTabId): SheetTabWidgetsState {
-  if (tab === 'basico') {
-    const order = [...BASICO_WIDGETS]
-    return { order, hidden: [], sizes: defaultSizesForOrder(order) }
+  if (tab === 'personagem') {
+    const order = [...PERSONAGEM_WIDGETS]
+    return { order, hidden: [...PERSONAGEM_MESA_HIDDEN], sizes: defaultSizesForOrder(order) }
   }
   if (tab === 'equipamentos') {
     const order = [...EQUIPAMENTOS_WIDGETS]
     return { order, hidden: [], sizes: defaultSizesForOrder(order) }
   }
-  if (tab === 'sing-ecoar') {
-    const order = [...SING_WIDGETS]
-    return { order, hidden: [], sizes: defaultSizesForOrder(order) }
-  }
-  const order = SING_WIDGETS.filter((id) => id !== 'disturbios')
-  return { order, hidden: [], sizes: defaultSizesForOrder(order) }
+  return widgetsForSingGroup('ecoar')
 }
 
 export function createDefaultSheetLayout(): SheetLayout {
   return {
-    version: 1,
+    version: 2,
     folderSize: 'M',
     tabOrder: [...ALL_SHEET_TABS],
     hiddenTabs: [],
-    activeTab: 'basico',
+    activeTab: 'personagem',
     widgets: {
-      basico: widgetsForTab('basico'),
+      personagem: widgetsForTab('personagem'),
       equipamentos: widgetsForTab('equipamentos'),
-      'sing-ecoar': widgetsForTab('sing-ecoar'),
-      'sing-naturais': widgetsForTab('sing-naturais'),
-      'sing-magicas': widgetsForTab('sing-magicas'),
-      'sing-absolutas': widgetsForTab('sing-absolutas'),
+      singularidades: widgetsForTab('singularidades'),
     },
   }
+}
+
+function mapLegacyActiveTab(raw: unknown): SheetTabId {
+  if (raw === 'equipamentos') return 'equipamentos'
+  if (
+    raw === 'singularidades' ||
+    raw === 'sing-ecoar' ||
+    raw === 'sing-naturais' ||
+    raw === 'sing-magicas' ||
+    raw === 'sing-absolutas'
+  ) {
+    return 'singularidades'
+  }
+  if (raw === 'personagem' || raw === 'basico') return 'personagem'
+  return 'personagem'
 }
 
 export function normalizeSheetLayout(raw: unknown): SheetLayout {
   const fallback = createDefaultSheetLayout()
   if (!raw || typeof raw !== 'object') return fallback
-  const r = raw as Partial<SheetLayout>
-  const folderSize = r.folderSize === 'S' || r.folderSize === 'M' || r.folderSize === 'L' ? r.folderSize : 'M'
-  const tabOrder = Array.isArray(r.tabOrder)
-    ? (r.tabOrder.filter((t): t is SheetTabId => ALL_SHEET_TABS.includes(t as SheetTabId)) as SheetTabId[])
-    : fallback.tabOrder
-  const fullOrder = [...tabOrder, ...ALL_SHEET_TABS.filter((t) => !tabOrder.includes(t))]
-  const hiddenTabs = Array.isArray(r.hiddenTabs)
-    ? (r.hiddenTabs.filter((t): t is SheetTabId => ALL_SHEET_TABS.includes(t as SheetTabId)) as SheetTabId[])
-    : []
-  const visible = fullOrder.filter((t) => !hiddenTabs.includes(t))
-  const activeTab =
-    r.activeTab && ALL_SHEET_TABS.includes(r.activeTab) && !hiddenTabs.includes(r.activeTab)
-      ? r.activeTab
-      : visible[0] ?? 'basico'
-
-  const widgets = { ...fallback.widgets }
-  for (const tab of ALL_SHEET_TABS) {
-    const src = r.widgets?.[tab]
-    const def = widgetsForTab(tab)
-    if (!src) {
-      widgets[tab] = def
-      continue
-    }
-    const allowed = new Set(def.order)
-    const order = (Array.isArray(src.order) ? src.order : [])
-      .filter((id): id is SheetWidgetId => allowed.has(id as SheetWidgetId))
-    const missing = def.order.filter((id) => !order.includes(id))
-    const fullOrderWidgets = [...order, ...missing]
-    const hidden = (Array.isArray(src.hidden) ? src.hidden : []).filter((id): id is SheetWidgetId =>
-      allowed.has(id as SheetWidgetId),
-    )
-    const sizes: Partial<Record<SheetWidgetId, WidgetSpan>> = { ...def.sizes }
-    const rawSizes = src.sizes && typeof src.sizes === 'object' ? src.sizes : {}
-    for (const id of fullOrderWidgets) {
-      const raw = (rawSizes as Partial<Record<SheetWidgetId, unknown>>)[id]
-      if (raw === 'S' || raw === 'M' || raw === 'L') sizes[id] = raw
-      else if (!sizes[id]) sizes[id] = defaultWidgetSpan(id)
-    }
-    widgets[tab] = { order: fullOrderWidgets, hidden, sizes }
-  }
-
+  const r = raw as Partial<SheetLayout> & { activeTab?: unknown }
   return {
-    version: 1,
-    folderSize,
-    tabOrder: fullOrder,
-    hiddenTabs: hiddenTabs.filter((t) => fullOrder.includes(t)),
-    activeTab,
-    widgets,
+    ...fallback,
+    activeTab: mapLegacyActiveTab(r.activeTab),
   }
-}
-
-export function snapFolderSize(widthPx: number): FolderSize {
-  const entries: Array<[FolderSize, number]> = [
-    ['S', FOLDER_SIZE_MAX_WIDTH.S],
-    ['M', FOLDER_SIZE_MAX_WIDTH.M],
-    ['L', FOLDER_SIZE_MAX_WIDTH.L],
-  ]
-  let best: FolderSize = 'M'
-  let bestDist = Infinity
-  for (const [size, w] of entries) {
-    const d = Math.abs(widthPx - w)
-    if (d < bestDist) {
-      bestDist = d
-      best = size
-    }
-  }
-  return best
-}
-
-export function visibleTabs(layout: SheetLayout): SheetTabId[] {
-  const visible = layout.tabOrder.filter((t) => !layout.hiddenTabs.includes(t))
-  return visible.length > 0 ? visible : (['basico'] as SheetTabId[])
 }
 
 export function visibleWidgets(layout: SheetLayout, tab: SheetTabId): SheetWidgetId[] {
   const state = layout.widgets[tab] ?? widgetsForTab(tab)
   return state.order.filter((id) => !state.hidden.includes(id))
+}
+
+export function visibleSingWidgets(group: SingularitySheetKindGroup): SheetWidgetId[] {
+  return widgetsForSingGroup(group).order
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import Badge from './Badge'
 import { ReactNode } from 'react'
+import { selectedPanel, idlePanel, disabledPanel, microLabel, mutedBody } from '@/shared/styles/ecoarChrome'
 
 interface SingularityCardProps {
   name: string
@@ -23,6 +23,8 @@ interface SingularityCardProps {
   className?: string
 }
 
+const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+
 export default function SingularityCard({
   name,
   description,
@@ -37,62 +39,45 @@ export default function SingularityCard({
   level,
   levelLabel,
   effects,
-  variant = 'magenta',
   footer,
   className = '',
 }: SingularityCardProps) {
-  const selectedClasses = {
-    default: 'border-ecoar-teal-400 dark:border-ecoar-teal-500/60 bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20',
-    teal: 'border-ecoar-teal-400 dark:border-ecoar-teal-500/60 bg-ecoar-teal-50 dark:bg-ecoar-teal-600/15 shadow-md shadow-ecoar-teal-200/30 dark:shadow-ecoar-teal-600/20',
-    magenta: 'border-ecoar-magenta-400 dark:border-ecoar-magenta-600/60 bg-ecoar-magenta-50 dark:bg-ecoar-magenta-800/15 shadow-md shadow-ecoar-magenta-200/30 dark:shadow-ecoar-magenta-900/20'
-  }
-
-  const unselectedClasses = {
-    default: 'border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06]',
-    teal: 'border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06]',
-    magenta: 'border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.08] bg-ecoar-light-700 dark:bg-ecoar-light-900/[0.03] hover:border-ecoar-dark-400/40 dark:hover:border-ecoar-teal-500/30 hover:bg-ecoar-light-800 dark:hover:bg-ecoar-light-900/[0.06]'
-  }
-
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!isSelected && !canSelect}
-      className={`p-3.5 rounded-lg border text-left transition-colors duration-200 overflow-hidden ${
-        isSelected
-          ? selectedClasses[variant]
-          : canSelect
-          ? unselectedClasses[variant]
-          : 'border-ecoar-dark-300/20 dark:border-ecoar-light-900/[0.04] bg-ecoar-light-800 dark:bg-ecoar-light-900/[0.03] opacity-40 cursor-not-allowed'
+      className={`p-3.5 rounded-none border text-left transition-colors duration-200 overflow-hidden ${
+        isSelected ? selectedPanel : canSelect ? `${idlePanel} cursor-pointer` : disabledPanel
       } ${className}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex-1 min-w-0">
-          <div className="text-ecoar-dark-900 dark:text-ecoar-light-900/90 font-semibold text-sm leading-tight">{name}</div>
+          <div className="font-display uppercase tracking-[-0.01em] text-ecoar-dark-900 dark:text-ecoar-light-900 text-sm leading-tight">{name}</div>
           {level && (
-            <div className="text-[11px] text-ecoar-dark-500 dark:text-ecoar-light-900/50 mt-0.5">
-              {levelLabel || `Nível ${level}`} {level <= 12 ? `(${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][level - 1]})` : ''}
+            <div className={`${microLabel} mt-0.5`}>
+              {levelLabel || `Nível ${level}`} {level <= 12 ? `(${romanNumerals[level - 1]})` : ''}
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 text-ecoar-dark-900 dark:text-ecoar-light-900/90 font-medium text-xs bg-ecoar-magenta-50 dark:bg-ecoar-magenta-700/15 px-1.5 py-0.5 rounded border border-ecoar-magenta-300 dark:border-ecoar-magenta-500/30 whitespace-nowrap">
+        <div className="flex-shrink-0 text-ecoar-magenta font-semibold text-[11px] uppercase tracking-[0.08em] bg-ecoar-magenta/10 px-1.5 py-0.5 border border-ecoar-magenta/50 whitespace-nowrap">
           {cost} {costLabel}
           {secondaryCost && (
-            <div className="text-[10px] text-ecoar-dark-700 dark:text-ecoar-light-900/70">({secondaryCost})</div>
+            <div className="text-[9px] text-ecoar-magenta/80 normal-case tracking-normal">({secondaryCost})</div>
           )}
         </div>
       </div>
-      <p className="text-ecoar-dark-600 dark:text-ecoar-light-900/60 text-xs leading-relaxed mb-1 line-clamp-3">{description}</p>
+      <p className={`${mutedBody} mb-1 line-clamp-3`}>{description}</p>
       {effects && (
-        <p className="text-ecoar-dark-500 dark:text-ecoar-light-900/50 text-[11px] mb-1.5">{effects}</p>
+        <p className="text-[11px] text-ecoar-dark-500 dark:text-[#adb5bd] mb-1.5">{effects}</p>
       )}
       {requirements && requirements.length > 0 && (
-        <div className="text-ecoar-dark-700 dark:text-ecoar-light-900/70 text-[11px]">
+        <div className={microLabel}>
           Requisitos: {requirements.join(', ')}
         </div>
       )}
       {requirementsText && (
-        <div className="text-ecoar-dark-700 dark:text-ecoar-light-900/70 text-[11px] mt-1.5 pt-1.5 border-t border-ecoar-dark-300/30 dark:border-ecoar-light-900/[0.06]">
+        <div className={`${microLabel} mt-1.5 pt-1.5 border-t border-ecoar-teal/25 dark:border-ecoar-teal/20`}>
           {requirementsText}
         </div>
       )}

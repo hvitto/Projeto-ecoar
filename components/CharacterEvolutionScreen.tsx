@@ -1084,7 +1084,7 @@ export default function CharacterEvolutionScreen({
               return (
                 <div
                   key={key}
-                  className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 flex items-center justify-between gap-3"
+                  className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85 flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 truncate">
@@ -1212,7 +1212,7 @@ export default function CharacterEvolutionScreen({
               </div>
 
               {selectedSkill && (
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                   {(() => {
                     const v = draftSkills[selectedSkill.id] ?? { level: 0, specialization: undefined }
                     const baselineV = baselineSkills[selectedSkill.id] ?? { level: 0, specialization: undefined }
@@ -1336,7 +1336,7 @@ export default function CharacterEvolutionScreen({
               return (
                 <div
                   key={apt.id}
-                  className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 flex items-center justify-between gap-3"
+                  className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85 flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-slate-900 dark:text-ecoar-light-900 truncate">{apt.name}</div>
@@ -1480,7 +1480,7 @@ export default function CharacterEvolutionScreen({
               </p>
             </div>
             {!draftEcoar ? (
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+              <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   Escolha um Ecoar acima para Distúrbios e singularidades.
                 </div>
@@ -1576,7 +1576,7 @@ export default function CharacterEvolutionScreen({
               </p>
             </div>
             {!draftEscolaMarcial || !martialSchool ? (
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+              <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   {draftEscolaMarcial
                     ? 'Escola não encontrada no catálogo. Escolha outra opção.'
@@ -1661,13 +1661,13 @@ export default function CharacterEvolutionScreen({
               </p>
             </div>
             {!draftRaca ? (
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+              <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   Escolha uma raça acima para listar e comprar singularidades raciais com PE.
                 </div>
               </div>
             ) : racialSingularitiesForEvolution.length === 0 ? (
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+              <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   Nenhuma singularidade racial disponível para compra com PE nesta evolução para esta raça.
                 </div>
@@ -1752,7 +1752,7 @@ export default function CharacterEvolutionScreen({
               </div>
 
               {!draftTrilha || !selectedPath ? (
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                   <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                     Escolha uma trilha acima para comprar a singularidade base e poderes com PE.
                   </div>
@@ -2003,7 +2003,7 @@ export default function CharacterEvolutionScreen({
                   )}
 
                   {draftTrilha === 'anti-cacada' && draftPathSingularityBase && (
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10">
+                    <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                       <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                         A base Anti-Caçador concede Corrupção, Imunidade, Cultista e Promessa de Poder. Conteúdo
                         adicional desta trilha ainda não está catalogado além da singularidade base.
@@ -2027,20 +2027,20 @@ export default function CharacterEvolutionScreen({
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 bg-ecoar-light/95 dark:bg-ecoar-dark-900/95 border-b border-slate-200 dark:border-ecoar-light-900/20">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 bg-white/90 dark:bg-[#1a1d21]/95 border-b border-ecoar-teal/50 dark:border-ecoar-teal">
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center gap-2 text-sm text-ecoar-teal dark:text-ecoar-teal-400 hover:underline transition-colors"
+          className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-ecoar-teal hover:text-ecoar-magenta transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </button>
 
         <div className="flex-1 min-w-0 text-right">
-          <div className="text-xs font-semibold text-slate-700 dark:text-ecoar-light-900/80 uppercase tracking-wider">
-            Evolução do Personagem
+          <div className="font-display text-sm uppercase tracking-[-0.02em] text-slate-900 dark:text-ecoar-light-900">
+            Evolução
           </div>
-          <div className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mt-1">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-ecoar-magenta mt-1">
             {draftSummaryText}
           </div>
         </div>
@@ -2049,17 +2049,17 @@ export default function CharacterEvolutionScreen({
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className="py-4 px-3 sm:px-4 md:px-6">
           <div className="max-w-[1100px] mx-auto space-y-6">
-            {/* Info header */}
-            <div className="bg-white dark:bg-ecoar-dark-800/70 backdrop-blur-sm border border-slate-200 dark:border-ecoar-light-900/12 rounded-lg p-4 sm:p-5 shadow-sm overflow-hidden">
+            <div className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-4 sm:p-5 overflow-hidden">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-ecoar-teal/20 dark:bg-ecoar-teal-600/20 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-ecoar-teal dark:text-ecoar-teal-400" />
+                  <div className="w-10 h-10 bg-ecoar-magenta/15 border border-ecoar-magenta/40 rounded-none flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-ecoar-magenta" />
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900">Gastar Pontos de Evolução</div>
-                    <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-1">
-                      Poder máximo para traços: {nivelPoder} • Alma: {nivelAlma}
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-ecoar-teal mb-1">EVOLVE · PE</p>
+                    <div className="font-display text-lg uppercase tracking-[-0.02em] text-slate-900 dark:text-ecoar-light-900">Gastar Pontos de Evolução</div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-[#adb5bd] mt-1">
+                      Poder máx. traços: {nivelPoder} · Alma: {nivelAlma}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60 mt-2">
                       Custos do anexo: Atributos 10 PE • Habilidades 10/5 PE • Aptidões 20 PE

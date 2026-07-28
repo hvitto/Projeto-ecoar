@@ -3,8 +3,11 @@
 import type { ReactNode } from 'react'
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
 import type { SystemSingularityActivationType } from '@/lib/systemSingularities'
-import { SHEET_TAB_TO_KINDS } from '@/features/character/sheet/singularityTabKinds'
-import type { SheetTabId, SheetWidgetId } from '@/features/character/sheet/sheetLayoutTypes'
+import { SING_GROUP_TO_KINDS } from '@/features/character/sheet/singularityTabKinds'
+import type {
+  SingularitySheetKindGroup,
+  SheetWidgetId,
+} from '@/features/character/sheet/sheetLayoutTypes'
 import { useSheetRuntime } from '@/features/character/sheet/SheetRuntimeContext'
 import { SingularityColumnWidget } from '@/features/character/sheet/widgets/SingularityColumnWidget'
 import { DisturbiosSummaryWidget } from '@/features/character/sheet/widgets/DisturbiosSummaryWidget'
@@ -43,13 +46,13 @@ function SingularityRuntimeColumn({
   activation: SystemSingularityActivationType
   onToggleConditional: SingularityRenderProps['onToggleConditional']
 }) {
-  const { characterData, canEditSheet, isEditing, singularityBonuses } = useSheetRuntime()
+  const { characterData, canMutateMesa, isEditing, singularityBonuses } = useSheetRuntime()
   return (
     <SingularityColumnWidget
       kinds={kinds}
       activation={activation}
       characterData={characterData}
-      canEdit={canEditSheet}
+      canEdit={canMutateMesa}
       isEditing={isEditing}
       onToggleConditional={onToggleConditional}
       singularityBonuses={singularityBonuses}
@@ -58,16 +61,14 @@ function SingularityRuntimeColumn({
 }
 
 export function renderSingularityWidget(
-  tabId: SheetTabId,
+  group: SingularitySheetKindGroup,
   id: SheetWidgetId,
   props: SingularityRenderProps,
 ): ReactNode {
-  if (tabId === 'basico' || tabId === 'equipamentos') return null
-
-  const kinds = SHEET_TAB_TO_KINDS[tabId]
+  const kinds = SING_GROUP_TO_KINDS[group]
 
   if (id === 'disturbios') {
-    if (tabId !== 'sing-ecoar') return null
+    if (group !== 'ecoar') return null
     return <DisturbiosRuntimeWidget />
   }
 

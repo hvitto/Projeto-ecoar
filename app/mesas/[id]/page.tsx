@@ -210,7 +210,7 @@ export default function MesaPage() {
             {myCharacters.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800 transition-all duration-normal hover:shadow-md"
+                className="flex items-center justify-between p-3 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/85 dark:bg-ecoar-dark-800/85 transition-colors duration-normal hover:border-ecoar-magenta"
               >
                 <span className="font-medium text-slate-900 dark:text-ecoar-light-900">{c.name}</span>
                 <Button size="sm" onClick={() => handlePickCharacter(c)}>
@@ -254,15 +254,16 @@ export default function MesaPage() {
             <img
               src={table.coverImageUrl}
               alt=""
-              className="w-full md:w-48 h-32 object-cover rounded-lg"
+              className="w-full md:w-48 h-32 object-cover rounded-none border border-ecoar-teal/40"
             />
           ) : (
-            <div className="w-full md:w-48 h-32 rounded-lg bg-slate-200 dark:bg-ecoar-dark-800 flex items-center justify-center">
-              <FileText className="w-12 h-12 text-slate-400" />
+            <div className="w-full md:w-48 h-32 rounded-none border border-ecoar-teal/40 bg-ecoar-dark-800/50 flex items-center justify-center">
+              <FileText className="w-12 h-12 text-ecoar-teal/50" />
             </div>
           )}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-ecoar-light-900/90 mb-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-1">TABLE · SESSION</p>
+            <h1 className="font-display text-[clamp(1.6rem,4vw,2.4rem)] uppercase leading-[0.9] tracking-[-0.03em] text-slate-900 dark:text-ecoar-light-900 mb-2">
               {table.name}
             </h1>
             {table.description && (
@@ -297,7 +298,7 @@ export default function MesaPage() {
         </div>
 
         {isPlayerWithoutCharacter && (
-          <div className="mb-6 p-4 rounded-lg border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 bg-ecoar-teal-50/50 dark:bg-ecoar-teal/5">
+          <div className="mb-6 p-4 rounded-none border border-ecoar-teal-300/50 dark:border-ecoar-teal/30 bg-ecoar-teal-50/50 dark:bg-ecoar-teal/5">
             <p className="text-sm text-slate-700 dark:text-ecoar-light-900/80 mb-3">
               Você ainda não vinculou uma ficha a esta mesa.
             </p>
@@ -323,7 +324,7 @@ export default function MesaPage() {
               {tableCharacters.map((item) => (
                 <li
                   key={item.character.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-800"
+                  className="rounded-none border border-slate-200 bg-white p-4 dark:border-ecoar-light-900/20 dark:bg-ecoar-dark-800"
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="font-medium text-slate-900 dark:text-ecoar-light-900">

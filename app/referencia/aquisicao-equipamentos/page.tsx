@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import EquipmentCatalog from '@/components/equipment/EquipmentCatalog'
 
 export const metadata = {
-  title: 'Aquisição de equipamentos | ECOAR Beyond',
+  title: 'Aquisição de equipamentos | ECOAR +',
   description: 'Catálogo de referência de armas, vestuário e utilitários — Ecoar RPG (playtest).',
 }
 

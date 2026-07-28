@@ -1,4 +1,4 @@
-# ECOAR Beyond - RPG Character Sheet
+# ECOAR + - RPG Character Sheet
 
 Sistema moderno de criação e gerenciamento de personagens para o RPG ECOAR, inspirado no D&D Beyond, construído com Next.js e Tailwind CSS.
 

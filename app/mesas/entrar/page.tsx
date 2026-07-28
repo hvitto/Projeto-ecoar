@@ -73,13 +73,14 @@ export default function EntrarMesaPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
-        <h1 className="text-xl sm:text-2xl font-display font-semibold text-slate-900 dark:text-ecoar-light-900/90 mb-2">Entrar em uma mesa</h1>
-        <p className="text-sm text-slate-600 dark:text-ecoar-light-900/60 mb-6">
-          Cole o link de convite que o GM enviou ou digite o código de 6 caracteres.
+        <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-2">TABLES · JOIN</p>
+        <h1 className="font-display text-[clamp(1.6rem,4vw,2.4rem)] uppercase leading-[0.9] tracking-[-0.03em] text-slate-900 dark:text-ecoar-light-900 mb-2">Entrar em uma mesa</h1>
+        <p className="text-xs text-slate-600 dark:text-[#adb5bd] mb-6 max-w-[42ch]">
+          Cole o link de convite do GM ou digite o código de 6 caracteres.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-none text-sm text-red-400">
               {error}
             </div>
           )}

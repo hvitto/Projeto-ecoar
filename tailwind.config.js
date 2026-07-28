@@ -18,11 +18,10 @@ module.exports = {
           'teal': '#7bb7bb',
           'light': '#f5f5f5',
           
-          // Variações mais escuras (para melhor contraste)
-          'dark-900': '#2a2a2a',
-          'dark-800': '#3a3a3a',
-          'dark-700': '#404040',
-          'dark-600': '#505050',
+          'dark-900': '#1a1d21',
+          'dark-800': '#212529',
+          'dark-700': '#2c3036',
+          'dark-600': '#3a4048',
           
           // Variações mais claras (para backgrounds sutis)
           'dark-500': '#606060',
@@ -102,10 +101,11 @@ module.exports = {
         },
       },
       fontFamily: {
-        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-display)', 'Georgia', 'serif'],
-        'ecoar': ['var(--font-body)', 'system-ui', 'sans-serif'],
-        'ecoar-display': ['var(--font-display)', 'Georgia', 'serif'],
+        body: ['var(--font-body)', 'ui-monospace', 'monospace'],
+        mono: ['var(--font-body)', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)', 'Impact', 'sans-serif'],
+        'ecoar': ['var(--font-body)', 'ui-monospace', 'monospace'],
+        'ecoar-display': ['var(--font-display)', 'Impact', 'sans-serif'],
       },
       transitionDuration: {
         fast: '150ms',

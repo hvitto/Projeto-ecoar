@@ -140,7 +140,7 @@ export default function PlayerSingularitiesPage() {
             <p className="text-sm text-ecoar-magenta dark:text-ecoar-magenta/90">{error}</p>
           )}
           {!loading && !error && character && (
-            <div className="rounded-xl border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/50 p-4">
+            <div className="rounded-none border border-slate-200 dark:border-ecoar-light-900/20 bg-white dark:bg-ecoar-dark-800/50 p-4">
               <PlayerSingularitiesSection characterData={character.data} />
             </div>
           )}

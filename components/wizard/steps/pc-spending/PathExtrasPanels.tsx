@@ -1,6 +1,8 @@
 'use client'
 
 import SingularityCard from '@/shared/components/ui/SingularityCard'
+import SelectPlate from '@/components/beyond/SelectPlate'
+import RangeFrame from '@/components/beyond/RangeFrame'
 import type { PathBookEntry } from '@/data/pathBookContent'
 import {
   PATH_HONOR_CODES,
@@ -76,24 +78,19 @@ export function EsperancaPathExtras(props: SharedProps) {
   const schools = getEsperancaProjectionSchools()
   const costLabel = props.costLabel ?? 'PC'
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-          Projeções Artísticas
-        </h4>
-        <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
-          Aprimoramentos das escolas marciais de Vox (Barda, Desenhista, Musicista). O nível I de cada
-          escola é concedido automaticamente ao preencher o requisito marcial.
-        </p>
-      </div>
+    <RangeFrame title="Projeções artísticas" refId="PATH-ESP" bodyClassName="p-3">
+      <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-4">
+        Aprimoramentos das escolas marciais de Vox (Barda, Desenhista, Musicista). O nível I de cada
+        escola é concedido automaticamente ao preencher o requisito marcial.
+      </p>
       {schools.map((school) => {
         const projections = getEsperancaProjectionsBySchool(school)
         return (
-          <div key={school} className="space-y-3">
-            <h5 className="text-sm font-semibold text-ecoar-teal dark:text-ecoar-teal-400">
+          <div key={school} className="space-y-2 mb-5 last:mb-0">
+            <h5 className="font-display text-xs uppercase tracking-[0.04em] text-ecoar-teal border-b border-ecoar-teal/35 pb-1.5">
               {ESPERANCA_SCHOOL_LABELS[school] ?? school}
             </h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {projections.map((entry) => {
                 const isSelected = props.pathExtraIds.includes(entry.id)
                 const check = canSelectPathBookEntry(entry, {
@@ -124,7 +121,7 @@ export function EsperancaPathExtras(props: SharedProps) {
           </div>
         )
       })}
-    </div>
+    </RangeFrame>
   )
 }
 
@@ -151,46 +148,32 @@ export function PatronosPathExtras(
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-          Patrono
-        </h4>
-        <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+    <div className="space-y-4">
+      <RangeFrame title="Patrono" refId="PATH-PAT" bodyClassName="p-3">
+        <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-3">
           Escolha uma divindade, entidade menor ou entidade planar. A primeira bênção é concedida
           automaticamente.
         </p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {PATH_PATRONS.map((p) => {
-          const isSelected = props.pathPatronChoice === p.id
-          return (
-            <button
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          {PATH_PATRONS.map((p, index) => (
+            <SelectPlate
               key={p.id}
-              type="button"
+              index={index}
+              title={p.name}
+              description={p.description}
+              selected={props.pathPatronChoice === p.id}
               onClick={() => selectPatron(p.id)}
-              className={`text-left p-4 rounded-xl border-2 transition-all ${
-                isSelected
-                  ? 'border-ecoar-teal bg-ecoar-teal/10'
-                  : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50'
-              }`}
-            >
-              <div className="text-xs uppercase tracking-wide text-ecoar-teal/80 mb-1">{p.typeLabel}</div>
-              <div className="font-semibold text-slate-900 dark:text-ecoar-light-900">{p.name}</div>
-              <p className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mt-2 leading-relaxed">
-                {p.description}
-              </p>
-            </button>
-          )
-        })}
-      </div>
+              meta={
+                <span className="text-[9px] uppercase tracking-[0.12em] text-ecoar-teal">{p.typeLabel}</span>
+              }
+            />
+          ))}
+        </div>
+      </RangeFrame>
 
-      {patron && (
-        <div className="space-y-3">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-            Bênçãos — {patron.name}
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {patron ? (
+        <RangeFrame title={`Bênçãos · ${patron.name}`} refId="PATH-BEN" bodyClassName="p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {blessings.map((entry) => {
               const isSelected = props.pathExtraIds.includes(entry.id)
               const isFirst = entry.id === patron.firstBlessingId
@@ -222,8 +205,8 @@ export function PatronosPathExtras(
               )
             })}
           </div>
-        </div>
-      )}
+        </RangeFrame>
+      ) : null}
     </div>
   )
 }
@@ -245,50 +228,40 @@ export function ViolenciaPathExtras(
   const selectedCode = props.pathHonorCode ? getPathHonorCodeById(props.pathHonorCode) : undefined
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-          Código de Honra
-        </h4>
-        <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+    <div className="space-y-4">
+      <RangeFrame title="Código de honra" refId="PATH-HON" bodyClassName="p-3">
+        <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-3">
           Escolha um código. Ultraviolências só concedem bônus enquanto você age de acordo com ele.
         </p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {PATH_HONOR_CODES.map((code) => {
-          const isSelected = props.pathHonorCode === code.id
-          return (
-            <button
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {PATH_HONOR_CODES.map((code, index) => (
+            <SelectPlate
               key={code.id}
-              type="button"
+              index={index}
+              title={code.name}
+              description={`${code.limitation} · ${code.benefitName}: ${code.benefit}`}
+              selected={props.pathHonorCode === code.id}
               onClick={() => props.onPathHonorCodeChange(code.id)}
-              className={`text-left p-4 rounded-xl border-2 transition-all ${
-                isSelected
-                  ? 'border-ecoar-teal bg-ecoar-teal/10'
-                  : 'border-slate-200 dark:border-ecoar-light-900/20 bg-slate-50 dark:bg-ecoar-light-900/10 hover:border-ecoar-teal/50'
-              }`}
-            >
-              <div className="font-semibold text-slate-900 dark:text-ecoar-light-900">{code.name}</div>
-              <p className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mt-2 leading-relaxed">
-                <span className="font-medium text-ecoar-magenta/90">Limitação:</span> {code.limitation}
-              </p>
-              <p className="text-xs text-slate-600 dark:text-ecoar-light-900/70 mt-2 leading-relaxed">
-                <span className="font-medium text-ecoar-teal/90">{code.benefitName}:</span> {code.benefit}
-              </p>
-            </button>
-          )
-        })}
-      </div>
+              meta={
+                <span className="text-[9px] uppercase tracking-[0.1em] text-ecoar-magenta">
+                  Limitação · {code.limitation.slice(0, 40)}…
+                </span>
+              }
+            />
+          ))}
+        </div>
+      </RangeFrame>
 
-      {selectedCode && (
-        <div className="space-y-3">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-ecoar-light-900 border-b border-slate-200 dark:border-ecoar-light-900/20 pb-2">
-            Ultraviolências ({selectedUvCount}/{nivelPoder})
-          </h4>
-          <p className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
+      {selectedCode ? (
+        <RangeFrame
+          title={`Ultraviolências · ${selectedUvCount}/${nivelPoder}`}
+          refId="PATH-UV"
+          bodyClassName="p-3"
+        >
+          <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] mb-3">
             Máximo igual ao seu Nível de Poder ({nivelPoder}).
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {uvList.map((entry) => {
               const isSelected = props.pathExtraIds.includes(entry.id)
               const check = canSelectPathBookEntry(entry, {
@@ -317,19 +290,15 @@ export function ViolenciaPathExtras(
                     })
                   }
                   requirementsText={
-                    atCap
-                      ? 'Limite de Nível de Poder atingido'
-                      : !check.ok
-                        ? check.reason
-                        : undefined
+                    atCap ? 'Limite de Nível de Poder atingido' : !check.ok ? check.reason : undefined
                   }
                   variant="teal"
                 />
               )
             })}
           </div>
-        </div>
-      )}
+        </RangeFrame>
+      ) : null}
     </div>
   )
 }
