@@ -19,8 +19,15 @@ const archivoBlack = Archivo_Black({
 })
 
 export const metadata: Metadata = {
-  title: 'ECOAR + - Character Sheet',
-  description: 'Sistema de criação e gerenciamento de personagens para o RPG ECOAR',
+  metadataBase: new URL('https://ecoar.dev'),
+  applicationName: 'ECOAR +',
+  title: {
+    default: 'ECOAR + | Companion digital do RPG ECOAR',
+    template: '%s | ECOAR +',
+  },
+  description:
+    'Companion digital do RPG de mesa ECOAR: crie e gerencie fichas de personagem com raças, atributos, escolas marciais, trilhas e singularidades.',
+  keywords: ['ECOAR', 'ECOAR +', 'RPG', 'ficha de personagem', 'RPG de mesa', 'companion'],
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -30,6 +37,25 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/site.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: 'https://ecoar.dev',
+    siteName: 'ECOAR +',
+    title: 'ECOAR + | Companion digital do RPG ECOAR',
+    description:
+      'Companion digital do RPG de mesa ECOAR: crie e gerencie fichas de personagem.',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'ECOAR + | Companion digital do RPG ECOAR',
+    description:
+      'Companion digital do RPG de mesa ECOAR: crie e gerencie fichas de personagem.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' as const }
