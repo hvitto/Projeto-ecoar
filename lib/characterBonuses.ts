@@ -27,9 +27,24 @@ export type CharacterSingularitySelectionSlice = {
   singularidadesCondicionaisPathAtivas?: string[]
 }
 
-/** Monta o payload esperado por `aggregateSimpleBonuses` (system catalog). */
+export function partitionCreationAndMartialSingularityIds(input: {
+  singularidades: string[]
+  singularidadesMarciais: string[]
+  isMartialId: (id: string) => boolean
+}): { criacao: string[]; marciais: string[] } {
+  const criacao: string[] = []
+  const marciaisFromCreation: string[] = []
+  for (const id of input.singularidades) {
+    if (input.isMartialId(id)) marciaisFromCreation.push(id)
+    else criacao.push(id)
+  }
+  const marciais = Array.from(new Set([...input.singularidadesMarciais, ...marciaisFromCreation]))
+  return { criacao, marciais }
+}
+
 export function aggregateSingularityInputFromCharacterData(
   characterData: CharacterSingularitySelectionSlice,
+  options?: { isMartialId?: (id: string) => boolean },
 ): {
   selectedSingularityIdsByKind: {
     criacao: string[]
@@ -46,11 +61,22 @@ export function aggregateSingularityInputFromCharacterData(
     path: string[]
   }
 } {
+  const partitioned = options?.isMartialId
+    ? partitionCreationAndMartialSingularityIds({
+        singularidades: characterData.singularidades,
+        singularidadesMarciais: characterData.singularidadesMarciais,
+        isMartialId: options.isMartialId,
+      })
+    : {
+        criacao: characterData.singularidades,
+        marciais: characterData.singularidadesMarciais,
+      }
+
   return {
     selectedSingularityIdsByKind: {
-      criacao: characterData.singularidades,
+      criacao: partitioned.criacao,
       ecoar: characterData.singularidadesEcoar,
-      marciais: characterData.singularidadesMarciais,
+      marciais: partitioned.marciais,
       raciais: characterData.singularidadesRaciais,
       path: characterData.singularidadesPath ?? [],
     },

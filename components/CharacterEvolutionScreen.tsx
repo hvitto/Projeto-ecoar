@@ -25,10 +25,12 @@ import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import {
   getAllMartialSchools,
   getMartialSchoolDataByIdResolved,
+  getMartialSchoolSingularityById,
   MARTIAL_SCHOOL_DATA_ID_TO_UI_ID,
   resolveMartialSchoolDataId,
   type MartialSchoolSingularity,
 } from '@/data/martialSchoolSingularities'
+import { partitionCreationAndMartialSingularityIds } from '@/lib/characterBonuses'
 import { getMartialSchoolById } from '@/data/martialSchools'
 import { races } from '@/data/races'
 import { paths, getPathById } from '@/data/paths'
@@ -66,7 +68,7 @@ import {
 
 type EvolutionTab = 'tracos' | 'singularidades'
 type TraitsSubTab = 'atributos' | 'habilidades' | 'aptidoes'
-type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'raciais' | 'trilhas'
+type SingularitiesSubTab = 'criacao' | 'ecoa' | 'marciais' | 'maestrias' | 'raciais' | 'trilhas'
 
 type AttributeKey = 'carisma' | 'finesse' | 'forca' | 'inteligencia' | 'percepcao' | 'vitalidade' | 'vontade'
 
@@ -187,9 +189,23 @@ export default function CharacterEvolutionScreen({
     return shallowCopyRecord(a)
   }, [initialCharacterData?.aptitudes])
 
+  const partitionedBaselineSingularities = useMemo(
+    () =>
+      partitionCreationAndMartialSingularityIds({
+        singularidades: Array.isArray(initialCharacterData?.singularidades)
+          ? initialCharacterData.singularidades
+          : [],
+        singularidadesMarciais: Array.isArray(initialCharacterData?.singularidadesMarciais)
+          ? initialCharacterData.singularidadesMarciais
+          : [],
+        isMartialId: (id) => Boolean(getMartialSchoolSingularityById(id)),
+      }),
+    [initialCharacterData?.singularidades, initialCharacterData?.singularidadesMarciais],
+  )
+
   const baselineSingularidadesCriacao = useMemo<string[]>(
-    () => Array.isArray(initialCharacterData?.singularidades) ? initialCharacterData.singularidades : [],
-    [initialCharacterData?.singularidades]
+    () => partitionedBaselineSingularities.criacao,
+    [partitionedBaselineSingularities],
   )
 
   const baselineSingularidadesEcoar = useMemo<string[]>(
@@ -198,8 +214,8 @@ export default function CharacterEvolutionScreen({
   )
 
   const baselineSingularidadesMarciais = useMemo<string[]>(
-    () => Array.isArray(initialCharacterData?.singularidadesMarciais) ? initialCharacterData.singularidadesMarciais : [],
-    [initialCharacterData?.singularidadesMarciais]
+    () => partitionedBaselineSingularities.marciais,
+    [partitionedBaselineSingularities],
   )
   const baselineSingularidadesRaciais = useMemo<string[]>(
     () => Array.isArray(initialCharacterData?.singularidadesRaciais) ? initialCharacterData.singularidadesRaciais : [],
@@ -325,18 +341,9 @@ export default function CharacterEvolutionScreen({
     [getEcoarSingularitiesByEcoarId, baselineSingularidadesEcoar]
   )
 
-  const handleDraftEscolaMarcialChange = useCallback(
-    (next: string) => {
-      setDraftEscolaMarcial(next)
-      setDraftSingularidadesMarciais((prev) => {
-        if (!next) return [...baselineSingularidadesMarciais]
-        const school = getMartialSchoolDataByIdResolved(next)
-        const allowed = new Set(school?.singularities.map((s) => s.id) ?? [])
-        return prev.filter((id) => allowed.has(id))
-      })
-    },
-    [baselineSingularidadesMarciais]
-  )
+  const handleDraftEscolaMarcialChange = useCallback((next: string) => {
+    setDraftEscolaMarcial(next)
+  }, [])
 
   const handleDraftRacaChange = useCallback(
     (next: string) => {
@@ -1200,7 +1207,7 @@ export default function CharacterEvolutionScreen({
                         </div>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-ecoar-light-900/60 mt-2">
-                        Efetivo: {effective} / {nivelPoder} (teto)
+                        Nível: {v.level} / {poderCapBase} (teto) • Efetivo: {effective}
                       </div>
                       {/* Baseline lock indicator */}
                       {v.level > (baselineV.level ?? 0) || (v.specialization && !baselineV.specialization) ? (
@@ -1220,12 +1227,11 @@ export default function CharacterEvolutionScreen({
 
                     const hasSpec = !!v.specialization
                     const effective = v.level + (hasSpec ? 1 : 0)
-                    const maxEffective = Math.min(nivelPoder, 8)
 
                     const baselineHasSpec = !!baselineV.specialization
 
                     const canMinus = hasMasterOverride || v.level > (baselineV.level ?? 0)
-                    const canPlus = hasMasterOverride || (v.level + 1 <= 8 && effective + 1 <= maxEffective && pontosDisponiveisAtual >= costPerLevel)
+                    const canPlus = hasMasterOverride || (v.level + 1 <= poderCapBase && pontosDisponiveisAtual >= costPerLevel)
 
                     return (
                       <div className="space-y-4">
@@ -1234,7 +1240,7 @@ export default function CharacterEvolutionScreen({
                             <div>
                               <div className="text-base font-semibold text-slate-900 dark:text-ecoar-light-900">{selectedSkill.name}</div>
                               <div className="text-xs text-slate-500 dark:text-ecoar-light-900/60">
-                                Efetivo: {effective} / {nivelPoder}
+                                Nível: {v.level} / {poderCapBase} • Efetivo: {effective}
                               </div>
                             </div>
                             <div className="text-right">
@@ -1287,10 +1293,6 @@ export default function CharacterEvolutionScreen({
 
                                 // Lock: não permitir remover especialização que já existia na baseline.
                                 if (!hasMasterOverride && baselineHasSpec && !nextHasSpec) return
-
-                                // Lock: não permitir adicionar se estourar o teto efetivo.
-                                const nextEffective = v.level + (nextHasSpec ? 1 : 0)
-                                if (!hasMasterOverride && nextEffective > maxEffective) return
 
                                 // Afford: adicionar (baseline sem spec -> com spec) custa PE.
                                 if (!hasMasterOverride && !baselineHasSpec && !currentHasSpec && nextHasSpec && pontosDisponiveisAtual < costPerLevel) return
@@ -1380,14 +1382,27 @@ export default function CharacterEvolutionScreen({
     'w-full max-w-lg px-3 py-2 rounded-lg border border-slate-200 dark:border-ecoar-light-900/30 bg-white dark:bg-ecoar-dark-700 text-slate-900 dark:text-ecoar-light-900 text-sm focus:outline-none focus:ring-2 focus:ring-ecoar-teal/30'
 
   const renderSingularitiesTab = () => {
-    const martialSchool = draftEscolaMarcial ? getMartialSchoolDataByIdResolved(draftEscolaMarcial) : null
+    const isMasteriesTab = singSubTab === 'maestrias'
+    const selectedMartialSchool = draftEscolaMarcial
+      ? getMartialSchoolDataByIdResolved(draftEscolaMarcial)
+      : null
+    const martialSchool =
+      selectedMartialSchool &&
+      (isMasteriesTab
+        ? selectedMartialSchool.class === 'Maestria'
+        : selectedMartialSchool.class !== 'Maestria')
+        ? selectedMartialSchool
+        : null
+    const martialCatalog = getAllMartialSchools().filter((item) =>
+      isMasteriesTab ? item.class === 'Maestria' : item.class !== 'Maestria'
+    )
     const ecoarSingularities = draftEcoar ? getEcoarSingularitiesByEcoarId(draftEcoar) : []
 
     return (
       <div className="space-y-5">
         {/* Tabs de Singularidades */}
         <div className="flex gap-2 border-b border-slate-200 dark:border-ecoar-light-900/20 flex-wrap">
-          {(['criacao', 'ecoa', 'marciais', 'raciais', 'trilhas'] as const).map((t) => (
+          {(['criacao', 'ecoa', 'marciais', 'maestrias', 'raciais', 'trilhas'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setSingSubTab(t)}
@@ -1402,7 +1417,9 @@ export default function CharacterEvolutionScreen({
                 : t === 'ecoa'
                 ? 'Ecoar'
                 : t === 'marciais'
-                ? 'Marciais'
+                ? 'Singularidades Marciais'
+                : t === 'maestrias'
+                ? 'Maestrias'
                 : t === 'raciais'
                 ? 'Raciais'
                 : 'Trilhas'}
@@ -1555,32 +1572,38 @@ export default function CharacterEvolutionScreen({
           </div>
         )}
 
-        {singSubTab === 'marciais' && (
+        {(singSubTab === 'marciais' || singSubTab === 'maestrias') && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">Escola marcial</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-ecoar-light-900/90">
+                {isMasteriesTab ? 'Maestria' : 'Escola marcial'}
+              </label>
               <select
                 value={draftEscolaMarcial}
                 onChange={(e) => handleDraftEscolaMarcialChange(e.target.value)}
                 className={selectEvolutionClass}
               >
-                <option value="">Selecione uma escola…</option>
-                {getAllMartialSchools().map((s) => (
+                <option value="">
+                  {isMasteriesTab ? 'Selecione uma maestria…' : 'Selecione uma escola…'}
+                </option>
+                {martialCatalog.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-500 dark:text-ecoar-light-900/55">
-                Pode escolher agora mesmo que não tenha definido na criação. Ao trocar a escola, singularidades marciais incompatíveis saem do rascunho.
+                {isMasteriesTab
+                  ? 'Escolha uma maestria de armas para comprar suas singularidades com PE. Singularidades de outras maestrias e escolas continuam salvas.'
+                  : 'Escolha uma escola marcial para comprar suas singularidades com PE. Singularidades de outras escolas e maestrias continuam salvas.'}
               </p>
             </div>
             {!draftEscolaMarcial || !martialSchool ? (
               <div className="p-4 rounded-none border border-ecoar-teal/40 dark:border-ecoar-teal/45 bg-white/80 dark:bg-ecoar-dark-800/85">
                 <div className="text-sm text-slate-600 dark:text-ecoar-light-900/70">
                   {draftEscolaMarcial
-                    ? 'Escola não encontrada no catálogo. Escolha outra opção.'
-                    : 'Escolha uma escola marcial acima para listar e comprar singularidades com PE.'}
+                    ? `${isMasteriesTab ? 'Maestria' : 'Escola'} não selecionada nesta aba. Escolha uma opção.`
+                    : `Escolha uma ${isMasteriesTab ? 'maestria' : 'escola marcial'} acima para listar e comprar singularidades com PE.`}
                 </div>
               </div>
             ) : (
@@ -1806,6 +1829,11 @@ export default function CharacterEvolutionScreen({
                               canAfford={canAfford}
                               canSelect={canSelect}
                               onClick={() => togglePathBase(base.id)}
+                              effects={
+                                Array.isArray(base.effects) && base.effects.length > 0
+                                  ? base.effects.join(' · ')
+                                  : undefined
+                              }
                               variant="teal"
                             />
                           )

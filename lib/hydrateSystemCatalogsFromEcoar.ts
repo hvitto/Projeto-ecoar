@@ -42,6 +42,31 @@ function tierOrLevel(s: EcoarSingularity, m: Record<string, unknown>): number {
   return 1
 }
 
+function reqRecordFromEntries(
+  s: EcoarSingularity,
+  type: 'attributes' | 'skills' | 'aptitudes',
+): Record<string, number> | undefined {
+  const fromObject = s.requirements?.[type]
+  if (fromObject && Object.keys(fromObject).length > 0) return { ...fromObject }
+
+  const entries = s.requirementEntries?.filter((e) => e.type === type) ?? []
+  if (entries.length === 0) return undefined
+  const out: Record<string, number> = {}
+  for (const e of entries) {
+    const key = e.key || e.value
+    const n = e.numericValue
+    if (!key || typeof n !== 'number') continue
+    out[key] = n
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+function reqFromSourceMeta(s: EcoarSingularity): MartialSchoolSingularity['requirements'] | undefined {
+  const raw = meta(s).requirements
+  if (!raw || typeof raw !== 'object') return undefined
+  return raw as MartialSchoolSingularity['requirements']
+}
+
 export function hydrateMartialSchoolsFromCatalog(list: EcoarSingularity[]) {
   const bySchool = new Map<string, MartialSchoolSingularity[]>()
   for (const s of list.filter((x) => x.systemType === 'marcial')) {
@@ -49,6 +74,7 @@ export function hydrateMartialSchoolsFromCatalog(list: EcoarSingularity[]) {
     if (!schoolId) continue
     const m = meta(s)
     const split = splitDescriptionEffects(s.description)
+    const fromMeta = reqFromSourceMeta(s)
     const row: MartialSchoolSingularity = {
       id: s.id,
       schoolId,
@@ -57,8 +83,11 @@ export function hydrateMartialSchoolsFromCatalog(list: EcoarSingularity[]) {
       description: split.description,
       cost: s.cost,
       requirements: {
-        previous: reqPrevious(s),
-        nivelAlma: reqNivelAlma(s),
+        previous: reqPrevious(s) ?? fromMeta?.previous,
+        nivelAlma: reqNivelAlma(s) ?? fromMeta?.nivelAlma,
+        attributes: reqRecordFromEntries(s, 'attributes') ?? fromMeta?.attributes,
+        skills: reqRecordFromEntries(s, 'skills') ?? fromMeta?.skills,
+        aptitudes: reqRecordFromEntries(s, 'aptitudes') ?? fromMeta?.aptitudes,
       },
       effects: split.effects,
     }
@@ -69,6 +98,18 @@ export function hydrateMartialSchoolsFromCatalog(list: EcoarSingularity[]) {
   for (const school of martialSchoolData) {
     const sings = bySchool.get(school.id)
     if (sings && sings.length > 0) {
+      const prevById = new Map(school.singularities.map((sing) => [sing.id, sing]))
+      for (const row of sings) {
+        const prev = prevById.get(row.id)
+        if (!prev) continue
+        row.requirements = {
+          previous: row.requirements.previous ?? prev.requirements.previous,
+          nivelAlma: row.requirements.nivelAlma ?? prev.requirements.nivelAlma,
+          attributes: row.requirements.attributes ?? prev.requirements.attributes,
+          skills: row.requirements.skills ?? prev.requirements.skills,
+          aptitudes: row.requirements.aptitudes ?? prev.requirements.aptitudes,
+        }
+      }
       sings.sort((a, b) => a.level - b.level)
       school.singularities = sings
     }
@@ -145,6 +186,20 @@ export function hydratePathCatalogFromSingularities(list: EcoarSingularity[]) {
       const previousIds = (s.requirementEntries ?? [])
         .filter((e) => e.type === 'previous')
         .map((e) => e.value)
+      const nestedMeta =
+        m.meta && typeof m.meta === 'object' && !Array.isArray(m.meta)
+          ? (m.meta as Record<string, unknown>)
+          : undefined
+      const reconstructedMeta: Record<string, unknown> = { ...(nestedMeta ?? {}) }
+      if (typeof m.kind === 'string') reconstructedMeta.kind = m.kind
+      if (typeof m.powerId === 'string') reconstructedMeta.powerId = m.powerId
+      if (typeof m.entity === 'string') reconstructedMeta.entity = m.entity
+      if (typeof m.oath === 'string') reconstructedMeta.oath = m.oath
+      if (m.noOtherPath != null) reconstructedMeta.noOtherPath = m.noOtherPath
+      if (m.skills && typeof m.skills === 'object') reconstructedMeta.skills = m.skills
+      if (m.requirements && typeof m.requirements === 'object') {
+        reconstructedMeta.requirements = m.requirements
+      }
       book.push({
         id: s.id,
         name: s.name,
@@ -154,11 +209,11 @@ export function hydratePathCatalogFromSingularities(list: EcoarSingularity[]) {
         sourceGroup: s.sourceGroup ?? String(m.pathKind),
         activationType: s.activationType ?? 'complexa',
         pathKind: m.pathKind as PathBookKind,
-        variant: m.variant as string | undefined,
+        variant: (m.variant as string | undefined) ?? undefined,
         bonuses: s.bonuses,
         requirementsText: (m.requirementsText as string | undefined) ?? undefined,
         previousIds: previousIds.length ? previousIds : undefined,
-        meta: m.meta as Record<string, unknown> | undefined,
+        meta: Object.keys(reconstructedMeta).length > 0 ? reconstructedMeta : undefined,
       })
     }
   }

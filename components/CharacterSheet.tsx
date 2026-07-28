@@ -9,6 +9,7 @@ import {
   getAttributeModifier,
   calculateCharacterLimits,
   calculateCommonTests,
+  getCommonTestSpecializationBonus,
 } from '@/lib/calculations'
 import { skills as skillsDefinitions } from '@/data/skills'
 import { getRaceById } from '@/data/races'
@@ -21,11 +22,13 @@ import {
   aggregateSingularityInputFromCharacterData,
   CHARACTER_ATTRIBUTE_KEYS,
   computeEffectiveAttributeRows,
+  partitionCreationAndMartialSingularityIds,
 } from '@/lib/characterBonuses'
 import { buildSystemSingularities } from '@/lib/systemSingularities'
 import type { SystemSingularityKind } from '@/lib/systemSingularities'
 import { aggregateRacialRulesBySelectedIds } from '@/lib/racialRules'
 import { getRacialSingularityById, pruneRacialSingularitiesToValidRequirements } from '@/data/racialSingularities'
+import { getMartialSchoolSingularityById } from '@/data/martialSchoolSingularities'
 import {
   ARMOR_RESISTANCE_KEYS,
   type ArmorCatalogEntry,
@@ -456,9 +459,16 @@ function CharacterSheetBody({
         updated.hasVestuarioEquipState =
           hasEquippedArmorsKey || hasEquippedArmorLegacyKey || hasEquippedAccessoriesKey
 
-        // Singularities selected in the wizard
-        if (initialData.singularidades) {
-          updated.singularidades = initialData.singularidades
+        if (initialData.singularidades || initialData.singularidadesMarciais) {
+          const partitioned = partitionCreationAndMartialSingularityIds({
+            singularidades: Array.isArray(initialData.singularidades) ? initialData.singularidades : [],
+            singularidadesMarciais: Array.isArray(initialData.singularidadesMarciais)
+              ? initialData.singularidadesMarciais
+              : [],
+            isMartialId: (id) => Boolean(getMartialSchoolSingularityById(id)),
+          })
+          updated.singularidades = partitioned.criacao
+          updated.singularidadesMarciais = partitioned.marciais
         }
         if (initialData.singularidadesEcoar) {
           updated.singularidadesEcoar = initialData.singularidadesEcoar
@@ -477,9 +487,6 @@ function CharacterSheetBody({
         }
         if (Array.isArray((initialData as any).singularidadesCondicionaisCriacaoAtivas)) {
           updated.singularidadesCondicionaisCriacaoAtivas = (initialData as any).singularidadesCondicionaisCriacaoAtivas
-        }
-        if (initialData.singularidadesMarciais) {
-          updated.singularidadesMarciais = initialData.singularidadesMarciais
         }
         if (Array.isArray((initialData as any).singularidadesCondicionaisMarciaisAtivas)) {
           updated.singularidadesCondicionaisMarciaisAtivas = (initialData as any).singularidadesCondicionaisMarciaisAtivas
@@ -1285,7 +1292,9 @@ function CharacterSheetBody({
   const singularityBonuses = useMemo(
     () =>
       aggregateSimpleBonuses({
-        ...aggregateSingularityInputFromCharacterData(characterData),
+        ...aggregateSingularityInputFromCharacterData(characterData, {
+          isMartialId: (id) => systemSingularityById.get(id)?.kind === 'marcial',
+        }),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
     [
@@ -1409,8 +1418,25 @@ function CharacterSheetBody({
         raciocinioBonus + racialRules.initiativeBonus,
         reflexosBonus,
         composturaBonus + racialRules.composturaBonus,
-        0,
-        sizeWeightPenalty
+        {
+          arredores: getCommonTestSpecializationBonus(
+            characterData.skills?.atencao?.specialization,
+            'arredores',
+          ),
+          iniciativa: getCommonTestSpecializationBonus(
+            characterData.skills?.raciocinio?.specialization,
+            'iniciativa',
+          ),
+          esquiva: getCommonTestSpecializationBonus(
+            characterData.skills?.reflexos?.specialization,
+            'esquiva',
+          ),
+          coragem: getCommonTestSpecializationBonus(
+            characterData.skills?.compostura?.specialization,
+            'coragem',
+          ),
+        },
+        sizeWeightPenalty,
       ),
     }
   }, [
@@ -1426,6 +1452,10 @@ function CharacterSheetBody({
     characterData.vontade.nivel,
     characterData.tamanho,
     characterData.peso,
+    characterData.skills?.atencao?.specialization,
+    characterData.skills?.raciocinio?.specialization,
+    characterData.skills?.reflexos?.specialization,
+    characterData.skills?.compostura?.specialization,
     racialRules.dodgeBonus,
     racialRules.initiativeBonus,
     racialRules.composturaBonus,

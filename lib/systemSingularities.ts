@@ -4,7 +4,11 @@ import { creationSingularities } from '@/data/creationSingularities'
 import type { Singularity } from '@/data/singularities'
 import { singularities } from '@/data/singularities'
 import type { MartialSchoolSingularity } from '@/data/martialSchoolSingularities'
-import { getAllMartialSchools } from '@/data/martialSchoolSingularities'
+import {
+  getAllMartialSchools,
+  getMartialSchoolDataById,
+  getMartialSchoolSingularityById,
+} from '@/data/martialSchoolSingularities'
 import type { RacialSingularity } from '@/data/racialSingularities'
 import { racialSingularities } from '@/data/racialSingularities'
 import { getAllCacadaPowers, getAllCacadaEnhancements } from '@/data/pathSingularities'
@@ -57,6 +61,7 @@ export type SystemSingularity = {
   bonusesSimpleExtracted: SimpleBonusesAggregate
   effectChannels: SingularityEffectChannels
   requirements: SystemSingularityRequirements
+  isMastery?: boolean
 }
 
 function toNumeric(partial: {
@@ -161,6 +166,16 @@ function withChannels(
     })
   const { effectChannelsOverride: _ignored, ...rest } = base
   return { ...rest, effectChannels }
+}
+
+function resolveMartialIsMastery(singularityId: string, sourceGroup?: string | null): boolean {
+  const fromSing = getMartialSchoolSingularityById(singularityId)
+  const schoolId =
+    fromSing?.schoolId ??
+    sourceGroup?.replace(/^sistema-marcial-/, '') ??
+    undefined
+  if (!schoolId) return false
+  return getMartialSchoolDataById(schoolId)?.class === 'Maestria'
 }
 
 export function buildSystemSingularities(ecoarSingularities: EcoarSingularity[]): SystemSingularity[] {
@@ -301,33 +316,35 @@ export function buildSystemSingularities(ecoarSingularities: EcoarSingularity[])
           bonusesSimpleExtracted: bonuses,
           effectChannelsOverride: ms.effectChannels as SingularityEffectChannels | undefined,
           requirements: { kind: 'marcial', requirements: ms.requirements as MartialSchoolSingularity['requirements'] | undefined },
+          isMastery: resolveMartialIsMastery(ms.id, ms.sourceGroup),
         }),
       )
     }
-  } else {
-    for (const school of getAllMartialSchools()) {
-      for (const ms of school.singularities) {
-        const bonuses = extractSimpleBonusesFromMartialText({ description: ms.description, effects: ms.effects })
-        const inferred = inferSingularityActivationType({
+  }
+  for (const school of getAllMartialSchools()) {
+    for (const ms of school.singularities) {
+      if (existingIds.has(ms.id)) continue
+      const bonuses = extractSimpleBonusesFromMartialText({ description: ms.description, effects: ms.effects })
+      const inferred = inferSingularityActivationType({
+        kind: 'marcial',
+        name: ms.name,
+        description: ms.description,
+        effects: ms.effects,
+        bonuses,
+      })
+      pushUnique(
+        withChannels({
+          id: ms.id,
           kind: 'marcial',
           name: ms.name,
           description: ms.description,
-          effects: ms.effects,
-          bonuses,
-        })
-        pushUnique(
-          withChannels({
-            id: ms.id,
-            kind: 'marcial',
-            name: ms.name,
-            description: ms.description,
-            cost: ms.cost,
-            activationType: inferred,
-            bonusesSimpleExtracted: bonuses,
-            requirements: { kind: 'marcial', requirements: ms.requirements },
-          }),
-        )
-      }
+          cost: ms.cost,
+          activationType: inferred,
+          bonusesSimpleExtracted: bonuses,
+          requirements: { kind: 'marcial', requirements: ms.requirements },
+          isMastery: school.class === 'Maestria',
+        }),
+      )
     }
   }
 

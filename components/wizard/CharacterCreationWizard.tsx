@@ -685,11 +685,8 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   }, [searchParams, setCurrentStep])
 
   const singularidadesMarciaisFiltered = useMemo(() => {
-    if (!selectedEscolaMarcial) return [] as string[]
-    const school = getMartialSchoolDataByIdResolved(selectedEscolaMarcial)
-    if (!school) return []
-    return singularidades.filter((s) => school.singularities.some((sing) => sing.id === s))
-  }, [singularidades, selectedEscolaMarcial])
+    return singularidades.filter((s) => Boolean(getMartialSchoolSingularityById(s)))
+  }, [singularidades])
 
   /** PC gasto em singularidades (criação + marciais + raciais). Ecoar usa Pontos de Ecoar. */
   const gastosPCEmSingularidades = useMemo(() => {
@@ -778,18 +775,21 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const singularityBonusesCreation = useMemo(
     () =>
       aggregateSimpleBonuses({
-        ...aggregateSingularityInputFromCharacterData({
-          singularidades,
-          singularidadesEcoar,
-          singularidadesMarciais: singularidadesMarciaisFiltered,
-          singularidadesRaciais,
-          singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements, ...pathExtraIds],
-          singularidadesCondicionaisCriacaoAtivas: [],
-          singularidadesCondicionaisAtivas: [],
-          singularidadesCondicionaisMarciaisAtivas: [],
-          singularidadesCondicionaisRaciaisAtivas: [],
-          singularidadesCondicionaisPathAtivas: [],
-        }),
+        ...aggregateSingularityInputFromCharacterData(
+          {
+            singularidades,
+            singularidadesEcoar,
+            singularidadesMarciais: singularidadesMarciaisFiltered,
+            singularidadesRaciais,
+            singularidadesPath: [...pathCacadaPowers, ...pathCacadaEnhancements, ...pathExtraIds],
+            singularidadesCondicionaisCriacaoAtivas: [],
+            singularidadesCondicionaisAtivas: [],
+            singularidadesCondicionaisMarciaisAtivas: [],
+            singularidadesCondicionaisRaciaisAtivas: [],
+            singularidadesCondicionaisPathAtivas: [],
+          },
+          { isMartialId: (id) => Boolean(getMartialSchoolSingularityById(id)) },
+        ),
         getSystemSingularityById: (id) => systemSingularityById.get(id),
       }),
     [
@@ -922,7 +922,7 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         deslocamento,
         sentidos,
         trilha: selectedTrilha,
-        singularidades,
+        singularidades: singularidades.filter((s) => !getMartialSchoolSingularityById(s)),
         ecoar: selectedEcoar,
         singularidadesEcoar,
         disturbios,

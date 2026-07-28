@@ -18,6 +18,7 @@ import type { DisturbioOwnedEntry } from '@/data/disturbios'
 const TABS = [
   { id: 'criacao' as const, label: 'Criação' },
   { id: 'marciais' as const, label: 'Marciais' },
+  { id: 'maestrias' as const, label: 'Maestrias' },
   { id: 'raciais' as const, label: 'Raciais' },
   { id: 'trilha' as const, label: 'Trilha' },
   { id: 'ecoa' as const, label: 'Ecoar' },
@@ -113,7 +114,9 @@ export function SingularitiesSpendingStep({
   aptitudes: Record<string, number>
   selectedDisadvantages: string[]
 }) {
-  const [activeTab, setActiveTab] = useState<'criacao' | 'marciais' | 'raciais' | 'trilha' | 'ecoa'>('criacao')
+  const [activeTab, setActiveTab] = useState<
+    'criacao' | 'marciais' | 'maestrias' | 'raciais' | 'trilha' | 'ecoa'
+  >('criacao')
   const nivelPoder = getSoulLevelByNivel(nivelAlma)?.nivelPoder ?? 3
 
   const toggleSingularity = useCallback(
@@ -146,19 +149,19 @@ export function SingularitiesSpendingStep({
   )
 
   return (
-    <div className="space-y-4 max-h-[700px] overflow-y-auto custom-scrollbar pr-1">
+    <div className="custom-scrollbar max-h-[700px] space-y-4 overflow-y-auto pr-1">
       <PointBanner label="PC disponíveis" value={pontosDisponiveis} danger={pontosDisponiveis < 0} />
 
-      <div className="flex flex-wrap gap-px bg-ecoar-teal/40 border border-ecoar-teal/50">
+      <div className="flex flex-wrap gap-px border border-ecoar-teal/50 bg-ecoar-teal/40">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-w-[5rem] px-3 py-2.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
+            className={`min-w-[5rem] flex-1 px-3 py-2.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
               activeTab === tab.id
                 ? 'bg-ecoar-magenta text-[var(--ecoar-accent-ink)]'
-                : 'bg-[#0a0a0a]/75 text-ecoar-dark-900 dark:text-ecoar-light-900 hover:bg-ecoar-teal/10'
+                : 'bg-[#0a0a0a]/75 text-ecoar-dark-900 hover:bg-ecoar-teal/10 dark:text-ecoar-light-900'
             }`}
           >
             {tab.label}
@@ -175,10 +178,10 @@ export function SingularitiesSpendingStep({
 
               return (
                 <div key={category} className="space-y-3">
-                  <h5 className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 border-b border-ecoar-teal/35 pb-2">
+                  <h5 className="border-b border-ecoar-teal/35 pb-2 font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
                     {CATEGORY_LABELS[category]}
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
                     {categorySingularities.map((singularity) => {
                       const isSelected = singularidades.includes(singularity.id)
                       const canAfford = pontosDisponiveis >= singularity.cost
@@ -204,7 +207,8 @@ export function SingularitiesSpendingStep({
                               ? `Não pode possuir: ${singularity.requirements
                                   .map((req) => {
                                     const dis = getDisadvantageById(req)
-                                    const sing = getSingularityById(req) || getCreationSingularityById(req)
+                                    const sing =
+                                      getSingularityById(req) || getCreationSingularityById(req)
                                     return dis?.name || sing?.name || req
                                   })
                                   .join(', ')}`
@@ -224,6 +228,26 @@ export function SingularitiesSpendingStep({
         {activeTab === 'marciais' && (
           <div className="p-3 sm:p-4">
             <MartialSingularitiesTab
+              catalogType="escolas"
+              selectedEscolaMarcial={selectedEscolaMarcial}
+              onEscolaMarcialSelect={onEscolaMarcialSelect}
+              todasSingularidades={singularidades}
+              singularidadesMarciais={singularidadesMarciais}
+              onSingularidadesMarciaisChange={onSingularidadesMarciaisChange}
+              pontosDisponiveis={pontosDisponiveis}
+              pontosCriacao={pontosCriacao}
+              nivelAlma={nivelAlma}
+              attributes={attributes}
+              skills={skills}
+              aptitudes={aptitudes}
+            />
+          </div>
+        )}
+
+        {activeTab === 'maestrias' && (
+          <div className="p-3 sm:p-4">
+            <MartialSingularitiesTab
+              catalogType="maestrias"
               selectedEscolaMarcial={selectedEscolaMarcial}
               onEscolaMarcialSelect={onEscolaMarcialSelect}
               todasSingularidades={singularidades}

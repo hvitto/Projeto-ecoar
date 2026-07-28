@@ -2,6 +2,7 @@
 // Cada escola marcial tem singularidades numeradas de I a XII
 
 import { necromanteSchool } from '@/data/necromanteSchool'
+import { weaponMasteries } from '@/data/weaponMasteries'
 
 export interface MartialSchoolSingularity {
   id: string
@@ -2182,6 +2183,7 @@ export let martialSchoolData: MartialSchoolData[] = [
 ]
 
 martialSchoolData.push(necromanteSchool)
+martialSchoolData.push(...weaponMasteries)
 
 export const getMartialSchoolDataById = (id: string): MartialSchoolData | undefined => {
   return martialSchoolData.find(school => school.id === id)

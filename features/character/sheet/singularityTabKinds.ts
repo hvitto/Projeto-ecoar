@@ -3,9 +3,16 @@ import type { SingularitySheetKindGroup } from '@/features/character/sheet/sheet
 
 export type { SingularitySheetKindGroup }
 
-export const SING_GROUP_TO_KINDS: Record<SingularitySheetKindGroup, SystemSingularityKind[]> = {
-  ecoar: ['ecoar'],
-  naturais: ['criacao', 'racial'],
-  magicas: ['marcial'],
-  absolutas: ['path'],
+export type MartialSheetScope = 'escola' | 'maestria'
+
+export type SheetSingularityGroupConfig = {
+  kinds: SystemSingularityKind[]
+  martialScope?: MartialSheetScope
+}
+
+export const SING_GROUP_TO_KINDS: Record<SingularitySheetKindGroup, SheetSingularityGroupConfig> = {
+  ecoar: { kinds: ['ecoar'] },
+  naturais: { kinds: ['criacao', 'racial', 'marcial'], martialScope: 'maestria' },
+  magicas: { kinds: ['marcial'], martialScope: 'escola' },
+  absolutas: { kinds: ['path'] },
 }

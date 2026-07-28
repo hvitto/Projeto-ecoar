@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import SingularityCard from '@/shared/components/ui/SingularityCard'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import type { CharacterSingularitySelectionSlice } from '@/lib/characterBonuses'
+import { partitionCreationAndMartialSingularityIds } from '@/lib/characterBonuses'
 import type { SingularitiesBonusAggregate } from '@/lib/singularityBonuses'
 import {
   buildSystemSingularities,
@@ -27,6 +28,7 @@ type SelectedEntry = {
 
 type SingularityColumnWidgetProps = {
   kinds: SystemSingularityKind[]
+  martialScope?: 'escola' | 'maestria'
   activation: SystemSingularityActivationType
   characterData: CharacterSingularitySlice
   canEdit: boolean
@@ -35,14 +37,14 @@ type SingularityColumnWidgetProps = {
   singularityBonuses?: SingularitiesBonusAggregate | null
 }
 
-function kindLabel(kind: SystemSingularityKind): string {
+function kindLabel(kind: SystemSingularityKind, isMastery?: boolean): string {
   switch (kind) {
     case 'criacao':
       return 'Criação'
     case 'ecoar':
       return 'Ecoar'
     case 'marcial':
-      return 'Marcial'
+      return isMastery ? 'Maestria' : 'Escola marcial'
     case 'racial':
       return 'Racial'
     case 'path':
@@ -63,10 +65,21 @@ function emptyCopyForActivation(activation: SystemSingularityActivationType): st
   }
 }
 
-function idsForKind(slice: CharacterSingularitySlice, kind: SystemSingularityKind): string[] {
-  if (kind === 'criacao') return slice.singularidades ?? []
+function idsForKind(
+  slice: CharacterSingularitySlice,
+  kind: SystemSingularityKind,
+  isMartialId: (id: string) => boolean,
+): string[] {
+  if (kind === 'criacao' || kind === 'marcial') {
+    const partitioned = partitionCreationAndMartialSingularityIds({
+      singularidades: slice.singularidades ?? [],
+      singularidadesMarciais: slice.singularidadesMarciais ?? [],
+      isMartialId,
+    })
+    if (kind === 'criacao') return partitioned.criacao
+    return partitioned.marciais
+  }
   if (kind === 'ecoar') return slice.singularidadesEcoar ?? []
-  if (kind === 'marcial') return slice.singularidadesMarciais ?? []
   if (kind === 'racial') return slice.singularidadesRaciais ?? []
   return Array.from(
     new Set([
@@ -91,6 +104,7 @@ function conditionalEnabledForKind(
 
 export function SingularityColumnWidget({
   kinds,
+  martialScope,
   activation,
   characterData,
   canEdit,
@@ -108,11 +122,18 @@ export function SingularityColumnWidget({
   const kindSet = useMemo(() => new Set(kinds), [kinds])
 
   const entries = useMemo((): SelectedEntry[] => {
+    const isMartialId = (id: string) => systemSingularityById.get(id)?.kind === 'marcial'
     const out: SelectedEntry[] = []
     let seq = 0
     for (const kind of kinds) {
-      for (const id of idsForKind(characterData, kind)) {
+      for (const id of idsForKind(characterData, kind, isMartialId)) {
         const sys = systemSingularityById.get(id)
+        if (sys && sys.kind !== kind) continue
+        if (kind === 'marcial' && martialScope) {
+          const isMastery = Boolean(sys?.isMastery)
+          if (martialScope === 'maestria' && !isMastery) continue
+          if (martialScope === 'escola' && isMastery) continue
+        }
         const activationType = sys?.activationType ?? 'complexa'
         if (activationType !== activation) continue
         if (!kindSet.has(kind)) continue
@@ -121,7 +142,7 @@ export function SingularityColumnWidget({
     }
     out.sort((a, b) => (a.sys?.name ?? a.id).localeCompare(b.sys?.name ?? b.id, 'pt-BR'))
     return out
-  }, [activation, characterData, kindSet, kinds, systemSingularityById])
+  }, [activation, characterData, kindSet, kinds, martialScope, systemSingularityById])
 
   const interactive = canEdit
 
@@ -162,7 +183,7 @@ export function SingularityColumnWidget({
             className="!rounded-none !p-2.5"
             footer={
               <div className="mt-1.5 flex w-full flex-wrap items-center justify-between gap-2 border-t border-ecoar-teal/25 pt-1.5 text-left">
-                <div className={sheetMeta}>{kindLabel(kind)}</div>
+                <div className={sheetMeta}>{kindLabel(kind, sys.isMastery)}</div>
                 {activation === 'condicional' && (
                   <label
                     className={`flex items-center gap-1.5 font-mono text-[11px] ${

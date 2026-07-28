@@ -14,6 +14,7 @@ import {
 } from '@/data/martialSchoolSingularities'
 
 export function MartialSingularitiesTab({
+  catalogType = 'escolas',
   selectedEscolaMarcial,
   onEscolaMarcialSelect,
   todasSingularidades,
@@ -26,6 +27,7 @@ export function MartialSingularitiesTab({
   skills,
   aptitudes,
 }: {
+  catalogType?: 'escolas' | 'maestrias'
   selectedEscolaMarcial: string
   onEscolaMarcialSelect: (id: string) => void
   todasSingularidades: string[]
@@ -38,8 +40,20 @@ export function MartialSingularitiesTab({
   skills: Record<string, { level: number; specialization?: string }>
   aptitudes: Record<string, number>
 }) {
-  const allMartialSchools = getAllMartialSchools()
-  const school = selectedEscolaMarcial ? getMartialSchoolDataByIdResolved(selectedEscolaMarcial) : null
+  const isMasteryCatalog = catalogType === 'maestrias'
+  const allMartialSchools = getAllMartialSchools().filter((item) =>
+    isMasteryCatalog ? item.class === 'Maestria' : item.class !== 'Maestria',
+  )
+  const selectedSchool = selectedEscolaMarcial
+    ? getMartialSchoolDataByIdResolved(selectedEscolaMarcial)
+    : null
+  const school =
+    selectedSchool &&
+    (isMasteryCatalog ? selectedSchool.class === 'Maestria' : selectedSchool.class !== 'Maestria')
+      ? selectedSchool
+      : null
+  const catalogLabel = isMasteryCatalog ? 'Maestrias' : 'Escolas marciais'
+  const catalogItemLabel = isMasteryCatalog ? 'maestria' : 'escola marcial'
 
   const checkRequirements = useCallback(
     (singularity: MartialSchoolSingularity): { valid: boolean; missingReqs: string[] } => {
@@ -118,19 +132,22 @@ export function MartialSingularitiesTab({
   if (!selectedEscolaMarcial || !school) {
     return (
       <div className="space-y-4">
-        <div className="border border-ecoar-teal/40 px-3 py-2.5 mb-2">
-          <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1">Escolas marciais</p>
+        <div className="mb-2 border border-ecoar-teal/40 px-3 py-2.5">
+          <p className="mb-1 text-[9px] uppercase tracking-[0.14em] text-ecoar-teal">{catalogLabel}</p>
           <p className="text-[11px] leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd]">
-            Você pode comprar singularidades de várias escolas. Escolha uma escola, gaste PC e volte aqui para
-            adicionar outra — nada é apagado ao trocar de escola.
+            Você pode comprar singularidades de várias {isMasteryCatalog ? 'maestrias' : 'escolas'}.
+            Escolha uma {catalogItemLabel}, gaste PC e volte aqui para adicionar outra — nada é apagado
+            ao trocar.
           </p>
         </div>
 
         <PointBanner label="PC disponíveis" value={pontosDisponiveis} danger={pontosDisponiveis < 0} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
           {allMartialSchools.map((schoolItem, index) => {
-            const purchasedHere = schoolItem.singularities.filter((s) => todasSingularidades.includes(s.id)).length
+            const purchasedHere = schoolItem.singularities.filter((s) =>
+              todasSingularidades.includes(s.id),
+            ).length
             return (
               <SelectPlate
                 key={schoolItem.id}
@@ -158,25 +175,29 @@ export function MartialSingularitiesTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[9px] uppercase tracking-[0.14em] text-ecoar-teal mb-1">Escola ativa</p>
+          <p className="mb-1 text-[9px] uppercase tracking-[0.14em] text-ecoar-teal">
+            {isMasteryCatalog ? 'Maestria ativa' : 'Escola ativa'}
+          </p>
           <h3 className="font-display text-lg uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
             {school.name}
           </h3>
-          <p className="text-[10px] uppercase tracking-[0.1em] text-ecoar-teal mt-0.5">Custo oficial em PC</p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] text-ecoar-teal">
+            Custo oficial em PC
+          </p>
         </div>
         <PointBanner label="PC disponíveis" value={pontosDisponiveis} danger={pontosDisponiveis < 0} />
       </div>
 
       <StampButton tone="ghost" onClick={() => onEscolaMarcialSelect('')} className="w-full sm:w-auto">
-        ← Trocar escola marcial
+        ← Trocar {catalogItemLabel}
       </StampButton>
-      <p className="text-[10px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd] -mt-2">
-        Volta à grade para escolher outra escola. O que você já comprou em outras escolas continua valendo.
+      <p className="-mt-2 text-[10px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd]">
+        Volta à grade para escolher outra {catalogItemLabel}. O que você já comprou continua valendo.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
         {school.singularities.map((singularity) => {
           const isSelected = singularidadesMarciais.includes(singularity.id)
           const costInPC = singularity.cost
@@ -201,7 +222,7 @@ export function MartialSingularitiesTab({
               variant="teal"
               footer={
                 requirementText ? (
-                  <div className="text-[10px] text-ecoar-magenta mt-2 pt-2 border-t border-ecoar-teal/25">
+                  <div className="mt-2 border-t border-ecoar-teal/25 pt-2 text-[10px] text-ecoar-magenta">
                     {requirementText}
                   </div>
                 ) : undefined

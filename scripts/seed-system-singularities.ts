@@ -137,7 +137,9 @@ async function main() {
 
   await ensureGroup(sql, 'sistema-criacao', 'criacao', 'Criação')
   for (const school of getAllMartialSchools()) {
-    await ensureGroup(sql, `sistema-marcial-${school.id}`, 'marcial', `Marcial: ${school.name}`)
+    const groupLabel =
+      school.class === 'Maestria' ? `Maestria: ${school.name}` : `Marcial: ${school.name}`
+    await ensureGroup(sql, `sistema-marcial-${school.id}`, 'marcial', groupLabel)
   }
   for (const race of races) {
     await ensureGroup(sql, `racial-${race.id}`, 'racial', `Racial: ${race.name}`)
@@ -207,6 +209,20 @@ async function main() {
       const activationType = inferActivationType(`${sing.name} ${sing.description} ${sing.effects ?? ''}`)
       const bonusesSimple = JSON.stringify(extractSimpleBonusesFromMartialText({ description: sing.description, effects: sing.effects }))
       const normalizedMartialCost = getOfficialMartialCostByLevel(sing.level) ?? Math.max(0, Math.trunc(sing.cost ?? 0))
+      const martialMeta = {
+        schoolId: school.id,
+        schoolName: school.name,
+        schoolClass: school.class,
+        aptitude: school.aptitude,
+        tool: school.tool,
+        toolNote: school.toolNote,
+        suggestedAttributes: school.suggestedAttributes,
+        suggestedSkills: school.suggestedSkills,
+        suggestedEquipment: school.suggestedEquipment,
+        schoolDescription: school.description,
+        level: sing.level,
+        requirements: sing.requirements,
+      }
       await sql`
         INSERT INTO ecoar_singularities (id, ecoar_id, system_type, source_group, source_meta, name, description, cost, tier, activation_type, bonuses_simple, is_base, is_active, updated_at)
         VALUES (
@@ -214,7 +230,7 @@ async function main() {
           ${groupId},
           ${'marcial'},
           ${groupId},
-          ${JSON.stringify({ schoolId: school.id, schoolName: school.name, level: sing.level })}::jsonb,
+          ${JSON.stringify(martialMeta)}::jsonb,
           ${sing.name},
           ${`${sing.description}${sing.effects ? `\n${sing.effects}` : ''}`},
           ${normalizedMartialCost},
@@ -251,6 +267,30 @@ async function main() {
           INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
           VALUES (${`${sing.id}-req-nivel-alma`}, ${sing.id}, ${'nivelAlma'}, ${'nivelAlma'}, ${String(sing.requirements.nivelAlma)}, ${sing.requirements.nivelAlma}, now())
         `
+      }
+      if (sing.requirements.attributes) {
+        for (const [attr, minValue] of Object.entries(sing.requirements.attributes)) {
+          await sql`
+            INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
+            VALUES (${`${sing.id}-req-attr-${attr}`}, ${sing.id}, ${'attributes'}, ${attr}, ${String(minValue)}, ${minValue}, now())
+          `
+        }
+      }
+      if (sing.requirements.skills) {
+        for (const [skillId, minLevel] of Object.entries(sing.requirements.skills)) {
+          await sql`
+            INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
+            VALUES (${`${sing.id}-req-skill-${skillId}`}, ${sing.id}, ${'skills'}, ${skillId}, ${String(minLevel)}, ${minLevel}, now())
+          `
+        }
+      }
+      if (sing.requirements.aptitudes) {
+        for (const [aptId, minValue] of Object.entries(sing.requirements.aptitudes)) {
+          await sql`
+            INSERT INTO ecoar_singularity_requirements (id, singularity_id, requirement_type, requirement_key, requirement_value, numeric_value, updated_at)
+            VALUES (${`${sing.id}-req-apt-${aptId}`}, ${sing.id}, ${'aptitudes'}, ${aptId}, ${String(minValue)}, ${minValue}, now())
+          `
+        }
       }
       await sql`
         INSERT INTO ecoar_singularity_effects (id, singularity_id, effect_type, title, description, display_order, updated_at)
@@ -371,7 +411,10 @@ async function main() {
           pathKind: entry.pathKind,
           variant: entry.variant ?? null,
           requirementsText: entry.requirementsText ?? null,
-          ...(entry.meta ?? {}),
+          meta: entry.meta ?? null,
+          kind: entry.meta?.kind ?? null,
+          powerId: entry.meta?.powerId ?? null,
+          entity: entry.meta?.entity ?? null,
         })}::jsonb,
         ${entry.name},
         ${entry.description},
