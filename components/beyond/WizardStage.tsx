@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import RangeFrame from './RangeFrame'
 import CoordLabel from './CoordLabel'
 import HeroFrame, { type HeroVariant } from '@/components/branding/HeroFrame'
+import { mutedBody } from '@/shared/styles/ecoarChrome'
 
 type WizardStageProps = {
   title: string
@@ -9,6 +10,7 @@ type WizardStageProps = {
   lede?: string
   children: ReactNode
   hero?: HeroVariant | false
+  quiet?: boolean
   actions?: ReactNode
   className?: string
 }
@@ -19,14 +21,54 @@ export default function WizardStage({
   lede,
   children,
   hero = 'glitch',
+  quiet = false,
   actions,
   className = '',
 }: WizardStageProps) {
+  const showHero = !quiet && hero !== false
+
+  if (quiet && !showHero) {
+    return (
+      <div className={`space-y-4 ${className}`}>
+        <div>
+          <h2 className="font-display text-[clamp(1.2rem,2.4vw,1.5rem)] uppercase leading-[1.05] tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900">
+            {title}
+          </h2>
+          {lede ? (
+            <p className={`mt-2 ${mutedBody} max-w-[48ch]`}>
+              {lede}
+            </p>
+          ) : null}
+        </div>
+        <RangeFrame bodyClassName="p-3 sm:p-4">
+          <div className="pr-1">{children}</div>
+          {actions ? (
+            <div className="mt-4 pt-3 border-t border-ecoar-teal/35">{actions}</div>
+          ) : null}
+        </RangeFrame>
+      </div>
+    )
+  }
+
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(220px,0.42fr)] gap-0 border border-ecoar-teal/50 dark:border-ecoar-teal">
-        <div className="p-4 sm:p-5 border-b xl:border-b-0 xl:border-r border-ecoar-teal/50 dark:border-ecoar-teal flex flex-col min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-2">CREATE · {refId}</p>
+      <div
+        className={`grid gap-0 border border-ecoar-teal/50 dark:border-ecoar-teal ${
+          showHero
+            ? 'grid-cols-1 xl:grid-cols-[1fr_minmax(220px,0.42fr)]'
+            : 'grid-cols-1'
+        }`}
+      >
+        <div
+          className={`p-4 sm:p-5 flex flex-col min-w-0 ${
+            showHero
+              ? 'border-b xl:border-b-0 xl:border-r border-ecoar-teal/50 dark:border-ecoar-teal'
+              : ''
+          }`}
+        >
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-2">
+            CREATE · {refId}
+          </p>
           <h2 className="font-display text-[clamp(1.6rem,3.5vw,2.4rem)] uppercase leading-[0.88] tracking-[-0.03em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-2">
             {title}
           </h2>
@@ -37,16 +79,22 @@ export default function WizardStage({
           ) : null}
           <CoordLabel refId={refId} className="mt-auto" />
         </div>
-        {hero !== false ? (
+        {showHero ? (
           <div className="p-2 sm:p-3 bg-[#0a0a0a]/40">
             <HeroFrame variant={hero} aspect="16/11" label={`ANCHOR · ${refId}`} />
           </div>
         ) : null}
       </div>
 
-      <RangeFrame title={title} refId={refId} bodyClassName="p-3 sm:p-4">
+      <RangeFrame
+        title={showHero ? title : undefined}
+        refId={showHero ? refId : undefined}
+        bodyClassName="p-3 sm:p-4"
+      >
         <div className="pr-1">{children}</div>
-        {actions ? <div className="mt-4 pt-3 border-t border-ecoar-teal/35">{actions}</div> : null}
+        {actions ? (
+          <div className="mt-4 pt-3 border-t border-ecoar-teal/35">{actions}</div>
+        ) : null}
       </RangeFrame>
     </div>
   )
@@ -140,7 +188,7 @@ export function TickStat({ label, value, hint }: TickStatProps) {
         <span className="font-display text-lg leading-none text-ecoar-magenta tabular-nums">{value}</span>
       </div>
       {hint ? (
-        <p className="mt-1.5 text-[10px] leading-snug text-ecoar-dark-500 dark:text-[#adb5bd]">{hint}</p>
+        <p className={`mt-1.5 leading-snug ${mutedBody}`}>{hint}</p>
       ) : null}
     </div>
   )

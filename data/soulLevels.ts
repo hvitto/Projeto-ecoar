@@ -48,17 +48,27 @@ export function hydrateSoulLevels(list: SoulLevel[]) {
   if (list.length > 0) soulLevels = [...list].sort((a, b) => a.nivel - b.nivel)
 }
 
+const FALLBACK_ALMA_1: SoulLevel = {
+  nivel: 1,
+  pontosEvolucao: 0,
+  nivelPoder: 3,
+  estagio: 'Personagem Mundano',
+}
+
 export function getSoulLevelByNivel(nivel: number): SoulLevel | undefined {
   return soulLevels.find(sl => sl.nivel === nivel)
 }
 
-// Converte Pontos de Evolução acumulados (lado após '/') em Nível de Alma.
-// Se o personagem tiver menos pontos que o primeiro nível "evoluído", retorna nível 1.
+export function resolveSoulLevelOrDefault(nivel: number): SoulLevel {
+  return getSoulLevelByNivel(nivel) ?? soulLevels[0] ?? FALLBACK_ALMA_1
+}
+
 export function getSoulLevelByPontosEvolucao(pontosEvolucao: number): SoulLevel {
   const safe = Number.isFinite(pontosEvolucao) ? pontosEvolucao : 0
   const clamped = Math.max(0, safe)
 
-  // soulLevels está em ordem crescente por "pontosEvolucao"; então percorremos e mantemos o maior nível alcançado.
+  if (soulLevels.length === 0) return FALLBACK_ALMA_1
+
   let current: SoulLevel = soulLevels[0]
   for (const sl of soulLevels) {
     if (clamped >= sl.pontosEvolucao) current = sl

@@ -14,16 +14,16 @@ const StampButton = forwardRef<HTMLButtonElement, StampButtonProps>(
       accent:
         'bg-ecoar-magenta text-[var(--ecoar-accent-ink)] hover:brightness-110 border border-ecoar-magenta',
       ghost:
-        'bg-transparent text-ecoar-dark-900 dark:text-ecoar-light-900 border border-ecoar-teal/50 dark:border-ecoar-teal hover:bg-ecoar-teal/10',
+        'bg-transparent text-ecoar-dark-900 dark:text-ecoar-light-900 border border-ecoar-teal/50 dark:border-ecoar-teal hover:border-ecoar-magenta/60 hover:bg-ecoar-magenta/10',
       grid:
-        'bg-transparent text-ecoar-teal border border-ecoar-teal/60 dark:border-ecoar-teal hover:bg-ecoar-teal/10',
+        'bg-transparent text-[#2f6f73] dark:text-ecoar-teal border border-ecoar-teal/60 dark:border-ecoar-teal hover:bg-ecoar-teal/10',
     }
 
     return (
       <button
         ref={ref}
         type={type}
-        className={`inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] text-xs font-bold uppercase tracking-[0.12em] transition-all disabled:opacity-40 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ecoar-teal ${tones[tone]} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] text-xs font-normal uppercase tracking-[0.12em] transition-all disabled:opacity-40 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ecoar-magenta ${tones[tone]} ${className}`}
         {...rest}
       >
         {children}

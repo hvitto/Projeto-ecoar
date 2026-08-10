@@ -23,7 +23,7 @@ export default function CharacterCreationWizardShell({
   summarySidebar,
 }: CharacterCreationWizardShellProps) {
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex-shrink-0">
         <Header onGoToDashboard={onGoToDashboard} />
       </div>
@@ -35,11 +35,13 @@ export default function CharacterCreationWizardShell({
         summarySidebar={summarySidebar}
       />
 
-      <div className="flex-1 min-h-[calc(100dvh-5rem)] flex items-stretch gap-0 min-w-0">
+      <div className="flex-1 min-h-0 flex items-stretch gap-0 min-w-0 overflow-hidden">
         <div className="hidden lg:contents">{leftNav}</div>
-        <div className="flex-1 min-h-0 flex gap-0 min-w-0 items-stretch">
-          <div className="flex-1 min-h-0 flex flex-col min-w-0 max-w-full px-3 sm:px-4 md:px-6 py-3 sm:py-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="max-w-[1400px] mx-auto w-full flex flex-col min-h-full">{children}</div>
+        <div className="flex-1 min-h-0 flex gap-0 min-w-0 items-stretch overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col min-w-0 max-w-full px-3 sm:px-4 md:px-6 py-3 sm:py-6">
+            <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0">
+              {children}
+            </div>
           </div>
           <div className="hidden lg:contents">{summarySidebar}</div>
         </div>

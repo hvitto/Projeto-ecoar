@@ -4,6 +4,14 @@ import EquipmentCatalog from '@/components/equipment/EquipmentCatalog'
 export const metadata = {
   title: 'Aquisição de equipamentos',
   description: 'Catálogo de referência de armas, vestuário e utilitários — Ecoar RPG (playtest).',
+  alternates: {
+    canonical: '/referencia/aquisicao-equipamentos',
+  },
+  openGraph: {
+    url: 'https://ecoar.dev/referencia/aquisicao-equipamentos',
+    title: 'Aquisição de equipamentos | ECOAR +',
+    description: 'Catálogo de referência de armas, vestuário e utilitários — Ecoar RPG (playtest).',
+  },
 }
 
 function CatalogFallback() {

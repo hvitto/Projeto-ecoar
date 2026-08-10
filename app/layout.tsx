@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   description:
     'Companion digital do RPG de mesa ECOAR: crie e gerencie fichas de personagem com raças, atributos, escolas marciais, trilhas e singularidades.',
   keywords: ['ECOAR', 'ECOAR +', 'RPG', 'ficha de personagem', 'RPG de mesa', 'companion'],
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

@@ -79,7 +79,7 @@ function WizardSummarySidebar({
   creationLimits,
 }: WizardSummarySidebarProps) {
   return (
-    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 lg:p-0 min-h-0 lg:max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden">
+    <aside className="flex flex-col w-full lg:w-72 flex-shrink-0 p-3 lg:p-0 min-h-0 lg:h-full overflow-y-auto overflow-x-hidden">
       <div className="bg-transparent lg:bg-[#0a0a0a]/70 lg:border-l border-ecoar-teal/50 dark:border-ecoar-teal rounded-none flex flex-col min-h-0 flex-1 overflow-hidden">
         <div className="hidden lg:block px-4 pt-4 pb-3 border-b border-ecoar-teal/40 dark:border-ecoar-teal/50 shrink-0">
           <p className="text-[10px] uppercase tracking-[0.18em] text-ecoar-teal">FICHA // RESUMO</p>

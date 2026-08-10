@@ -38,3 +38,8 @@ parity-report.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# impeccable (local design tooling)
+.impeccable/
+.cursor/skills/impeccable/
+.cursor/hooks.json

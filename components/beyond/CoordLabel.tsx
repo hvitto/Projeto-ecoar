@@ -1,3 +1,5 @@
+import { statusLabel } from '@/shared/styles/ecoarChrome'
+
 type CoordLabelProps = {
   refId?: string
   stamp?: string
@@ -11,9 +13,7 @@ export default function CoordLabel({
 }: CoordLabelProps) {
   const time = stamp ?? new Date().toISOString().slice(0, 16).replace('T', ' · ')
   return (
-    <p
-      className={`text-[0.6875rem] uppercase tracking-[0.14em] text-ecoar-teal ${className}`}
-    >
+    <p className={`${statusLabel} ${className}`}>
       {refId} · {time}
     </p>
   )

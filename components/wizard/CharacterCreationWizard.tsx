@@ -15,6 +15,13 @@ import { useTheme } from '@/shared/contexts/ThemeContext'
 import { fadeInUp, motionTransition } from '@/lib/motionVariants'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import StampButton from '@/components/beyond/StampButton'
+import {
+  hairline,
+  kicker,
+  panel,
+  statusLabel as statusLabelClass,
+} from '@/shared/styles/ecoarChrome'
 import { races, getRaceById } from '@/data/races'
 import {
   getRacialSingularitiesByRaceId,
@@ -43,7 +50,7 @@ import type { Ecoar } from '@/data/ecoar'
 import type { EcoarSingularity } from '@/data/ecoarSingularities'
 import { useEcoarCatalogData } from '@/lib/ecoarCatalogClient'
 import { isEcoarPreviousRequirementMet } from '@/lib/ecoarSingularityRequirements'
-import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios } from '@/data/soulLevels'
+import { soulLevels, getSoulLevelByNivel, SoulLevel, getEstagios, resolveSoulLevelOrDefault } from '@/data/soulLevels'
 import { disadvantages, getDisadvantageById, getDisadvantagesByCategory } from '@/data/disadvantages'
 import { getAttributeModifier, getSkillDice, formatModifier, calculateCharacterLimits, toLimitShape } from '@/lib/calculations'
 import { aggregateSimpleBonuses } from '@/lib/singularityBonuses'
@@ -225,6 +232,10 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const searchParams = useSearchParams()
   const { state: form, dispatch, patch } = useWizardForm()
   const [showIntroduction, setShowIntroduction] = useState(true)
+  const [confirmLevelLock, setConfirmLevelLock] = useState(false)
+  const [isStartingCreation, setIsStartingCreation] = useState(false)
+  const [narrowViewport, setNarrowViewport] = useState(false)
+  const confirmLockRef = useRef<HTMLDivElement | null>(null)
   const [pcSubStep, setPCSubStep] = useState<'singularidades' | 'traços' | 'escola-marcial'>('singularidades')
   const hasInitialized = useRef(false)
   const hasSyncedStepFromUrl = useRef(false)
@@ -636,6 +647,84 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
     setStep: setCurrentStep,
     visitStep,
   } = useCharacterWizard(stepValidation)
+
+  const beginCreation = useCallback(() => {
+    if (isStartingCreation) return
+    const resolved = resolveSoulLevelOrDefault(nivelAlmaInicial)
+    if (resolved.nivel !== nivelAlmaInicial) {
+      setNivelAlmaInicial(resolved.nivel)
+    }
+    setIsStartingCreation(true)
+    setConfirmLevelLock(false)
+    setShowIntroduction(false)
+    setCurrentStep(0)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('step', '0')
+    router.replace(`${pathname}?${params.toString()}`)
+  }, [
+    isStartingCreation,
+    nivelAlmaInicial,
+    pathname,
+    router,
+    searchParams,
+    setCurrentStep,
+    setNivelAlmaInicial,
+  ])
+
+  const requestBeginCreation = useCallback(() => {
+    if (isStartingCreation) return
+    if (soulLevels.length === 0) {
+      if (nivelAlmaInicial !== 1) setNivelAlmaInicial(1)
+      beginCreation()
+      return
+    }
+    const resolved = getSoulLevelByNivel(nivelAlmaInicial)
+    if (!resolved) {
+      setNivelAlmaInicial(1)
+      beginCreation()
+      return
+    }
+    if (nivelAlmaInicial > 1) {
+      setConfirmLevelLock(true)
+      return
+    }
+    beginCreation()
+  }, [beginCreation, isStartingCreation, nivelAlmaInicial, setNivelAlmaInicial])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const sync = () => setNarrowViewport(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!confirmLevelLock) return
+    const node = confirmLockRef.current
+    const previous = document.activeElement as HTMLElement | null
+    const mobilePrimary = document.querySelector<HTMLElement>(
+      '[data-soul-level-confirm-mobile]',
+    )
+    const desktopPrimary = node?.querySelector<HTMLElement>(
+      '[data-soul-level-confirm-desktop]',
+    )
+    const focusTarget =
+      (narrowViewport ? mobilePrimary : desktopPrimary) ?? node
+    focusTarget?.focus?.()
+    node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setConfirmLevelLock(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      previous?.focus?.()
+    }
+  }, [confirmLevelLock, narrowViewport])
 
   const syncStepToUrl = useCallback(
     (step: number) => {
@@ -1150,81 +1239,156 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
   const totalSteps = WIZARD_TOTAL_STEPS
 
   if (showIntroduction) {
+    const catalogEmpty = soulLevels.length === 0
+    const resolvedLevel = resolveSoulLevelOrDefault(nivelAlmaInicial)
+    const locksLevel = !catalogEmpty && resolvedLevel.nivel > 1
+    const ctaLabel = locksLevel
+      ? `Travar Alma ${resolvedLevel.nivel} e criar`
+      : 'Começar criação'
+    const statusLabel = catalogEmpty
+      ? 'Catálogo offline · Alma 1'
+      : locksLevel
+        ? `Alma ${resolvedLevel.nivel} · não poderá mudar depois`
+        : 'Alma 1 · pronto para criar'
     return (
-      <div className="min-h-[100dvh] flex flex-col">
+      <div className="h-full min-h-0 flex flex-col overflow-y-auto overscroll-y-contain">
         <Header onGoToDashboard={onGoToDashboard} />
-        <main className="flex-1 w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-28">
+        <main
+          className={`flex-1 w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 sm:pb-8 ${
+            confirmLevelLock
+              ? 'pb-[calc(15.5rem+env(safe-area-inset-bottom))]'
+              : 'pb-[calc(12rem+env(safe-area-inset-bottom))]'
+          }`}
+        >
           <div className="max-w-[1600px] mx-auto">
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-4 sm:p-6 md:p-8 shadow-none"
+              className={`${panel} p-4 sm:p-6 md:p-8`}
             >
               <div className="mb-5 sm:mb-6">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-ecoar-teal mb-3">
+                <p className={`${kicker} mb-3`}>
                   1://WIZARD · INTRO
                 </p>
                 <h1 className="font-display text-[clamp(1.8rem,4vw,2.8rem)] uppercase leading-[0.9] tracking-[-0.03em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-2 max-w-[12ch]">
                   Bem-vindo ao ECOAR
                 </h1>
-                <p className="text-xs leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] max-w-[42ch]">
-                  Crie seu personagem com fluidez. Escolha o nível inicial — uma decisão do Mestre Absoluto.
+                <p className="text-xs leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd] max-w-[42ch] font-normal">
+                  Confirme o Nível de Alma inicial. A maioria das mesas começa no Alma 1.
                 </p>
               </div>
 
-              <h2 className="font-display text-base uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900 mb-1">
-                Nível Inicial
-              </h2>
-              <p className="text-[10px] uppercase tracking-[0.12em] text-ecoar-dark-500 dark:text-ecoar-light-900/50 mb-4">
-                Padrão · Alma 1 para iniciantes
-              </p>
               <LazySoulLevelSelectionStep
                 nivelAlmaInicial={nivelAlmaInicial}
-                onSelect={setNivelAlmaInicial}
+                onSelect={(nivel) => {
+                  setConfirmLevelLock(false)
+                  setNivelAlmaInicial(nivel)
+                }}
               />
 
-              <div className="hidden sm:flex mt-8 pt-6 border-t border-ecoar-teal/40 dark:border-ecoar-teal/50 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-ecoar-magenta">
-                  Nível {nivelAlmaInicial} · locked pending
-                </p>
-                <motion.button
-                  onClick={() => {
-                    setShowIntroduction(false)
-                    setCurrentStep(0)
-                    const params = new URLSearchParams(searchParams.toString())
-                    params.set('step', '0')
-                    router.replace(`${pathname}?${params.toString()}`)
-                  }}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className="w-full sm:w-auto min-w-[200px] min-h-[44px] py-2.5 px-6 bg-ecoar-magenta text-[var(--ecoar-accent-ink)] hover:brightness-110 rounded-none font-bold text-[10px] uppercase tracking-[0.12em] transition-all"
+              {confirmLevelLock ? (
+                <div
+                  ref={confirmLockRef}
+                  role="alertdialog"
+                  aria-modal="true"
+                  tabIndex={-1}
+                  aria-labelledby="soul-level-lock-title"
+                  aria-describedby="soul-level-lock-desc"
+                  className={`mt-8 pt-6 border-t ${hairline} space-y-4 outline-none`}
                 >
-                  Começar Criação
-                </motion.button>
-              </div>
+                  <p
+                    id="soul-level-lock-title"
+                    className="font-display text-sm uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900"
+                  >
+                    Travar Alma {resolvedLevel.nivel}
+                  </p>
+                  <p
+                    id="soul-level-lock-desc"
+                    className="text-xs leading-relaxed text-ecoar-dark-600 dark:text-[#c5c8ce] max-w-[48ch] font-normal"
+                  >
+                    Alma {resolvedLevel.nivel} será travado nesta ficha. PE e orçamento em ȼ ficam
+                    definidos por esse nível e não poderão ser alterados depois.
+                  </p>
+                  <div className="hidden sm:flex flex-col sm:flex-row gap-2">
+                    <StampButton
+                      tone="ghost"
+                      onClick={() => setConfirmLevelLock(false)}
+                      className="w-full sm:w-auto font-normal"
+                      disabled={isStartingCreation}
+                    >
+                      Alterar nível
+                    </StampButton>
+                    <StampButton
+                      onClick={beginCreation}
+                      className="w-full sm:w-auto min-w-[200px] font-normal"
+                      disabled={isStartingCreation}
+                      data-soul-level-confirm-desktop
+                    >
+                      {isStartingCreation ? 'Abrindo criação…' : ctaLabel}
+                    </StampButton>
+                  </div>
+                </div>
+              ) : (
+                <div className={`hidden sm:flex mt-8 pt-6 border-t ${hairline} flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3`}>
+                  <p className={statusLabelClass}>
+                    {statusLabel}
+                  </p>
+                  <StampButton
+                    onClick={requestBeginCreation}
+                    className="w-full sm:w-auto min-w-[200px] font-normal"
+                    disabled={isStartingCreation}
+                  >
+                    {isStartingCreation ? 'Abrindo criação…' : ctaLabel}
+                  </StampButton>
+                </div>
+              )}
             </motion.div>
           </div>
         </main>
 
-        <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-white/95 dark:bg-[#1a1d21]/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-ecoar-magenta mb-2 text-center">
-            Nível {nivelAlmaInicial} · locked pending
-          </p>
-          <motion.button
-            onClick={() => {
-              setShowIntroduction(false)
-              setCurrentStep(0)
-              const params = new URLSearchParams(searchParams.toString())
-              params.set('step', '0')
-              router.replace(`${pathname}?${params.toString()}`)
-            }}
-            whileTap={{ scale: 0.99 }}
-            className="w-full min-h-[48px] py-3 px-6 bg-ecoar-magenta text-[var(--ecoar-accent-ink)] rounded-none font-bold text-[10px] uppercase tracking-[0.12em]"
+        {!confirmLevelLock ? (
+          <div
+            className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21]/96 backdrop-blur-[2px] px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.35)]"
+            data-soul-level-dock="cta"
           >
-            Começar Criação
-          </motion.button>
-        </div>
+            <p className={`${statusLabelClass} mb-2.5 text-center`}>
+              {statusLabel}
+            </p>
+            <StampButton
+              onClick={requestBeginCreation}
+              className="w-full font-normal min-h-[52px] text-[0.8125rem]"
+              disabled={isStartingCreation}
+            >
+              {isStartingCreation ? 'Abrindo criação…' : ctaLabel}
+            </StampButton>
+          </div>
+        ) : (
+          <div
+            className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21]/96 backdrop-blur-[2px] px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2 shadow-[0_-8px_24px_rgba(0,0,0,0.35)]"
+            data-soul-level-dock="confirm"
+          >
+            <p className={`${statusLabelClass} mb-1 text-center`}>
+              Alma {resolvedLevel.nivel} · confirmação
+            </p>
+            <StampButton
+              tone="grid"
+              onClick={() => setConfirmLevelLock(false)}
+              className="w-full font-normal min-h-[48px]"
+              disabled={isStartingCreation}
+            >
+              Alterar nível
+            </StampButton>
+            <StampButton
+              onClick={beginCreation}
+              className="w-full font-normal min-h-[52px] text-[0.8125rem]"
+              disabled={isStartingCreation}
+              data-soul-level-confirm-mobile
+            >
+              {isStartingCreation ? 'Abrindo criação…' : ctaLabel}
+            </StampButton>
+          </div>
+        )}
 
         <div className="hidden lg:block">
           <Footer />
@@ -1269,13 +1433,13 @@ function CharacterCreationWizardInner({ onComplete, initialData, onGoToDashboard
         />
       }
     >
-      <main className="flex flex-col w-full min-h-full">
+      <main className="flex flex-col w-full flex-1 min-h-0">
         <motion.div
           key={currentStep}
           variants={stepVariants}
           initial="hidden"
           animate="visible"
-          className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-3 sm:p-5 flex flex-col w-full min-h-0 flex-1"
+          className="bg-white/85 dark:bg-ecoar-dark-800/90 border border-ecoar-teal/50 dark:border-ecoar-teal rounded-none p-3 sm:p-5 flex flex-col w-full min-h-0 flex-1 overflow-hidden"
         >
           <WizardStepRenderer
             currentStep={currentStep}

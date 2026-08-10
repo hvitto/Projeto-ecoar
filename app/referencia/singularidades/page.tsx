@@ -4,6 +4,14 @@ import SingularitiesCatalog from '@/components/singularities/SingularitiesCatalo
 export const metadata = {
   title: 'Singularidades',
   description: 'Catálogo de singularidades com filtros por tipo de ativação.',
+  alternates: {
+    canonical: '/referencia/singularidades',
+  },
+  openGraph: {
+    url: 'https://ecoar.dev/referencia/singularidades',
+    title: 'Singularidades | ECOAR +',
+    description: 'Catálogo de singularidades com filtros por tipo de ativação.',
+  },
 }
 
 function CatalogFallback() {

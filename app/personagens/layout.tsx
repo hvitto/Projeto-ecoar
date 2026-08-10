@@ -1,14 +1,14 @@
-'use client'
-
-// Só guard de auth. Sem lógica de ficha.
+import type { Metadata } from 'next'
 import { ReactNode } from 'react'
-import PersonagensAuthGuard from '@/features/character/PersonagensAuthGuard'
-import PersonagensProviders from '@/app/personagens/PersonagensProviders'
+import PersonagensLayoutClient from '@/app/personagens/PersonagensLayoutClient'
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default function PersonagensLayout({ children }: { children: ReactNode }) {
-  return (
-    <PersonagensAuthGuard>
-      <PersonagensProviders>{children}</PersonagensProviders>
-    </PersonagensAuthGuard>
-  )
+  return <PersonagensLayoutClient>{children}</PersonagensLayoutClient>
 }

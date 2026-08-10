@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, type ReactNode } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import StampButton from '@/components/beyond/StampButton'
 import {
   LazyAttributesStep,
@@ -16,6 +16,7 @@ import {
 import { getRaceById } from '@/data/races'
 import { getMartialSchoolDataByIdResolved } from '@/data/martialSchoolSingularities'
 import { formatCerosDisplay } from '@/lib/equipmentCost'
+import { statusLabel } from '@/shared/styles/ecoarChrome'
 import type { WizardAttributes, WizardPontosCriacao } from '@/features/character/wizard/wizardFormTypes'
 import type { CatalogOwnedItem } from '@/shared/types/equipment'
 import type { Race } from '@/data/races'
@@ -179,54 +180,124 @@ function WizardStepRenderer({
   setTracoNegativo,
   setPersonalidade,
 }: WizardStepRendererProps) {
-  const navButtons = (extra?: ReactNode) => (
-    <div className="sticky bottom-0 z-20 -mx-3 sm:-mx-5 mt-auto px-3 sm:px-5 py-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 shrink-0 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21]/96 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
-      {extra}
-      <StampButton tone="ghost" onClick={onBack} disabled={currentStep === 0} className="min-h-[44px] w-full sm:w-auto">
-        Voltar
-      </StampButton>
-      {currentStep < totalSteps ? (
-        <StampButton onClick={onNext} disabled={!canProceed} className="min-h-[44px] w-full sm:w-auto">
-          Próximo
+  const [raceDetailOpen, setRaceDetailOpen] = useState(false)
+  const [previewRaca, setPreviewRaca] = useState<string | null>(null)
+  const stepScrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (currentStep !== 0) {
+      setRaceDetailOpen(false)
+      setPreviewRaca(null)
+    }
+  }, [currentStep])
+
+  useEffect(() => {
+    if (!selectedRaca) {
+      setRaceDetailOpen(false)
+      setPreviewRaca(null)
+    }
+  }, [selectedRaca])
+
+  useEffect(() => {
+    if (currentStep !== 0) return
+    stepScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+  }, [currentStep, raceDetailOpen, previewRaca])
+
+  const nextBlocked = !canProceed || Boolean(previewRaca)
+
+  const navStatus =
+    currentStep === 0
+      ? previewRaca
+        ? 'Espiar ativo. Confirme Usar ou Manter antes de avançar.'
+        : !selectedRaca
+          ? 'Escolha uma raça para avançar.'
+          : null
+      : null
+
+  const navDock = (
+    <div
+      data-wizard-nav-dock
+      className="z-20 -mx-3 sm:-mx-5 mt-auto px-3 sm:px-5 pt-3 flex flex-col gap-2 shrink-0 border-t border-ecoar-teal/50 dark:border-ecoar-teal bg-[#1a1d21] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3"
+    >
+      {navStatus ? (
+        <p role="status" className={`${statusLabel} sm:text-right`}>
+          {navStatus}
+        </p>
+      ) : null}
+      <div className="flex flex-row items-stretch justify-stretch sm:justify-end gap-2">
+        <StampButton
+          tone="ghost"
+          onClick={onBack}
+          disabled={currentStep === 0}
+          className="min-h-12 flex-1 sm:min-h-11 sm:flex-none sm:w-auto"
+        >
+          Voltar
         </StampButton>
-      ) : (
-        <StampButton onClick={onFinish} disabled={!canProceed} className="min-h-[44px] w-full sm:w-auto">
-          Finalizar
-        </StampButton>
-      )}
+        {currentStep < totalSteps ? (
+          <StampButton
+            onClick={onNext}
+            disabled={nextBlocked}
+            title={navStatus ?? undefined}
+            className="min-h-12 flex-[1.35] sm:min-h-11 sm:flex-none sm:w-auto sm:min-w-[9rem]"
+          >
+            Próximo
+          </StampButton>
+        ) : (
+          <StampButton
+            onClick={onFinish}
+            disabled={nextBlocked}
+            title={navStatus ?? undefined}
+            className="min-h-12 flex-[1.35] sm:min-h-11 sm:flex-none sm:w-auto sm:min-w-[9rem]"
+          >
+            Finalizar
+          </StampButton>
+        )}
+      </div>
     </div>
   )
 
   return (
-    <>
-      <div className="flex flex-col w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3 scrollbar-hide pr-1">
+    <div className="flex flex-col w-full min-h-0 flex-1">
+      <div
+        ref={stepScrollRef}
+        className="flex flex-col w-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3 scrollbar-hide pr-1"
+      >
         {currentStep === 0 &&
-          (selectedRaca ? (
+          (selectedRaca && raceDetailOpen ? (
             <LazySelectionDetailsPanel
               type="race"
               selectedId={selectedRaca}
+              previewId={previewRaca}
               getItemById={getRaceById}
-              onBack={onRacaClear}
-              onSelect={(id) => onRacaSelect(id)}
-              headerActions={
-                <div className="flex flex-wrap items-center gap-2">
-                  <StampButton tone="ghost" onClick={onBack} disabled={currentStep === 0} className="min-h-[44px]">
-                    Voltar
-                  </StampButton>
-                  {currentStep < totalSteps ? (
-                    <StampButton onClick={onNext} disabled={!canProceed} className="min-h-[44px]">
-                      Próximo
-                    </StampButton>
-                  ) : (
-                    <StampButton onClick={onFinish} disabled={!canProceed} className="min-h-[44px]">
-                      Finalizar
-                    </StampButton>
-                  )}
-                </div>
-              }
+              availableRaces={availableRaces}
+              onBack={() => {
+                setPreviewRaca(null)
+                setRaceDetailOpen(false)
+              }}
+              onPreview={(id) => {
+                if (id === selectedRaca) {
+                  setPreviewRaca(null)
+                  return
+                }
+                setPreviewRaca(id)
+              }}
+              onCommitPreview={() => {
+                if (!previewRaca) return
+                onRacaSelect(previewRaca)
+                setPreviewRaca(null)
+              }}
+              onDismissPreview={() => setPreviewRaca(null)}
             />
           ) : (
-            <LazyRaceSelectionStep selectedRaca={selectedRaca} onRacaSelect={onRacaSelect} availableRaces={availableRaces} />
+            <LazyRaceSelectionStep
+              selectedRaca={selectedRaca}
+              onRacaSelect={(id) => {
+                onRacaSelect(id)
+                setPreviewRaca(null)
+                setRaceDetailOpen(true)
+              }}
+              availableRaces={availableRaces}
+            />
           ))}
 
         {currentStep === 1 && (
@@ -372,8 +443,8 @@ function WizardStepRenderer({
         )}
       </div>
 
-      {!(currentStep === 0 && selectedRaca) && navButtons()}
-    </>
+      {navDock}
+    </div>
   )
 }
 

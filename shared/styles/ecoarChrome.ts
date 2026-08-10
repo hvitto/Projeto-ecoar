@@ -14,19 +14,25 @@ export const disabledPanel =
   'border-ecoar-teal/15 dark:border-ecoar-teal/10 bg-white/40 dark:bg-ecoar-dark-800/40 opacity-40 cursor-not-allowed'
 
 export const kicker =
-  'text-[10px] uppercase tracking-[0.18em] text-ecoar-teal-700 dark:text-ecoar-teal'
+  'text-xs uppercase tracking-[0.18em] text-[#2f6f73] dark:text-ecoar-teal'
+
+export const statusLabel =
+  'text-xs uppercase tracking-[0.14em] text-[#2f6f73] dark:text-ecoar-teal font-normal'
+
+export const plateMeta =
+  'text-xs uppercase tracking-[0.14em] text-[#c5c8ce] font-normal'
 
 export const displayTitle =
   'font-display uppercase tracking-[-0.02em] text-ecoar-dark-900 dark:text-ecoar-light-900'
 
 export const microLabel =
-  'text-[9px] uppercase tracking-[0.14em] text-ecoar-dark-500 dark:text-[#adb5bd]'
+  'text-xs uppercase tracking-[0.14em] text-ecoar-dark-500 dark:text-[#c5c8ce]'
 
 export const mutedBody =
   'text-xs leading-relaxed text-ecoar-dark-500 dark:text-[#adb5bd]'
 
 export const accentTag =
-  'text-[10px] uppercase tracking-[0.12em] text-ecoar-magenta'
+  'text-xs uppercase tracking-[0.12em] text-ecoar-magenta-900 dark:text-ecoar-magenta'
 
 export const ctaPrimary =
   'bg-ecoar-magenta text-[var(--ecoar-accent-ink)] hover:brightness-110 rounded-none font-bold uppercase tracking-[0.12em] text-[10px]'
