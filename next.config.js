@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.ecoar.dev' }],
+        destination: 'https://ecoar.dev/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
